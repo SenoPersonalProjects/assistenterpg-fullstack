@@ -3,6 +3,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CampanhaController } from './campanha.controller';
 import { CampanhaService } from './campanha.service';
 import { CampanhaMacrosService } from './campanha.macros.service';
+import { CampanhaRoletaService } from './campanha.roleta.service';
+import { CampanhaGateway } from './campanha.gateway';
 
 describe('CampanhaController', () => {
   let controller: CampanhaController;
@@ -42,6 +44,14 @@ describe('CampanhaController', () => {
         },
         {
           provide: CampanhaMacrosService,
+          useValue: {},
+        },
+        {
+          provide: CampanhaRoletaService,
+          useValue: {},
+        },
+        {
+          provide: CampanhaGateway,
           useValue: {},
         },
       ],
