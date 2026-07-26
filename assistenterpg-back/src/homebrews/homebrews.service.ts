@@ -892,21 +892,72 @@ export class HomebrewsService {
       tx,
     );
     const homebrew = await client.homebrew.create({
-      data: {
-        codigo,
-        nome: item.nome,
-        descricao: item.descricao ?? null,
-        tipo: item.tipo,
-        status: item.status ?? StatusPublicacao.RASCUNHO,
-        dados: this.normalizarJsonParaPersistir(item.dados),
-        tags: this.normalizarJsonParaPersistir(item.tags ?? []),
-        versao: item.versao ?? '1.0.0',
-        usuarioId,
-      },
+      data: this.montarDadosHomebrewImportado(usuarioId, item, codigo),
       include: homebrewDetalhadoInclude,
     });
 
     return this.mapDetalhado(homebrew);
+  }
+
+  private montarDadosHomebrewImportado(
+    usuarioId: number,
+    item: HomebrewImportItem,
+    codigo: string,
+  ): Prisma.HomebrewUncheckedCreateInput {
+    return {
+      codigo,
+      nome: item.nome,
+      descricao: item.descricao ?? null,
+      tipo: item.tipo,
+      status: item.status ?? StatusPublicacao.RASCUNHO,
+      dados: this.normalizarJsonParaPersistir(item.dados),
+      tags: this.normalizarJsonParaPersistir(item.tags ?? []),
+      versao: item.versao ?? '1.0.0',
+      usuarioId,
+    };
+  }
+
+  private async prepararHomebrewsImportados(
+    usuarioId: number,
+    itens: HomebrewImportItem[],
+  ): Promise<Array<{ item: HomebrewImportItem; codigo: string }>> {
+    await Promise.all(
+      itens.map(async (item) => {
+        await validateHomebrewDados(item.tipo, item.dados);
+        this.validarDadosCustomizados(item.tipo, item.dados);
+      }),
+    );
+
+    const codigosPreferenciais = [
+      ...new Set(
+        itens
+          .map((item) => item.codigo?.trim())
+          .filter((codigo): codigo is string => Boolean(codigo)),
+      ),
+    ];
+    const existentes =
+      codigosPreferenciais.length > 0
+        ? await this.prisma.homebrew.findMany({
+            where: { codigo: { in: codigosPreferenciais } },
+            select: { codigo: true },
+          })
+        : [];
+    const codigosOcupados = new Set(existentes.map((item) => item.codigo));
+
+    return itens.map((item) => {
+      const preferencial = item.codigo?.trim();
+      let codigo =
+        preferencial && !codigosOcupados.has(preferencial)
+          ? preferencial
+          : this.gerarCodigoImportacao(usuarioId, preferencial);
+
+      while (codigosOcupados.has(codigo)) {
+        codigo = this.gerarCodigoImportacao(usuarioId, preferencial);
+      }
+      codigosOcupados.add(codigo);
+
+      return { item, codigo };
+    });
   }
 
   private gerarCodigoEquipamentoHomebrew(homebrewId: number): string {
@@ -1981,39 +2032,55 @@ export class HomebrewsService {
           this.normalizarItemImportado(item, `Homebrew ${index + 1}`),
         );
 
-        const resultado = await this.prisma.$transaction(async (tx) => {
-          const importados: HomebrewDetalhadoDto[] = [];
-          for (const item of itens) {
-            importados.push(
-              await this.persistirHomebrewImportado(usuarioId, item, tx),
-            );
-          }
-
-          const grupo = await tx.homebrewGrupo.create({
-            data: {
-              usuarioId,
-              nome: nomeGrupo,
-              descricao: descricaoGrupo,
-              itens: {
-                create: importados.map((homebrew) => ({
-                  homebrewId: homebrew.id,
-                })),
+        const preparados = await this.prepararHomebrewsImportados(
+          usuarioId,
+          itens,
+        );
+        const grupo = await this.prisma.executarTransacao(
+          'homebrew.importarGrupo',
+          (tx) =>
+            tx.homebrewGrupo.create({
+              data: {
+                usuarioId,
+                nome: nomeGrupo,
+                descricao: descricaoGrupo,
+                itens: {
+                  create: preparados.map(({ item, codigo }) => ({
+                    homebrew: {
+                      create: this.montarDadosHomebrewImportado(
+                        usuarioId,
+                        item,
+                        codigo,
+                      ),
+                    },
+                  })),
+                },
               },
-            },
-          });
-
-          return { grupo, importados };
-        });
+              include: {
+                itens: {
+                  orderBy: { id: 'asc' },
+                  include: {
+                    homebrew: {
+                      include: homebrewDetalhadoInclude,
+                    },
+                  },
+                },
+              },
+            }),
+        );
+        const importados = grupo.itens.map(({ homebrew }) =>
+          this.mapDetalhado(homebrew),
+        );
 
         return {
           importType: 'homebrew-group',
-          importedCount: resultado.importados.length,
-          ids: resultado.importados.map((item) => item.id),
+          importedCount: importados.length,
+          ids: importados.map((item) => item.id),
           group: {
-            id: resultado.grupo.id,
-            nome: resultado.grupo.nome,
+            id: grupo.id,
+            nome: grupo.nome,
           },
-          items: resultado.importados.map((item) => ({
+          items: importados.map((item) => ({
             id: item.id,
             nome: item.nome,
             codigo: item.codigo,

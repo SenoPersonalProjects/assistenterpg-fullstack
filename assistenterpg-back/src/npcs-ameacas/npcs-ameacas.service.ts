@@ -31,8 +31,6 @@ type NpcAmeacaGrupoModel = Prisma.NpcAmeacaGrupoGetPayload<{
     };
   };
 }>;
-type NpcAmeacaDetalheMapeado = ReturnType<NpcsAmeacasService['mapearDetalhe']>;
-
 type PericiaCatalogo = {
   codigo: string;
   nome: string;
@@ -494,12 +492,15 @@ export class NpcsAmeacasService {
   private async normalizarPericiasEspeciais(
     entradas: PericiaEspecialEntrada[],
     atributos: AtributosNpc,
+    catalogoCarregado?: PericiaCatalogo[],
   ): Promise<Array<Record<string, unknown>>> {
     if (!entradas.length) return [];
 
-    const catalogo = await this.prisma.pericia.findMany({
-      select: { codigo: true, nome: true, atributoBase: true },
-    });
+    const catalogo =
+      catalogoCarregado ??
+      (await this.prisma.pericia.findMany({
+        select: { codigo: true, nome: true, atributoBase: true },
+      }));
 
     const porCodigo = new Map<string, PericiaCatalogo>();
     for (const pericia of catalogo) {
@@ -629,62 +630,75 @@ export class NpcsAmeacasService {
     usuarioId: number,
     dto: CreateNpcAmeacaDto,
     tx?: Prisma.TransactionClient,
+    catalogoPericias?: PericiaCatalogo[],
   ) {
+    const data = await this.prepararDadosNpcAmeaca(
+      usuarioId,
+      dto,
+      catalogoPericias,
+    );
+    const client = tx ?? this.prisma;
+    const npcAmeaca = await client.npcAmeaca.create({ data });
+
+    return this.mapearDetalhe(npcAmeaca);
+  }
+
+  private async prepararDadosNpcAmeaca(
+    usuarioId: number,
+    dto: CreateNpcAmeacaDto,
+    catalogoPericias?: PericiaCatalogo[],
+  ): Promise<Prisma.NpcAmeacaCreateInput> {
     const atributos = this.montarAtributosNpc(dto);
     const periciasEspeciais = await this.normalizarPericiasEspeciais(
       (dto.periciasEspeciais as PericiaEspecialEntrada[] | undefined) ?? [],
       atributos,
+      catalogoPericias,
     );
 
-    const client = tx ?? this.prisma;
-    const npcAmeaca = await client.npcAmeaca.create({
-      data: {
-        dono: {
-          connect: {
-            id: usuarioId,
-          },
+    return {
+      dono: {
+        connect: {
+          id: usuarioId,
         },
-        nome: dto.nome.trim(),
-        descricao: this.normalizarTexto(dto.descricao) ?? null,
-        fichaTipo: dto.fichaTipo ?? TipoFichaNpcAmeaca.AMEACA,
-        tipo: dto.tipo,
-        tamanho: dto.tamanho,
-        vd: dto.vd,
-        agilidade: dto.agilidade,
-        forca: dto.forca,
-        intelecto: dto.intelecto,
-        presenca: dto.presenca,
-        vigor: dto.vigor,
-        percepcao: dto.percepcao,
-        iniciativa: dto.iniciativa,
-        fortitude: dto.fortitude,
-        reflexos: dto.reflexos,
-        vontade: dto.vontade,
-        luta: dto.luta,
-        jujutsu: dto.jujutsu,
-        percepcaoDados: dto.percepcaoDados,
-        iniciativaDados: dto.iniciativaDados,
-        fortitudeDados: dto.fortitudeDados,
-        reflexosDados: dto.reflexosDados,
-        vontadeDados: dto.vontadeDados,
-        lutaDados: dto.lutaDados,
-        jujutsuDados: dto.jujutsuDados,
-        defesa: dto.defesa,
-        pontosVida: dto.pontosVida,
-        machucado: dto.machucado ?? undefined,
-        deslocamentoMetros: dto.deslocamentoMetros,
-        periciasEspeciais: this.normalizarJsonParaPersistir(periciasEspeciais),
-        resistencias: this.normalizarJsonParaPersistir(dto.resistencias ?? []),
-        vulnerabilidades: this.normalizarJsonParaPersistir(
-          dto.vulnerabilidades ?? [],
-        ),
-        passivas: this.normalizarJsonParaPersistir(dto.passivas ?? []),
-        acoes: this.normalizarJsonParaPersistir(dto.acoes ?? []),
-        usoTatico: this.normalizarTexto(dto.usoTatico) ?? null,
       },
-    });
-
-    return this.mapearDetalhe(npcAmeaca);
+      nome: dto.nome.trim(),
+      descricao: this.normalizarTexto(dto.descricao) ?? null,
+      fichaTipo: dto.fichaTipo ?? TipoFichaNpcAmeaca.AMEACA,
+      tipo: dto.tipo,
+      tamanho: dto.tamanho,
+      vd: dto.vd,
+      agilidade: dto.agilidade,
+      forca: dto.forca,
+      intelecto: dto.intelecto,
+      presenca: dto.presenca,
+      vigor: dto.vigor,
+      percepcao: dto.percepcao,
+      iniciativa: dto.iniciativa,
+      fortitude: dto.fortitude,
+      reflexos: dto.reflexos,
+      vontade: dto.vontade,
+      luta: dto.luta,
+      jujutsu: dto.jujutsu,
+      percepcaoDados: dto.percepcaoDados,
+      iniciativaDados: dto.iniciativaDados,
+      fortitudeDados: dto.fortitudeDados,
+      reflexosDados: dto.reflexosDados,
+      vontadeDados: dto.vontadeDados,
+      lutaDados: dto.lutaDados,
+      jujutsuDados: dto.jujutsuDados,
+      defesa: dto.defesa,
+      pontosVida: dto.pontosVida,
+      machucado: dto.machucado ?? undefined,
+      deslocamentoMetros: dto.deslocamentoMetros,
+      periciasEspeciais: this.normalizarJsonParaPersistir(periciasEspeciais),
+      resistencias: this.normalizarJsonParaPersistir(dto.resistencias ?? []),
+      vulnerabilidades: this.normalizarJsonParaPersistir(
+        dto.vulnerabilidades ?? [],
+      ),
+      passivas: this.normalizarJsonParaPersistir(dto.passivas ?? []),
+      acoes: this.normalizarJsonParaPersistir(dto.acoes ?? []),
+      usoTatico: this.normalizarTexto(dto.usoTatico) ?? null,
+    };
   }
 
   async listarDoUsuario(usuarioId: number, filtros: ListarNpcsAmeacasDto) {
@@ -1096,37 +1110,53 @@ export class NpcsAmeacasService {
           this.normalizarNpcImportado(item, `NPC/Ameaça ${index + 1}`),
         );
 
-        const resultado = await this.prisma.$transaction(async (tx) => {
-          const importados: NpcAmeacaDetalheMapeado[] = [];
-          for (const item of itens) {
-            importados.push(await this.criarRegistro(usuarioId, item, tx));
-          }
-
-          const grupo = await tx.npcAmeacaGrupo.create({
-            data: {
-              usuarioId,
-              nome: nomeGrupo,
-              descricao: descricaoGrupo,
-              itens: {
-                create: importados.map((npc) => ({
-                  npcAmeacaId: npc.id,
-                })),
-              },
-            },
-          });
-
-          return { grupo, importados };
+        const catalogoPericias = await this.prisma.pericia.findMany({
+          select: { codigo: true, nome: true, atributoBase: true },
         });
+        const itensPreparados = await Promise.all(
+          itens.map((item) =>
+            this.prepararDadosNpcAmeaca(usuarioId, item, catalogoPericias),
+          ),
+        );
+        const grupo = await this.prisma.executarTransacao(
+          'npcAmeaca.importarGrupo',
+          (tx) =>
+            tx.npcAmeacaGrupo.create({
+              data: {
+                usuarioId,
+                nome: nomeGrupo,
+                descricao: descricaoGrupo,
+                itens: {
+                  create: itensPreparados.map((data) => ({
+                    npcAmeaca: {
+                      create: data,
+                    },
+                  })),
+                },
+              },
+              include: {
+                itens: {
+                  orderBy: { id: 'asc' },
+                  include: {
+                    npcAmeaca: true,
+                  },
+                },
+              },
+            }),
+        );
+        const importados = grupo.itens.map(({ npcAmeaca }) =>
+          this.mapearDetalhe(npcAmeaca),
+        );
 
         return {
           importType: 'npc-ameaca-group',
-          importedCount: resultado.importados.length,
-          ids: resultado.importados.map((item) => item.id),
+          importedCount: importados.length,
+          ids: importados.map((item) => item.id),
           group: {
-            id: resultado.grupo.id,
-            nome: resultado.grupo.nome,
+            id: grupo.id,
+            nome: grupo.nome,
           },
-          items: resultado.importados.map((item) => ({
+          items: importados.map((item) => ({
             id: item.id,
             nome: item.nome,
           })),

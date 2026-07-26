@@ -13,7 +13,10 @@ import {
 } from '@prisma/client';
 
 // ✅ IMPORTAR InventarioService
-import { InventarioService } from '../inventario/inventario.service';
+import {
+  InventarioService,
+  type ItemInventarioBasePreparado,
+} from '../inventario/inventario.service';
 
 // ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
@@ -1073,58 +1076,20 @@ export class PersonagemBaseService {
     return clone;
   }
 
-  private async sincronizarItensInventarioNoUpdate(
-    donoId: number,
+  private async persistirInventarioSeInformado(
     personagemBaseId: number,
-    itensInventario: ItemInventarioDto[] | undefined,
+    itensPreparados: ItemInventarioBasePreparado[] | undefined,
+    espacosInventarioExtraBase: number,
     tx: Prisma.TransactionClient,
   ): Promise<void> {
-    if (itensInventario === undefined) {
-      return;
-    }
+    if (itensPreparados === undefined) return;
 
-    await tx.inventarioItemBaseModificacao.deleteMany({
-      where: {
-        item: {
-          personagemBaseId,
-        },
-      },
-    });
-
-    await tx.inventarioItemBase.deleteMany({
-      where: { personagemBaseId },
-    });
-
-    if (itensInventario.length === 0) {
-      await tx.personagemBase.update({
-        where: { id: personagemBaseId },
-        data: {
-          espacosOcupados: 0,
-          sobrecarregado: false,
-        },
-      });
-      return;
-    }
-
-    for (const item of itensInventario) {
-      await this.inventarioService.adicionarItem(
-        donoId,
-        {
-          personagemBaseId,
-          equipamentoId: item.equipamentoId,
-          quantidade: item.quantidade,
-          equipado: item.equipado ?? false,
-          modificacoes: item.modificacoesIds ?? [],
-          nomeCustomizado: item.nomeCustomizado,
-          notas: item.notas,
-          estado: item.estado,
-        },
-        {
-          tx,
-          skipOwnershipCheck: true,
-        },
-      );
-    }
+    await this.inventarioService.substituirInventarioBasePreparado(
+      personagemBaseId,
+      itensPreparados,
+      tx,
+      espacosInventarioExtraBase,
+    );
   }
 
   private async resolverIdComReferencia(params: {
@@ -2739,6 +2704,30 @@ export class PersonagemBaseService {
       strictPassivas: true,
       prisma: this.prisma,
     });
+    const inventarioMods = this.calcularModificadoresDerivadosPorHabilidades(
+      estado.habilidades,
+      dtoSemItensInventario.nivel,
+    );
+    const [tecnicasNaoInatasAtivas, itensInventarioPreparados] =
+      await Promise.all([
+        this.listarTecnicasNaoInatasAtivasPorGraus(
+          estado.grausFinais,
+          this.prisma,
+        ),
+        dto.itensInventario !== undefined
+          ? this.inventarioService.prepararSubstituicaoInventarioBase(
+              dto.itensInventario,
+              {
+                espacosInventarioBase: estado.espacosInventario.base,
+                espacosInventarioExtraBase: estado.espacosInventario.extra,
+                reduzirItensLeves: inventarioMods.inventarioReduzirItensLeves,
+                reduzirCategoriaEm: inventarioMods.inventarioReduzirCategoriaEm,
+                reduzirCategoriaExcetoTipos:
+                  inventarioMods.inventarioReduzirCategoriaExcetoTipos,
+              },
+            )
+          : Promise.resolve(undefined),
+      ]);
 
     const dataBase = this.limparUndefined({
       ...estado.dtoNormalizado,
@@ -2758,12 +2747,6 @@ export class PersonagemBaseService {
     });
 
     const personagem = await this.prisma.$transaction(async (tx) => {
-      const tecnicasNaoInatasAtivas =
-        await this.listarTecnicasNaoInatasAtivasPorGraus(
-          estado.grausFinais,
-          tx,
-        );
-
       const personagemCriado = await this.persistence.criarComEstado(
         {
           donoId,
@@ -2777,29 +2760,12 @@ export class PersonagemBaseService {
         tx,
       );
 
-      // ✅ ADICIONAR itens via InventarioService (COM validação de Grau Xamã)
-      if (dto.itensInventario && dto.itensInventario.length > 0) {
-        for (const item of dto.itensInventario) {
-          await this.inventarioService.adicionarItem(
-            donoId,
-            {
-              personagemBaseId: personagemCriado.id,
-              equipamentoId: item.equipamentoId,
-              quantidade: item.quantidade,
-              equipado: item.equipado ?? false,
-              modificacoes: item.modificacoesIds ?? [],
-              nomeCustomizado: item.nomeCustomizado,
-              notas: item.notas,
-              estado: item.estado,
-              // ✅ NÃO ignorar limites (preview já validou se o usuário permitiu)
-            },
-            {
-              tx, // ✅ PASSAR TRANSAÇÃO
-              skipOwnershipCheck: true, // ✅ SKIP VALIDAÇÃO DE OWNERSHIP (personagem sendo criado)
-            },
-          );
-        }
-      }
+      await this.persistirInventarioSeInformado(
+        personagemCriado.id,
+        itensInventarioPreparados,
+        estado.espacosInventario.extra,
+        tx,
+      );
 
       if (estado.dtoNormalizado.tecnicaInataId) {
         const tecnicaInataPropriaId =
@@ -3166,19 +3132,37 @@ export class PersonagemBaseService {
       this.prisma,
     );
 
-    const atualizado = await this.prisma.$transaction(async (tx) => {
-      const estado = await this.executarEngine(dtoCompleto, {
-        strictPassivas: true,
-        prisma: tx,
-        personagemBaseId: id,
-      });
-
-      const tecnicasNaoInatasAtivas =
-        await this.listarTecnicasNaoInatasAtivasPorGraus(
+    const estado = await this.executarEngine(dtoCompleto, {
+      strictPassivas: true,
+      prisma: this.prisma,
+      personagemBaseId: id,
+    });
+    const inventarioMods = this.calcularModificadoresDerivadosPorHabilidades(
+      estado.habilidades,
+      dtoCompleto.nivel,
+    );
+    const [tecnicasNaoInatasAtivas, itensInventarioPreparados] =
+      await Promise.all([
+        this.listarTecnicasNaoInatasAtivasPorGraus(
           estado.grausFinais,
-          tx,
-        );
+          this.prisma,
+        ),
+        dto.itensInventario !== undefined
+          ? this.inventarioService.prepararSubstituicaoInventarioBase(
+              dto.itensInventario,
+              {
+                espacosInventarioBase: estado.espacosInventario.base,
+                espacosInventarioExtraBase: estado.espacosInventario.extra,
+                reduzirItensLeves: inventarioMods.inventarioReduzirItensLeves,
+                reduzirCategoriaEm: inventarioMods.inventarioReduzirCategoriaEm,
+                reduzirCategoriaExcetoTipos:
+                  inventarioMods.inventarioReduzirCategoriaExcetoTipos,
+              },
+            )
+          : Promise.resolve(undefined),
+      ]);
 
+    const atualizado = await this.prisma.$transaction(async (tx) => {
       const dataUpdateBase = this.limparUndefined({
         nome: estado.dtoNormalizado.nome,
         nivel: estado.dtoNormalizado.nivel,
@@ -3257,14 +3241,10 @@ export class PersonagemBaseService {
         tx,
       );
 
-      // ✅ INVENTÁRIO: Delegar COMPLETAMENTE para InventarioService
-      // O service já possui atualizarEstadoInventario() que recalcula tudo
-      // Apenas atualizamos espacosInventarioBase/Extra aqui (força mudou?)
-
-      await this.sincronizarItensInventarioNoUpdate(
-        donoId,
+      await this.persistirInventarioSeInformado(
         id,
-        dto.itensInventario,
+        itensInventarioPreparados,
+        estado.espacosInventario.extra,
         tx,
       );
 

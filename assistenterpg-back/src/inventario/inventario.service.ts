@@ -22,6 +22,8 @@ import {
   ResumoInventarioCompleto,
 } from './engine/inventario.types';
 import { calcularBloqueioEsquiva } from '../personagem-base/regras-criacao/regras-derivados';
+import { extrairResistenciasDeHabilidades } from '../personagem-base/regras-criacao/regras-poderes-efeitos';
+import { somarMapasResistencias } from '../personagem-base/regras-criacao/resistencias-personagem';
 import {
   calcularAtributoBaseInventario,
   calcularEspacosInventarioBase,
@@ -95,9 +97,60 @@ type ModificacaoCalculoEntity = Prisma.ModificacaoEquipamentoGetPayload<{
   select: typeof modificacaoCalculoSelect;
 }>;
 
+type ModificacaoPreviewEntity = Prisma.ModificacaoEquipamentoGetPayload<{
+  select: typeof modificacaoPreviewSelect;
+}>;
+
+const equipamentoPreparacaoInventarioInclude =
+  Prisma.validator<Prisma.EquipamentoCatalogoInclude>()({
+    danos: {
+      orderBy: { ordem: 'asc' },
+    },
+    reducesDano: true,
+    protecaoAmaldicoada: true,
+  });
+
+type EquipamentoPreparacaoInventario = Prisma.EquipamentoCatalogoGetPayload<{
+  include: typeof equipamentoPreparacaoInventarioInclude;
+}>;
+
+export type ItemSubstituicaoInventarioBase = {
+  equipamentoId: number;
+  quantidade: number;
+  equipado?: boolean;
+  modificacoesIds?: number[];
+  nomeCustomizado?: string | null;
+  notas?: string | null;
+  estado?: unknown;
+};
+
+export type ItemInventarioBasePreparado = {
+  equipamentoId: number;
+  quantidade: number;
+  equipado: boolean;
+  modificacoesIds: number[];
+  nomeCustomizado: string | null;
+  notas: string | null;
+  estado: Prisma.JsonObject;
+  categoriaCalculada: CategoriaEquipamento;
+  espacosCalculados: number;
+};
+
+export type OpcoesPreparacaoInventarioBase = {
+  espacosInventarioBase: number;
+  espacosInventarioExtraBase: number;
+  reduzirItensLeves: boolean;
+  reduzirCategoriaEm: number;
+  reduzirCategoriaExcetoTipos: string[];
+};
+
 const personagemInventarioSelect =
   Prisma.validator<Prisma.PersonagemBaseSelect>()({
+    agilidade: true,
     forca: true,
+    intelecto: true,
+    presenca: true,
+    vigor: true,
     espacosInventarioBase: true,
     defesaBase: true,
     defesaEquipamento: true,
@@ -109,6 +162,24 @@ const personagemInventarioSelect =
         grauTreinamento: true,
         bonusExtra: true,
         pericia: { select: { codigo: true } },
+      },
+    },
+    habilidadesBase: {
+      select: {
+        habilidade: {
+          select: {
+            mecanicasEspeciais: true,
+          },
+        },
+      },
+    },
+    poderesGenericos: {
+      select: {
+        habilidade: {
+          select: {
+            mecanicasEspeciais: true,
+          },
+        },
       },
     },
   });
@@ -244,6 +315,329 @@ export class InventarioService {
     );
     if (totalFuncoesAdicionais <= 1) return totalBase;
     return totalBase + (totalFuncoesAdicionais - 1);
+  }
+
+  private extrairCodigosPericiaDosEstados(
+    itens: ItemSubstituicaoInventarioBase[],
+  ): string[] {
+    const codigos = new Set<string>();
+
+    for (const item of itens) {
+      if (!this.isRecord(item.estado)) continue;
+
+      const periciaCodigo = item.estado.periciaCodigo;
+      if (typeof periciaCodigo === 'string' && periciaCodigo.trim()) {
+        codigos.add(periciaCodigo.trim().toUpperCase());
+      }
+
+      const funcoesAdicionais = item.estado.funcoesAdicionaisPericias;
+      if (!Array.isArray(funcoesAdicionais)) continue;
+
+      for (const codigo of funcoesAdicionais) {
+        if (typeof codigo === 'string' && codigo.trim()) {
+          codigos.add(codigo.trim().toUpperCase());
+        }
+      }
+    }
+
+    return Array.from(codigos);
+  }
+
+  private montarItemParaEngine(
+    item: ItemInventarioBasePreparado,
+    equipamento: EquipamentoPreparacaoInventario,
+    modificacoes: ModificacaoPreviewEntity[],
+    reduzirItensLeves: boolean,
+  ): ItemInventarioComDados {
+    return {
+      id: 0,
+      equipamentoId: item.equipamentoId,
+      quantidade: item.quantidade,
+      equipado: item.equipado,
+      nomeCustomizado: item.nomeCustomizado,
+      notas: item.notas,
+      estado: item.estado,
+      categoriaCalculada: item.categoriaCalculada,
+      reduzirItensLeves,
+      equipamento,
+      modificacoes: modificacoes.map((modificacao) => ({
+        modificacao,
+      })),
+    };
+  }
+
+  async prepararSubstituicaoInventarioBase(
+    itens: ItemSubstituicaoInventarioBase[],
+    opcoes: OpcoesPreparacaoInventarioBase,
+  ): Promise<ItemInventarioBasePreparado[]> {
+    if (itens.length === 0) return [];
+
+    const equipamentosIds = [
+      ...new Set(itens.map((item) => item.equipamentoId)),
+    ];
+    const modificacoesIds = [
+      ...new Set(itens.flatMap((item) => item.modificacoesIds ?? [])),
+    ];
+    const codigosPericia = this.extrairCodigosPericiaDosEstados(itens);
+
+    const equipamentosPromise = this.prisma.equipamentoCatalogo.findMany({
+      where: { id: { in: equipamentosIds } },
+      include: equipamentoPreparacaoInventarioInclude,
+    });
+    const modificacoesPromise: Promise<ModificacaoPreviewEntity[]> =
+      modificacoesIds.length > 0
+        ? this.prisma.modificacaoEquipamento.findMany({
+            where: { id: { in: modificacoesIds } },
+            select: modificacaoPreviewSelect,
+          })
+        : Promise.resolve([]);
+    const compatibilidadesPromise: Promise<
+      Array<{ equipamentoId: number; modificacaoId: number }>
+    > =
+      modificacoesIds.length > 0
+        ? this.prisma.equipamentoModificacaoAplicavel.findMany({
+            where: {
+              equipamentoId: { in: equipamentosIds },
+              modificacaoId: { in: modificacoesIds },
+            },
+            select: {
+              equipamentoId: true,
+              modificacaoId: true,
+            },
+          })
+        : Promise.resolve([]);
+    const periciasPromise: Promise<Array<{ codigo: string }>> =
+      codigosPericia.length > 0
+        ? this.prisma.pericia.findMany({
+            where: { codigo: { in: codigosPericia } },
+            select: { codigo: true },
+          })
+        : Promise.resolve([]);
+    const [equipamentos, modificacoes, compatibilidades, pericias] =
+      await Promise.all([
+        equipamentosPromise,
+        modificacoesPromise,
+        compatibilidadesPromise,
+        periciasPromise,
+      ]);
+
+    const equipamentosMap = new Map(
+      equipamentos.map((equipamento) => [equipamento.id, equipamento]),
+    );
+    const modificacoesMap = new Map(
+      modificacoes.map((modificacao) => [modificacao.id, modificacao] as const),
+    );
+    const compatibilidadesSet = new Set(
+      compatibilidades.map(
+        ({ equipamentoId, modificacaoId }) =>
+          `${equipamentoId}:${modificacaoId}`,
+      ),
+    );
+    const periciasSet = new Set(pericias.map((pericia) => pericia.codigo));
+    const periciaLookup = {
+      pericia: {
+        findUnique: (args: {
+          where: { codigo: string };
+          select: { codigo: true };
+        }) =>
+          Promise.resolve(
+            periciasSet.has(args.where.codigo)
+              ? { codigo: args.where.codigo }
+              : null,
+          ),
+      },
+    };
+
+    const itensComDados = await Promise.all(
+      itens.map(async (item) => {
+        const equipamento = equipamentosMap.get(item.equipamentoId);
+        if (!equipamento) {
+          throw new InventarioEquipamentoNaoEncontradoException(
+            item.equipamentoId,
+          );
+        }
+
+        const idsItem = item.modificacoesIds ?? [];
+        const idsUnicosItem = new Set(idsItem);
+        if (idsUnicosItem.size !== idsItem.length) {
+          const duplicado = idsItem.find(
+            (id, index) => idsItem.indexOf(id) !== index,
+          );
+          throw new InventarioModificacaoInvalidaException(
+            duplicado === undefined ? [] : [duplicado],
+          );
+        }
+
+        const modificacoesItem = idsItem.map((id) => {
+          const modificacao = modificacoesMap.get(id);
+          if (!modificacao) {
+            throw new InventarioModificacaoInvalidaException([id]);
+          }
+          if (!compatibilidadesSet.has(`${item.equipamentoId}:${id}`)) {
+            throw new InventarioModificacaoIncompativelException(
+              id,
+              item.equipamentoId,
+            );
+          }
+          return modificacao;
+        });
+
+        const estadoNormalizado =
+          await validarENormalizarEstadoItemPersonalizado(
+            periciaLookup,
+            equipamento,
+            item.estado,
+            {
+              modificacoes: modificacoesItem,
+              periciaBaseBonificada: equipamento.periciaBonificada,
+            },
+          );
+        const categoriaCalculada = this.engine.calcularCategoriaFinal(
+          equipamento.categoria,
+          this.contarModificacoesEfetivas({
+            modificacoes: modificacoesItem,
+            estado: estadoNormalizado,
+          }),
+        );
+        const espacosBaseItem = this.ajustarEspacosBaseItem(
+          equipamento.espacos,
+          opcoes.reduzirItensLeves,
+        );
+        const incrementoModificacoes = modificacoesItem.reduce(
+          (total, modificacao) => total + (modificacao.incrementoEspacos ?? 0),
+          0,
+        );
+        const preparado: ItemInventarioBasePreparado = {
+          equipamentoId: item.equipamentoId,
+          quantidade: item.quantidade,
+          equipado: item.equipado ?? false,
+          modificacoesIds: idsItem,
+          nomeCustomizado: item.nomeCustomizado ?? null,
+          notas: item.notas ?? null,
+          estado: estadoNormalizado as Prisma.JsonObject,
+          categoriaCalculada,
+          espacosCalculados: Math.max(
+            0,
+            espacosBaseItem + incrementoModificacoes,
+          ),
+        };
+
+        return {
+          preparado,
+          equipamento,
+          modificacoes: modificacoesItem,
+        };
+      }),
+    );
+
+    const itensComCategoriaReduzida = this.aplicarReducaoCategoriaEmItensRaw(
+      itensComDados.map(({ preparado, equipamento, modificacoes }) => ({
+        preparado,
+        equipamento,
+        modificacoes,
+        categoriaCalculada: preparado.categoriaCalculada,
+        espacosCalculados: preparado.espacosCalculados,
+        quantidade: preparado.quantidade,
+      })),
+      opcoes.reduzirCategoriaEm,
+      opcoes.reduzirCategoriaExcetoTipos,
+    );
+    const itensEngine = itensComCategoriaReduzida.map((item) => {
+      const preparado = {
+        ...item.preparado,
+        categoriaCalculada: normalizarCategoriaEquipamento(
+          item.categoriaCalculada,
+        ),
+      };
+      return this.montarItemParaEngine(
+        preparado,
+        item.equipamento,
+        item.modificacoes,
+        opcoes.reduzirItensLeves,
+      );
+    });
+
+    const validacaoVestir = this.engine.validarSistemaVestir(itensEngine);
+    if (!validacaoVestir.valido) {
+      throw new InventarioLimiteVestirExcedidoException({
+        erros: validacaoVestir.erros,
+        totalVestiveis: validacaoVestir.totalVestiveis,
+        totalVestimentas: validacaoVestir.totalVestimentas,
+        limiteVestiveis: validacaoVestir.limiteVestiveis,
+        limiteVestimentas: validacaoVestir.limiteVestimentas,
+      });
+    }
+
+    const espacosOcupados = this.engine.calcularEspacosOcupados(itensEngine);
+    const espacosExtraItens =
+      this.engine.calcularEspacosExtraDeItens(itensEngine);
+    const capacidadeNormal =
+      opcoes.espacosInventarioBase +
+      opcoes.espacosInventarioExtraBase +
+      espacosExtraItens;
+    const limiteMaximo = capacidadeNormal * 2;
+    if (espacosOcupados > limiteMaximo) {
+      throw new InventarioCapacidadeExcedidaException({
+        espacosOcupados: 0,
+        espacosAdicionais: espacosOcupados,
+        espacosAposAdicao: espacosOcupados,
+        capacidadeNormal,
+        limiteMaximo,
+        excedente: espacosOcupados - limiteMaximo,
+      });
+    }
+
+    return itensEngine.map((item, index) => ({
+      ...itensComCategoriaReduzida[index].preparado,
+      categoriaCalculada: normalizarCategoriaEquipamento(
+        item.categoriaCalculada,
+      ),
+    }));
+  }
+
+  async substituirInventarioBasePreparado(
+    personagemBaseId: number,
+    itens: ItemInventarioBasePreparado[],
+    prisma: Prisma.TransactionClient,
+    espacosInventarioExtraBase: number,
+  ): Promise<void> {
+    await prisma.personagemBase.update({
+      where: { id: personagemBaseId },
+      data: {
+        inventarioItens: {
+          deleteMany: {},
+          ...(itens.length > 0
+            ? {
+                create: itens.map((item) => ({
+                  equipamento: { connect: { id: item.equipamentoId } },
+                  quantidade: item.quantidade,
+                  equipado: item.equipado,
+                  categoriaCalculada: item.categoriaCalculada,
+                  espacosCalculados: item.espacosCalculados,
+                  nomeCustomizado: item.nomeCustomizado,
+                  notas: item.notas,
+                  estado: item.estado,
+                  ...(item.modificacoesIds.length > 0
+                    ? {
+                        modificacoes: {
+                          create: item.modificacoesIds.map((modificacaoId) => ({
+                            modificacao: { connect: { id: modificacaoId } },
+                          })),
+                        },
+                      }
+                    : {}),
+                })),
+              }
+            : {}),
+        },
+      },
+    });
+
+    await this.atualizarEstadoInventario(
+      personagemBaseId,
+      prisma,
+      espacosInventarioExtraBase,
+    );
   }
 
   // ==================== HELPERS PRIVADOS ====================
@@ -589,6 +983,7 @@ export class InventarioService {
   private async atualizarEstadoInventario(
     personagemBaseId: number,
     prisma?: PrismaLike,
+    espacosInventarioExtraBase = 0,
   ): Promise<void> {
     const db = prisma || this.prisma;
 
@@ -602,12 +997,15 @@ export class InventarioService {
 
     // 1. Calcular espacosExtra de itens (Mochila Militar, etc)
     const espacosExtraDeItens = this.engine.calcularEspacosExtraDeItens(itens);
+    const espacosInventarioExtra =
+      espacosInventarioExtraBase + espacosExtraDeItens;
 
     // 2. Calcular espaços ocupados
     const espacosOcupados = this.engine.calcularEspacosOcupados(itens);
 
     // 3. Calcular capacidade total
-    const espacosTotal = personagem.espacosInventarioBase + espacosExtraDeItens;
+    const espacosTotal =
+      personagem.espacosInventarioBase + espacosInventarioExtra;
 
     // 4. Flag sobrecarregado (acima da capacidade)
     const sobrecarregado = espacosOcupados > espacosTotal;
@@ -616,10 +1014,24 @@ export class InventarioService {
     const statsEquipados = this.engine.calcularStatsEquipados(itens);
 
     // ✅ 6. Converter RDs para formato Map<código, valor>
-    const resistenciasMap = new Map<string, number>();
+    const resistenciasEquipamentos = new Map<string, number>();
     statsEquipados.reducoesDano.forEach((rd) => {
-      resistenciasMap.set(rd.tipoReducao, rd.valor);
+      resistenciasEquipamentos.set(rd.tipoReducao, rd.valor);
     });
+    const resistenciasHabilidades = extrairResistenciasDeHabilidades(
+      [...personagem.habilidadesBase, ...personagem.poderesGenericos],
+      {
+        agilidade: personagem.agilidade,
+        forca: personagem.forca,
+        intelecto: personagem.intelecto,
+        presenca: personagem.presenca,
+        vigor: personagem.vigor,
+      },
+    );
+    const resistenciasMap = somarMapasResistencias(
+      resistenciasHabilidades,
+      resistenciasEquipamentos,
+    );
 
     // ✅ 7. Recalcular bloqueio/esquiva com pericias + defesa total atualizada
     const defesaBase = personagem.defesaBase ?? 10;
@@ -651,7 +1063,7 @@ export class InventarioService {
     await db.personagemBase.update({
       where: { id: personagemBaseId },
       data: {
-        espacosInventarioExtra: espacosExtraDeItens,
+        espacosInventarioExtra,
         espacosOcupados,
         sobrecarregado,
         defesaEquipamento: defesaEquipamentoNovo, // ✅ Apenas defesa dos equipamentos
@@ -671,32 +1083,33 @@ export class InventarioService {
       deltaEsquiva !== 0 ||
       deltaBloqueio !== 0
     ) {
-      const personagensCampanha = await db.personagemCampanha.findMany({
+      await db.personagemCampanha.updateMany({
         where: { personagemBaseId },
-        select: {
-          id: true,
-          defesaEquipamento: true,
-          esquiva: true,
-          bloqueio: true,
+        data: {
+          ...(deltaDefesaEquipamento !== 0
+            ? {
+                defesaEquipamento: {
+                  increment: deltaDefesaEquipamento,
+                },
+              }
+            : {}),
+          ...(deltaEsquiva !== 0
+            ? { esquiva: { increment: deltaEsquiva } }
+            : {}),
+          ...(deltaBloqueio !== 0
+            ? { bloqueio: { increment: deltaBloqueio } }
+            : {}),
         },
       });
 
-      for (const personagemCampanha of personagensCampanha) {
-        const defesaEquipamentoAtualizada = Math.max(
-          0,
-          (personagemCampanha.defesaEquipamento ?? 0) + deltaDefesaEquipamento,
-        );
-        const esquivaAtualizada =
-          (personagemCampanha.esquiva ?? 0) + deltaEsquiva;
-        const bloqueioAtualizado =
-          (personagemCampanha.bloqueio ?? 0) + deltaBloqueio;
-
-        await db.personagemCampanha.update({
-          where: { id: personagemCampanha.id },
+      if (deltaDefesaEquipamento < 0) {
+        await db.personagemCampanha.updateMany({
+          where: {
+            personagemBaseId,
+            defesaEquipamento: { lt: 0 },
+          },
           data: {
-            defesaEquipamento: defesaEquipamentoAtualizada,
-            esquiva: esquivaAtualizada,
-            bloqueio: bloqueioAtualizado,
+            defesaEquipamento: 0,
           },
         });
       }

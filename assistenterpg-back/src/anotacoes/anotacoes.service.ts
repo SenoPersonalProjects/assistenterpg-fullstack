@@ -117,7 +117,7 @@ export class AnotacoesService {
       sessaoId: associacoes.sessaoId ?? undefined,
     };
 
-    const [total, itens] = await this.prisma.$transaction([
+    const [total, itens] = await Promise.all([
       this.prisma.anotacao.count({ where }),
       this.prisma.anotacao.findMany({
         where,

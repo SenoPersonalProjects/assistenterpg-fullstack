@@ -43,6 +43,22 @@ import {
   extrairProficienciasDeHabilidades,
   extrairResistenciasDeHabilidades,
 } from '../regras-criacao/regras-poderes-efeitos';
+import {
+  calcularEstadoEquipamentosPersonagemBase,
+  somarMapasResistencias,
+} from '../regras-criacao/resistencias-personagem';
+
+export function calcularLimitePericiasLivres(params: {
+  periciasLivresBaseClasse: number;
+  intelecto: number;
+  bonusPassivasIntelecto: number;
+}): { baseComIntelecto: number; total: number } {
+  const baseComIntelecto = params.periciasLivresBaseClasse + params.intelecto;
+  return {
+    baseComIntelecto,
+    total: baseComIntelecto + params.bonusPassivasIntelecto,
+  };
+}
 
 import {
   calcularAtributosDerivados,
@@ -522,9 +538,13 @@ export async function calcularEstadoFinalPersonagemBase(
   });
   const periciasLivres = dtoNormalizado.periciasLivresCodigos ?? [];
 
-  const maxLivresBase =
-    (classe?.periciasLivresBase ?? 0) + dtoNormalizado.intelecto;
-  const maxLivresTotal = maxLivresBase + periciasLivresExtras;
+  const limitePericiasLivres = calcularLimitePericiasLivres({
+    periciasLivresBaseClasse: classe?.periciasLivresBase ?? 0,
+    intelecto: dtoNormalizado.intelecto,
+    bonusPassivasIntelecto: periciasLivresExtras,
+  });
+  const maxLivresBase = limitePericiasLivres.baseComIntelecto;
+  const maxLivresTotal = limitePericiasLivres.total;
 
   // ✅ REFATORADO: Usar exceção customizada
   if (periciasLivres.length > maxLivresTotal) {
@@ -744,47 +764,20 @@ export async function calcularEstadoFinalPersonagemBase(
     },
   );
 
-  let defesaEquipamento = 0;
-  const resistenciasDeEquipamentos = new Map<string, number>();
+  const estadoEquipamentos = personagemBaseId
+    ? await calcularEstadoEquipamentosPersonagemBase(personagemBaseId, prisma)
+    : {
+        defesa: 0,
+        resistencias: new Map<string, number>(),
+      };
+  const defesaEquipamento = estadoEquipamentos.defesa;
+  const resistenciasDeEquipamentos = estadoEquipamentos.resistencias;
 
-  if (personagemBaseId) {
-    const personagemComResistencias = await prisma.personagemBase.findUnique({
-      where: { id: personagemBaseId },
-      select: {
-        defesaEquipamento: true,
-        resistencias: {
-          include: {
-            resistenciaTipo: true,
-          },
-        },
-      },
-    });
-
-    if (personagemComResistencias) {
-      defesaEquipamento = personagemComResistencias.defesaEquipamento || 0;
-
-      personagemComResistencias.resistencias.forEach((r) => {
-        resistenciasDeEquipamentos.set(r.resistenciaTipo.codigo, r.valor);
-      });
-    }
-  }
-
-  // Consolidar resistências (somar habilidades + equipamentos)
-  const resistenciasFinais = new Map<string, number>();
-
-  for (const [codigo, valor] of resistenciasDeHabilidades.entries()) {
-    resistenciasFinais.set(
-      codigo,
-      (resistenciasFinais.get(codigo) || 0) + valor,
-    );
-  }
-
-  for (const [codigo, valor] of resistenciasDeEquipamentos.entries()) {
-    resistenciasFinais.set(
-      codigo,
-      (resistenciasFinais.get(codigo) || 0) + valor,
-    );
-  }
+  // Consolidar resistências mantendo as origens independentes até o final.
+  const resistenciasFinais = somarMapasResistencias(
+    resistenciasDeHabilidades,
+    resistenciasDeEquipamentos,
+  );
 
   // Derivados finais (agora com defesa separada)
   const defesaBase = derivadosBase.defesa + mods.defesaExtra;

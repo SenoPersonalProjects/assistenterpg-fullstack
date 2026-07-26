@@ -2383,7 +2383,53 @@ export class SessaoService {
       },
       select: {
         personagemCampanhaId: true,
-        personagemCampanha: { select: { donoId: true } },
+        personagemCampanha: {
+          select: {
+            donoId: true,
+            nome: true,
+            personagemBase: {
+              select: {
+                agilidade: true,
+                forca: true,
+                intelecto: true,
+                presenca: true,
+                vigor: true,
+                pericias: {
+                  select: {
+                    grauTreinamento: true,
+                    bonusExtra: true,
+                    pericia: {
+                      select: {
+                        codigo: true,
+                        nome: true,
+                        atributoBase: true,
+                      },
+                    },
+                  },
+                },
+                habilidadesBase: {
+                  select: {
+                    habilidade: { select: { mecanicasEspeciais: true } },
+                  },
+                },
+                poderesGenericos: {
+                  select: {
+                    habilidade: { select: { mecanicasEspeciais: true } },
+                  },
+                },
+              },
+            },
+            modificadores: {
+              where: { ativo: true },
+              select: {
+                campo: true,
+                valor: true,
+                periciaCodigo: true,
+                tipoGrauCodigo: true,
+              },
+            },
+          },
+        },
         condicoes: {
           where: { ativo: true },
           select: { condicao: { select: { nome: true } } },
@@ -2408,136 +2454,243 @@ export class SessaoService {
       );
     }
 
-    const itens = await this.prisma.inventarioItemCampanha.findMany({
-      where: {
-        personagemCampanhaId: personagem.personagemCampanhaId,
-        equipado: true,
-        equipamento: {
-          tipo: 'ARMA',
-          tipoAmaldicoado: null,
-          tipoArma: { in: ['CORPO_A_CORPO', 'A_DISTANCIA'] },
+    const [itens, macros] = await Promise.all([
+      this.prisma.inventarioItemCampanha.findMany({
+        where: {
+          personagemCampanhaId: personagem.personagemCampanhaId,
+          equipado: true,
+          equipamento: {
+            tipo: 'ARMA',
+            tipoAmaldicoado: null,
+            tipoArma: { in: ['CORPO_A_CORPO', 'A_DISTANCIA'] },
+          },
         },
-      },
-      select: { id: true },
-      orderBy: { id: 'asc' },
-    });
-
-    const armas = await this.prisma.$transaction(async (tx) =>
-      Promise.all(
-        itens.map(async (item) => {
-          const macro = await this.resolverMacroArmaAutoritativoTx(
-            tx,
-            campanhaId,
-            sessaoId,
-            personagemSessaoId,
-            item.id,
-          );
-          return {
-            itemInventarioCampanhaId: macro.item.id,
-            nome: macro.item.nome,
-            tipoArma: macro.item.tipoArma,
-            pericia: {
-              codigo: macro.pericia.periciaCodigo,
-              nome: macro.pericia.periciaNome,
+        select: {
+          id: true,
+          equipamentoId: true,
+          nomeCustomizado: true,
+          equipamento: {
+            select: {
+              nome: true,
+              tipoArma: true,
+              agil: true,
+              empunhaduras: true,
+              criticoValor: true,
+              criticoMultiplicador: true,
+              danos: {
+                select: {
+                  empunhadura: true,
+                  tipoDano: true,
+                  rolagem: true,
+                  valorFlat: true,
+                  ordem: true,
+                },
+                orderBy: { ordem: 'asc' },
+              },
             },
-            agil: macro.item.agil,
-            atributoPadrao: macro.atributoEscolhido,
-            atributosPermitidos: macro.item.agil
-              ? ['FOR', 'AGI']
-              : [macro.atributoEscolhido],
-            empunhaduras: macro.item.empunhaduras,
-            danos: macro.item.danos,
-            critico: {
-              valor: macro.item.criticoValor,
-              multiplicador: macro.item.criticoMultiplicador,
-            },
-            preview: {
-              dadosLogicos: macro.dadosLogicos,
-              quantidadeDados: macro.quantidadeDados,
-              keepMode: macro.keepMode,
-              bonus: macro.pericia.bonusTotal,
-              ajustesAutomaticos: macro.ajustesAutomaticos,
-            },
-          };
-        }),
-      ),
-    );
-
-    const personalizadas = await this.prisma.$transaction(async (tx) => {
-      const macros = await tx.personagemCampanhaMacro.findMany({
+          },
+        },
+        orderBy: { id: 'asc' },
+      }),
+      this.prisma.personagemCampanhaMacro.findMany({
         where: {
           campanhaId,
           personagemCampanhaId: personagem.personagemCampanhaId,
           ativo: true,
         },
         orderBy: [{ ordem: 'asc' }, { id: 'asc' }],
-      });
-      return Promise.all(
-        macros.map(async (macro) => {
-          const config = this.normalizarConfigMacroPersistida(
-            macro.tipo,
-            macro.config,
-          );
-          if (macro.tipo !== 'ATAQUE_PERICIA') {
-            return {
-              id: macro.id,
-              nome: macro.nome,
-              descricao: macro.descricao,
-              tipo: macro.tipo,
-              visibilidadePadrao: macro.visibilidadePadrao,
-              configVersao: macro.configVersao,
-              config,
-              ordem: macro.ordem,
-              revisao: macro.revisao,
-              preview: null,
-            };
-          }
-          const ataque = config as MacroAtaqueConfigV1;
-          const pericia = await this.resolverPericiaAutoritativaTx(
-            tx,
-            campanhaId,
-            sessaoId,
-            personagemSessaoId,
-            ataque.periciaCodigo,
-            ataque.atributoBase,
-          );
-          const ajustesAutomaticos = resolverAjustesAutomaticosAtaque({
-            condicoes: personagem.condicoes.map((item) => item.condicao),
-            periciaCodigo: ataque.periciaCodigo,
-            atributoBase: pericia.atributoBase as AtributoMacroPersonagem,
-            categoriaAtaque: ataque.categoriaAtaque,
-          });
-          const ajusteAutomatico = ajustesAutomaticos.reduce(
-            (total, ajuste) => total + ajuste.dados,
-            0,
-          );
-          const dadosLogicos =
-            pericia.valorAtributo + ataque.ajusteDadosPadrao + ajusteAutomatico;
-          return {
-            id: macro.id,
-            nome: macro.nome,
-            descricao: macro.descricao,
-            tipo: macro.tipo,
-            visibilidadePadrao: macro.visibilidadePadrao,
-            configVersao: macro.configVersao,
-            config,
-            ordem: macro.ordem,
-            revisao: macro.revisao,
-            preview: {
-              pericia: {
-                codigo: pericia.periciaCodigo,
-                nome: pericia.periciaNome,
-              },
-              atributoBase: pericia.atributoBase,
-              dadosLogicos,
-              quantidadeDados: this.calcularDadosPadraoPericia(dadosLogicos),
-              keepMode: dadosLogicos > 0 ? 'HIGHEST' : 'LOWEST',
-              bonus: pericia.bonusTotal + ataque.ajusteFlatPadrao,
-              ajustesAutomaticos,
-            },
-          };
-        }),
+      }),
+    ]);
+
+    const configsMacros = macros.map((macro) => ({
+      macro,
+      config: this.normalizarConfigMacroPersistida(macro.tipo, macro.config),
+    }));
+    const codigosPericia = new Set<string>();
+    for (const item of itens) {
+      const codigo = resolverPericiaMacroArma(item.equipamento.tipoArma);
+      if (codigo) codigosPericia.add(codigo);
+    }
+    for (const { macro, config } of configsMacros) {
+      if (macro.tipo === 'ATAQUE_PERICIA') {
+        codigosPericia.add(
+          (config as MacroAtaqueConfigV1).periciaCodigo.trim().toUpperCase(),
+        );
+      }
+    }
+
+    const periciasCatalogo = await this.prisma.pericia.findMany({
+      where: { codigo: { in: [...codigosPericia] } },
+      select: { codigo: true, nome: true, atributoBase: true },
+    });
+    const catalogoPorCodigo = new Map(
+      periciasCatalogo.map((pericia) => [pericia.codigo, pericia]),
+    );
+    const mapaBusca = new Map<string, string>();
+    for (const pericia of periciasCatalogo) {
+      mapaBusca.set(
+        this.normalizarBuscaPericia(pericia.codigo),
+        pericia.codigo,
       );
+      mapaBusca.set(this.normalizarBuscaPericia(pericia.nome), pericia.codigo);
+    }
+    const bonusEquipamentos =
+      (
+        await this.calcularBonusEquipamentoPericias(
+          [personagem.personagemCampanhaId],
+          mapaBusca,
+        )
+      ).get(personagem.personagemCampanhaId) ?? new Map<string, number>();
+    const personagemCampanha = personagem.personagemCampanha;
+    const base = personagemCampanha.personagemBase;
+    const periciasEfetivas = resolverPericiasEfetivasCampanha(
+      base.pericias,
+      personagemCampanha.modificadores,
+    );
+    const overrideAtributos = extrairPericiasAtributoBaseOverride([
+      ...base.habilidadesBase,
+      ...base.poderesGenericos,
+    ]);
+    const resolverPericia = (
+      codigoRaw: string,
+      atributoForcado?: AtributoMacroPersonagem,
+    ) => {
+      const codigo = codigoRaw.trim().toUpperCase();
+      const catalogo = catalogoPorCodigo.get(codigo);
+      if (!catalogo) {
+        throw new SessaoPericiaNaoEncontradaException(codigo);
+      }
+      const efetiva = periciasEfetivas.find((item) => item.codigo === codigo);
+      const atributoBase =
+        atributoForcado ?? overrideAtributos[codigo] ?? catalogo.atributoBase;
+      const valorAtributo = this.obterAtributoPersonagemPorBase(
+        base,
+        atributoBase,
+      );
+      return {
+        periciaCodigo: codigo,
+        periciaNome: catalogo.nome,
+        atributoBase,
+        valorAtributo,
+        bonusTotal:
+          (efetiva?.bonusTreinamento ?? 0) +
+          (efetiva?.bonusOutros ?? 0) +
+          (bonusEquipamentos.get(codigo) ?? 0),
+      };
+    };
+    const condicoes = personagem.condicoes.map((item) => item.condicao);
+
+    const armas = itens.map((item) => {
+      const equipamento = item.equipamento;
+      const periciaCodigo = resolverPericiaMacroArma(equipamento.tipoArma);
+      if (!periciaCodigo || !equipamento.tipoArma) {
+        throw new SessaoRolagemInvalidaException(
+          'Este item nao e uma arma normal elegivel para macro.',
+        );
+      }
+      const tipoArma = equipamento.tipoArma as TipoArmaMacro;
+      const empunhaduras = normalizarEmpunhadurasMacroArma(
+        equipamento.empunhaduras,
+      );
+      if (empunhaduras.length === 0) {
+        throw new SessaoRolagemInvalidaException(
+          'A arma nao possui empunhadura estruturada para macro.',
+        );
+      }
+      const atributoPadrao = resolverAtributoPadraoMacroArma(tipoArma);
+      const pericia = resolverPericia(periciaCodigo, atributoPadrao);
+      const ajustesAutomaticos = resolverAjustesAutomaticosMacroArma(
+        condicoes,
+        tipoArma,
+        atributoPadrao,
+      );
+      const dadosLogicos =
+        pericia.valorAtributo +
+        ajustesAutomaticos.reduce((total, ajuste) => total + ajuste.dados, 0);
+      return {
+        itemInventarioCampanhaId: item.id,
+        nome: item.nomeCustomizado?.trim() || equipamento.nome,
+        tipoArma,
+        pericia: {
+          codigo: pericia.periciaCodigo,
+          nome: pericia.periciaNome,
+        },
+        agil: equipamento.agil,
+        atributoPadrao,
+        atributosPermitidos: equipamento.agil
+          ? (['FOR', 'AGI'] as const)
+          : ([atributoPadrao] as AtributoMacroArma[]),
+        empunhaduras,
+        danos: equipamento.danos,
+        critico: {
+          valor: equipamento.criticoValor,
+          multiplicador: equipamento.criticoMultiplicador,
+        },
+        preview: {
+          dadosLogicos,
+          quantidadeDados: this.calcularDadosPadraoPericia(dadosLogicos),
+          keepMode:
+            dadosLogicos > 0 ? ('HIGHEST' as const) : ('LOWEST' as const),
+          bonus: pericia.bonusTotal,
+          ajustesAutomaticos,
+        },
+      };
+    });
+
+    const personalizadas = configsMacros.map(({ macro, config }) => {
+      if (macro.tipo !== 'ATAQUE_PERICIA') {
+        return {
+          id: macro.id,
+          nome: macro.nome,
+          descricao: macro.descricao,
+          tipo: macro.tipo,
+          visibilidadePadrao: macro.visibilidadePadrao,
+          configVersao: macro.configVersao,
+          config,
+          ordem: macro.ordem,
+          revisao: macro.revisao,
+          preview: null,
+        };
+      }
+      const ataque = config as MacroAtaqueConfigV1;
+      const pericia = resolverPericia(
+        ataque.periciaCodigo,
+        ataque.atributoBase,
+      );
+      const ajustesAutomaticos = resolverAjustesAutomaticosAtaque({
+        condicoes,
+        periciaCodigo: ataque.periciaCodigo,
+        atributoBase: pericia.atributoBase as AtributoMacroPersonagem,
+        categoriaAtaque: ataque.categoriaAtaque,
+      });
+      const dadosLogicos =
+        pericia.valorAtributo +
+        ataque.ajusteDadosPadrao +
+        ajustesAutomaticos.reduce((total, ajuste) => total + ajuste.dados, 0);
+      return {
+        id: macro.id,
+        nome: macro.nome,
+        descricao: macro.descricao,
+        tipo: macro.tipo,
+        visibilidadePadrao: macro.visibilidadePadrao,
+        configVersao: macro.configVersao,
+        config,
+        ordem: macro.ordem,
+        revisao: macro.revisao,
+        preview: {
+          pericia: {
+            codigo: pericia.periciaCodigo,
+            nome: pericia.periciaNome,
+          },
+          atributoBase: pericia.atributoBase,
+          dadosLogicos,
+          quantidadeDados: this.calcularDadosPadraoPericia(dadosLogicos),
+          keepMode:
+            dadosLogicos > 0 ? ('HIGHEST' as const) : ('LOWEST' as const),
+          bonus: pericia.bonusTotal + ataque.ajusteFlatPadrao,
+          ajustesAutomaticos,
+        },
+      };
     });
 
     return {
@@ -9290,21 +9443,24 @@ export class SessaoService {
       return this.obterIniciativaAlternadaPersistida(sessaoId);
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
-      const participantes = await this.carregarParticipantesIniciativa(
-        tx,
-        sessaoId,
-        cenaAtual.id,
-        acesso.ehMestre,
-        usuarioId,
-      );
-      return this.obterOuCriarIniciativaAlternadaTx(
-        tx,
-        sessaoId,
-        participantes,
-      );
-    });
+    return this.prisma.executarTransacao(
+      'sessao.iniciativaAlternada.obterOuCriar',
+      async (tx) => {
+        const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+        const participantes = await this.carregarParticipantesIniciativa(
+          tx,
+          sessaoId,
+          cenaAtual.id,
+          acesso.ehMestre,
+          usuarioId,
+        );
+        return this.obterOuCriarIniciativaAlternadaTx(
+          tx,
+          sessaoId,
+          participantes,
+        );
+      },
+    );
   }
 
   async atualizarIniciativaAlternadaSessao(
@@ -9321,47 +9477,50 @@ export class SessaoService {
     );
     this.assertMestre(acesso, 'alterar iniciativa alternada');
 
-    await this.prisma.$transaction(async (tx) => {
-      await this.assertSessaoMutavelTx(
-        tx,
-        campanhaId,
-        sessaoId,
-        'alterar iniciativa alternada',
-      );
-      await this.assertRegraOpcionalAtivaTx(
-        tx,
-        sessaoId,
-        'INICIATIVA_ALTERNADA',
-        'Iniciativa Alternada nao esta ativa nesta sessao.',
-        'SESSAO_INICIATIVA_ALTERNADA_INATIVA',
-      );
-      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
-      const participantes = await this.carregarParticipantesIniciativa(
-        tx,
-        sessaoId,
-        cenaAtual.id,
-        acesso.ehMestre,
-        usuarioId,
-      );
-      await this.atualizarLadosIniciativaAlternadaTx(
-        tx,
-        sessaoId,
-        participantes,
-        dto,
-      );
-
-      await tx.eventoSessao.create({
-        data: {
+    await this.prisma.executarTransacao(
+      'sessao.iniciativaAlternada.reconstruir',
+      async (tx) => {
+        await this.assertSessaoMutavelTx(
+          tx,
+          campanhaId,
           sessaoId,
-          cenaId: cenaAtual.id,
-          tipoEvento: 'INICIATIVA_ALTERNADA_ATUALIZADA',
-          dados: this.jsonParaPersistencia({
-            totalLados: dto.lados.length,
-            atualizadoPorId: usuarioId,
-          }),
-        },
-      });
-    });
+          'alterar iniciativa alternada',
+        );
+        await this.assertRegraOpcionalAtivaTx(
+          tx,
+          sessaoId,
+          'INICIATIVA_ALTERNADA',
+          'Iniciativa Alternada nao esta ativa nesta sessao.',
+          'SESSAO_INICIATIVA_ALTERNADA_INATIVA',
+        );
+        const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+        const participantes = await this.carregarParticipantesIniciativa(
+          tx,
+          sessaoId,
+          cenaAtual.id,
+          acesso.ehMestre,
+          usuarioId,
+        );
+        await this.atualizarLadosIniciativaAlternadaTx(
+          tx,
+          sessaoId,
+          participantes,
+          dto,
+        );
+
+        await tx.eventoSessao.create({
+          data: {
+            sessaoId,
+            cenaId: cenaAtual.id,
+            tipoEvento: 'INICIATIVA_ALTERNADA_ATUALIZADA',
+            dados: this.jsonParaPersistencia({
+              totalLados: dto.lados.length,
+              atualizadoPorId: usuarioId,
+            }),
+          },
+        });
+      },
+    );
 
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
   }
@@ -9380,65 +9539,71 @@ export class SessaoService {
     );
     this.assertMestre(acesso, 'marcar participante na iniciativa alternada');
 
-    await this.prisma.$transaction(async (tx) => {
-      await this.assertSessaoMutavelTx(
-        tx,
-        campanhaId,
-        sessaoId,
-        'marcar participante na iniciativa alternada',
-      );
-      await this.assertRegraOpcionalAtivaTx(
-        tx,
-        sessaoId,
-        'INICIATIVA_ALTERNADA',
-        'Iniciativa Alternada nao esta ativa nesta sessao.',
-        'SESSAO_INICIATIVA_ALTERNADA_INATIVA',
-      );
-      const iniciativa = await tx.sessaoIniciativaAlternada.findUnique({
-        where: { sessaoId },
-        select: { id: true },
-      });
-      if (!iniciativa) {
-        throw new BusinessException(
-          'Iniciativa Alternada ainda nao foi configurada.',
-          'SESSAO_INICIATIVA_ALTERNADA_NAO_CONFIGURADA',
+    await this.prisma.executarTransacao(
+      'sessao.iniciativaAlternada.marcarParticipante',
+      async (tx) => {
+        await this.assertSessaoMutavelTx(
+          tx,
+          campanhaId,
+          sessaoId,
+          'marcar participante na iniciativa alternada',
         );
-      }
+        await this.assertRegraOpcionalAtivaTx(
+          tx,
+          sessaoId,
+          'INICIATIVA_ALTERNADA',
+          'Iniciativa Alternada nao esta ativa nesta sessao.',
+          'SESSAO_INICIATIVA_ALTERNADA_INATIVA',
+        );
+        const iniciativa = await tx.sessaoIniciativaAlternada.findUnique({
+          where: { sessaoId },
+          select: { id: true },
+        });
+        if (!iniciativa) {
+          throw new BusinessException(
+            'Iniciativa Alternada ainda nao foi configurada.',
+            'SESSAO_INICIATIVA_ALTERNADA_NAO_CONFIGURADA',
+          );
+        }
 
-      const participante =
-        await tx.sessaoIniciativaAlternadaParticipante.findUnique({
-          where: {
-            iniciativaAlternadaId_participanteToken: {
-              iniciativaAlternadaId: iniciativa.id,
-              participanteToken: dto.participanteToken,
+        const participante =
+          await tx.sessaoIniciativaAlternadaParticipante.findUnique({
+            where: {
+              iniciativaAlternadaId_participanteToken: {
+                iniciativaAlternadaId: iniciativa.id,
+                participanteToken: dto.participanteToken,
+              },
             },
+          });
+        if (!participante) {
+          throw new SessaoOrdemIniciativaInvalidaException(
+            sessaoId,
+            campanhaId,
+          );
+        }
+
+        await tx.sessaoIniciativaAlternadaParticipante.update({
+          where: { id: participante.id },
+          data: {
+            jaAgiu: dto.jaAgiu,
           },
         });
-      if (!participante) {
-        throw new SessaoOrdemIniciativaInvalidaException(sessaoId, campanhaId);
-      }
 
-      await tx.sessaoIniciativaAlternadaParticipante.update({
-        where: { id: participante.id },
-        data: {
-          jaAgiu: dto.jaAgiu,
-        },
-      });
-
-      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
-      await tx.eventoSessao.create({
-        data: {
-          sessaoId,
-          cenaId: cenaAtual.id,
-          tipoEvento: 'INICIATIVA_ALTERNADA_CHECKLIST',
-          dados: this.jsonParaPersistencia({
-            participanteToken: dto.participanteToken,
-            jaAgiu: dto.jaAgiu,
-            atualizadoPorId: usuarioId,
-          }),
-        },
-      });
-    });
+        const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+        await tx.eventoSessao.create({
+          data: {
+            sessaoId,
+            cenaId: cenaAtual.id,
+            tipoEvento: 'INICIATIVA_ALTERNADA_CHECKLIST',
+            dados: this.jsonParaPersistencia({
+              participanteToken: dto.participanteToken,
+              jaAgiu: dto.jaAgiu,
+              atualizadoPorId: usuarioId,
+            }),
+          },
+        });
+      },
+    );
 
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
   }
@@ -12026,23 +12191,29 @@ export class SessaoService {
 
     if (!iniciativa) {
       const criada = await tx.sessaoIniciativaAlternada.create({
-        data: { sessaoId },
-        select: { id: true },
-      });
-      const jogadores = await tx.sessaoIniciativaAlternadaLado.create({
         data: {
-          iniciativaAlternadaId: criada.id,
-          nome: 'Jogadores',
-          ordem: 0,
+          sessaoId,
+          lados: {
+            create: [
+              { nome: 'Jogadores', ordem: 0 },
+              { nome: 'Oposição', ordem: 1 },
+            ],
+          },
+        },
+        include: {
+          lados: {
+            orderBy: { ordem: 'asc' },
+          },
         },
       });
-      const oposicao = await tx.sessaoIniciativaAlternadaLado.create({
-        data: {
-          iniciativaAlternadaId: criada.id,
-          nome: 'Oposição',
-          ordem: 1,
-        },
-      });
+      const jogadores = criada.lados[0];
+      const oposicao = criada.lados[1];
+      if (!jogadores || !oposicao) {
+        throw new BusinessException(
+          'Não foi possível criar os lados da iniciativa alternada.',
+          'SESSAO_INICIATIVA_ALTERNADA_LADOS_INVALIDOS',
+        );
+      }
       await tx.sessaoIniciativaAlternada.update({
         where: { id: criada.id },
         data: { ladoAtualId: jogadores.id },
@@ -12166,56 +12337,58 @@ export class SessaoService {
         npcSessaoId: true,
         nome: true,
         ordem: true,
+        jaAgiu: true,
       },
     });
     const existentesPorToken = new Map(
       existentes.map((existente) => [existente.participanteToken, existente]),
     );
-    const criacoes: Prisma.SessaoIniciativaAlternadaParticipanteCreateManyInput[] =
-      [];
-
-    for (const [indice, participante] of participantes.entries()) {
+    const agora = new Date();
+    const valores = participantes.map((participante, indice) => {
       const existente = existentesPorToken.get(participante.token);
-      const dadosParticipante = {
-        tipoParticipante: participante.tipoParticipante,
-        personagemSessaoId: participante.personagemSessaoId,
-        npcSessaoId: participante.npcSessaoId,
-        nome: participante.nomePersonagem,
-        ordem: existente?.ordem ?? indice,
-      };
-      if (!existente) {
-        criacoes.push({
-          iniciativaAlternadaId,
-          ladoId:
-            participante.tipoParticipante === 'PERSONAGEM'
-              ? ladoJogadoresId
-              : ladoOposicaoId,
-          participanteToken: participante.token,
-          ...dadosParticipante,
-        });
-        continue;
-      }
+      return Prisma.sql`(
+        ${iniciativaAlternadaId},
+        ${
+          participante.tipoParticipante === 'PERSONAGEM'
+            ? ladoJogadoresId
+            : ladoOposicaoId
+        },
+        ${participante.token},
+        ${participante.tipoParticipante},
+        ${participante.personagemSessaoId},
+        ${participante.npcSessaoId},
+        ${participante.nomePersonagem},
+        ${existente?.jaAgiu ?? false},
+        ${existente?.ordem ?? indice},
+        ${agora},
+        ${agora}
+      )`;
+    });
 
-      const mudou =
-        existente.tipoParticipante !== dadosParticipante.tipoParticipante ||
-        existente.personagemSessaoId !== dadosParticipante.personagemSessaoId ||
-        existente.npcSessaoId !== dadosParticipante.npcSessaoId ||
-        existente.nome !== dadosParticipante.nome ||
-        existente.ordem !== dadosParticipante.ordem;
-
-      if (mudou) {
-        await tx.sessaoIniciativaAlternadaParticipante.update({
-          where: { id: existente.id },
-          data: dadosParticipante,
-        });
-      }
-    }
-
-    if (criacoes.length > 0) {
-      await tx.sessaoIniciativaAlternadaParticipante.createMany({
-        data: criacoes,
-      });
-    }
+    await tx.$executeRaw(Prisma.sql`
+      INSERT INTO sessao_iniciativa_alternada_participante (
+        iniciativaAlternadaId,
+        ladoId,
+        participanteToken,
+        tipoParticipante,
+        personagemSessaoId,
+        npcSessaoId,
+        nome,
+        jaAgiu,
+        ordem,
+        criadoEm,
+        atualizadoEm
+      )
+      VALUES ${Prisma.join(valores)}
+      ON DUPLICATE KEY UPDATE
+        ladoId = VALUES(ladoId),
+        tipoParticipante = VALUES(tipoParticipante),
+        personagemSessaoId = VALUES(personagemSessaoId),
+        npcSessaoId = VALUES(npcSessaoId),
+        nome = VALUES(nome),
+        ordem = VALUES(ordem),
+        atualizadoEm = VALUES(atualizadoEm)
+    `);
   }
 
   private mapearEstadoIniciativaAlternada(
@@ -12293,6 +12466,20 @@ export class SessaoService {
       update: {},
       create: { sessaoId },
     });
+    const participantesPersistidos =
+      await tx.sessaoIniciativaAlternadaParticipante.findMany({
+        where: { iniciativaAlternadaId: iniciativa.id },
+        select: {
+          participanteToken: true,
+          jaAgiu: true,
+        },
+      });
+    const checklistPorToken = new Map(
+      participantesPersistidos.map((participante) => [
+        participante.participanteToken,
+        participante.jaAgiu,
+      ]),
+    );
 
     await tx.sessaoIniciativaAlternadaParticipante.deleteMany({
       where: { iniciativaAlternadaId: iniciativa.id },
@@ -12301,50 +12488,71 @@ export class SessaoService {
       where: { iniciativaAlternadaId: iniciativa.id },
     });
 
+    await tx.sessaoIniciativaAlternadaLado.createMany({
+      data: dto.lados.map((lado, indice) => ({
+        iniciativaAlternadaId: iniciativa.id,
+        nome: lado.nome.trim(),
+        ordem: lado.ordem ?? indice,
+      })),
+    });
+    const ladosCriados = await tx.sessaoIniciativaAlternadaLado.findMany({
+      where: { iniciativaAlternadaId: iniciativa.id },
+      orderBy: [{ ordem: 'asc' }, { id: 'asc' }],
+    });
+    const ladosDisponiveis = [...ladosCriados];
+    const ladoIdPorIndice = dto.lados.map((ladoDto, indice) => {
+      const ordem = ladoDto.ordem ?? indice;
+      const indiceEncontrado = ladosDisponiveis.findIndex(
+        (lado) => lado.ordem === ordem,
+      );
+      const lado =
+        indiceEncontrado >= 0
+          ? ladosDisponiveis.splice(indiceEncontrado, 1)[0]
+          : ladosDisponiveis.shift();
+      if (!lado) {
+        throw new BusinessException(
+          'Não foi possível reconstruir os lados da iniciativa alternada.',
+          'SESSAO_INICIATIVA_ALTERNADA_LADOS_INVALIDOS',
+        );
+      }
+      return lado.id;
+    });
+
     const participantesPorToken = new Map(
       participantes.map((participante) => [participante.token, participante]),
     );
-    let ladoAtualId: number | null = null;
-    const ladoAtualPreferido = dto.ladoAtualId;
-
-    for (const [indiceLado, ladoDto] of dto.lados.entries()) {
-      const lado = await tx.sessaoIniciativaAlternadaLado.create({
-        data: {
-          iniciativaAlternadaId: iniciativa.id,
-          nome: ladoDto.nome.trim(),
-          ordem: ladoDto.ordem ?? indiceLado,
-        },
-      });
-      if (
-        (ladoAtualPreferido && ladoDto.id === ladoAtualPreferido) ||
-        (!ladoAtualId && indiceLado === 0)
-      ) {
-        ladoAtualId = lado.id;
-      }
-
-      for (const [
-        indiceParticipante,
-        participanteDto,
-      ] of ladoDto.participantes.entries()) {
+    const participantesParaCriar = dto.lados.flatMap((ladoDto, indiceLado) =>
+      ladoDto.participantes.flatMap((participanteDto, indiceParticipante) => {
         const participante = participantesPorToken.get(
           participanteDto.participanteToken,
         );
-        if (!participante) continue;
-        await tx.sessaoIniciativaAlternadaParticipante.create({
-          data: {
+        if (!participante) return [];
+
+        return [
+          {
             iniciativaAlternadaId: iniciativa.id,
-            ladoId: lado.id,
+            ladoId: ladoIdPorIndice[indiceLado],
             participanteToken: participante.token,
             tipoParticipante: participante.tipoParticipante,
             personagemSessaoId: participante.personagemSessaoId,
             npcSessaoId: participante.npcSessaoId,
             nome: participante.nomePersonagem,
-            jaAgiu: false,
+            jaAgiu: checklistPorToken.get(participante.token) ?? false,
             ordem: indiceParticipante,
           },
-        });
-      }
+        ];
+      }),
+    );
+    if (participantesParaCriar.length > 0) {
+      await tx.sessaoIniciativaAlternadaParticipante.createMany({
+        data: participantesParaCriar,
+      });
     }
+
+    const indiceLadoAtual = dto.ladoAtualId
+      ? dto.lados.findIndex((lado) => lado.id === dto.ladoAtualId)
+      : 0;
+    const ladoAtualId = ladoIdPorIndice[Math.max(0, indiceLadoAtual)] ?? null;
 
     await tx.sessaoIniciativaAlternada.update({
       where: { id: iniciativa.id },

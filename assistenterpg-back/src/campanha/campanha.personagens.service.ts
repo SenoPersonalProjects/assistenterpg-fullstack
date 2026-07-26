@@ -88,6 +88,22 @@ export class CampanhaPersonagensService {
             valor: true,
           },
         },
+        inventarioItens: {
+          select: {
+            equipamentoId: true,
+            quantidade: true,
+            equipado: true,
+            categoriaCalculada: true,
+            nomeCustomizado: true,
+            notas: true,
+            estado: true,
+            modificacoes: {
+              select: {
+                modificacaoId: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -224,48 +240,8 @@ export class CampanhaPersonagensService {
       solicitanteId,
     );
 
-    const personagemBase = await this.prisma.personagemBase.findUnique({
-      where: { id: personagemBaseId },
-      select: {
-        id: true,
-        donoId: true,
-        nome: true,
-        nivel: true,
-        claId: true,
-        origemId: true,
-        classeId: true,
-        trilhaId: true,
-        caminhoId: true,
-        pvMaximo: true,
-        pvBarrasTotal: true,
-        peMaximo: true,
-        eaMaximo: true,
-        sanMaximo: true,
-        limitePeEaPorTurno: true,
-        prestigioBase: true,
-        prestigioClaBase: true,
-        defesaBase: true,
-        defesaEquipamento: true,
-        defesaOutros: true,
-        esquiva: true,
-        bloqueio: true,
-        deslocamento: true,
-        turnosMorrendo: true,
-        turnosEnlouquecendo: true,
-        espacosInventarioBase: true,
-        espacosInventarioExtra: true,
-        espacosOcupados: true,
-        sobrecarregado: true,
-        tecnicaInataId: true,
-        tecnicaInataPropriaId: true,
-        resistencias: {
-          select: {
-            resistenciaTipoId: true,
-            valor: true,
-          },
-        },
-      },
-    });
+    const personagemBase =
+      await this.buscarSnapshotPersonagemBase(personagemBaseId);
 
     if (!personagemBase) {
       throw new PersonagemBaseNaoEncontradoException(personagemBaseId);
@@ -322,190 +298,200 @@ export class CampanhaPersonagensService {
       }
     }
 
-    const personagemCampanhaId = await this.prisma.$transaction(async (tx) => {
-      if (deveAplicarLimitePorUsuario) {
-        const personagemExistenteDoDono = await tx.personagemCampanha.findFirst(
-          {
-            where: {
+    const personagemCampanhaId = await this.prisma.executarTransacao(
+      'campanha.vincularPersonagemBase',
+      async (tx) => {
+        if (deveAplicarLimitePorUsuario) {
+          const personagemExistenteDoDono =
+            await tx.personagemCampanha.findFirst({
+              where: {
+                campanhaId,
+                donoId: personagemBase.donoId,
+              },
+              select: { id: true },
+            });
+
+          if (personagemExistenteDoDono) {
+            throw new CampanhaPersonagemLimiteUsuarioException(
               campanhaId,
+              personagemBase.donoId,
+            );
+          }
+        }
+
+        const pvBarrasTotal = normalizarPvBarrasTotal(
+          personagemBase.pvBarrasTotal,
+        );
+        const tecnicaInataPropriaBaseId =
+          await this.tecnicaInataPropriaService.garantirTecnicaPropriaPersonagemBase(
+            personagemBase.id,
+            tx,
+          );
+        const pvBarrasRestantes = pvBarrasTotal;
+        const { pvBarraMaxAtual } = calcularPvBarraMaximos(
+          personagemBase.pvMaximo,
+          pvBarrasTotal,
+          pvBarrasRestantes,
+        );
+        const nucleosDisponiveis = pvBarrasTotal > 1 ? nucleosPadrao() : [];
+        const nucleoAmaldicoadoAtivo =
+          pvBarrasTotal > 1 ? nucleosDisponiveis[0] : null;
+
+        let personagemCriado: { id: number };
+        try {
+          personagemCriado = await tx.personagemCampanha.create({
+            data: {
+              campanhaId,
+              personagemBaseId: personagemBase.id,
               donoId: personagemBase.donoId,
+              nome: personagemBase.nome,
+              nivel: personagemBase.nivel,
+              claId: personagemBase.claId,
+              origemId: personagemBase.origemId,
+              classeId: personagemBase.classeId,
+              trilhaId: personagemBase.trilhaId,
+              caminhoId: personagemBase.caminhoId,
+              pvMax: personagemBase.pvMaximo,
+              pvAtual: pvBarraMaxAtual,
+              peMax: personagemBase.peMaximo,
+              peAtual: personagemBase.peMaximo,
+              eaMax: personagemBase.eaMaximo,
+              eaAtual: personagemBase.eaMaximo,
+              sanMax: personagemBase.sanMaximo,
+              sanAtual: personagemBase.sanMaximo,
+              pvBarrasTotal,
+              pvBarrasRestantes,
+              nucleoAmaldicoadoAtivo,
+              nucleosDisponiveis,
+              limitePeEaPorTurno: personagemBase.limitePeEaPorTurno,
+              prestigioGeral: personagemBase.prestigioBase,
+              prestigioCla: personagemBase.prestigioClaBase,
+              defesaBase: personagemBase.defesaBase,
+              defesaEquipamento: personagemBase.defesaEquipamento,
+              defesaOutros: personagemBase.defesaOutros,
+              esquiva: personagemBase.esquiva,
+              bloqueio: personagemBase.bloqueio,
+              deslocamento: personagemBase.deslocamento,
+              turnosMorrendo: personagemBase.turnosMorrendo,
+              turnosEnlouquecendo: personagemBase.turnosEnlouquecendo,
+              espacosInventarioBase: personagemBase.espacosInventarioBase,
+              espacosInventarioExtra: personagemBase.espacosInventarioExtra,
+              espacosOcupados: personagemBase.espacosOcupados,
+              sobrecarregado: personagemBase.sobrecarregado,
+              tecnicaInataId: personagemBase.tecnicaInataId,
+              tecnicaInataSincronizaBase: sincronizarTecnicaInata,
+              resistencias:
+                personagemBase.resistencias.length > 0
+                  ? {
+                      create: personagemBase.resistencias.map(
+                        (resistencia) => ({
+                          resistenciaTipo: {
+                            connect: {
+                              id: resistencia.resistenciaTipoId,
+                            },
+                          },
+                          valor: resistencia.valor,
+                        }),
+                      ),
+                    }
+                  : undefined,
+              historico: {
+                create: {
+                  campanha: {
+                    connect: { id: campanhaId },
+                  },
+                  criadoPor: {
+                    connect: { id: solicitanteId },
+                  },
+                  tipo: 'VINCULO_PERSONAGEM_BASE',
+                  descricao: 'Personagem-base associado a campanha',
+                  dados: {
+                    personagemBaseId: personagemBase.id,
+                    donoId: personagemBase.donoId,
+                  },
+                },
+              },
+              inventarioItens:
+                personagemBase.inventarioItens.length > 0
+                  ? {
+                      create: personagemBase.inventarioItens.map(
+                        (itemBase) => ({
+                          equipamento: {
+                            connect: { id: itemBase.equipamentoId },
+                          },
+                          quantidade: itemBase.quantidade,
+                          equipado: itemBase.equipado,
+                          categoriaCalculada: itemBase.categoriaCalculada,
+                          nomeCustomizado: itemBase.nomeCustomizado,
+                          notas: itemBase.notas,
+                          estado:
+                            itemBase.estado !== undefined &&
+                            itemBase.estado !== null
+                              ? (itemBase.estado as Prisma.InputJsonValue)
+                              : undefined,
+                          modificacoes:
+                            itemBase.modificacoes.length > 0
+                              ? {
+                                  create: itemBase.modificacoes.map(
+                                    (modificacao) => ({
+                                      modificacao: {
+                                        connect: {
+                                          id: modificacao.modificacaoId,
+                                        },
+                                      },
+                                    }),
+                                  ),
+                                }
+                              : undefined,
+                        }),
+                      ),
+                    }
+                  : undefined,
             },
-            select: { id: true },
-          },
-        );
-
-        if (personagemExistenteDoDono) {
-          throw new CampanhaPersonagemLimiteUsuarioException(
-            campanhaId,
-            personagemBase.donoId,
-          );
-        }
-      }
-
-      const pvBarrasTotal = normalizarPvBarrasTotal(
-        personagemBase.pvBarrasTotal,
-      );
-      const tecnicaInataPropriaBaseId =
-        await this.tecnicaInataPropriaService.garantirTecnicaPropriaPersonagemBase(
-          personagemBase.id,
-          tx,
-        );
-      const pvBarrasRestantes = pvBarrasTotal;
-      const { pvBarraMaxAtual } = calcularPvBarraMaximos(
-        personagemBase.pvMaximo,
-        pvBarrasTotal,
-        pvBarrasRestantes,
-      );
-      const nucleosDisponiveis = pvBarrasTotal > 1 ? nucleosPadrao() : [];
-      const nucleoAmaldicoadoAtivo =
-        pvBarrasTotal > 1 ? nucleosDisponiveis[0] : null;
-
-      let personagemCriado: { id: number };
-      try {
-        personagemCriado = await tx.personagemCampanha.create({
-          data: {
-            campanhaId,
-            personagemBaseId: personagemBase.id,
-            donoId: personagemBase.donoId,
-            nome: personagemBase.nome,
-            nivel: personagemBase.nivel,
-            claId: personagemBase.claId,
-            origemId: personagemBase.origemId,
-            classeId: personagemBase.classeId,
-            trilhaId: personagemBase.trilhaId,
-            caminhoId: personagemBase.caminhoId,
-            pvMax: personagemBase.pvMaximo,
-            pvAtual: pvBarraMaxAtual,
-            peMax: personagemBase.peMaximo,
-            peAtual: personagemBase.peMaximo,
-            eaMax: personagemBase.eaMaximo,
-            eaAtual: personagemBase.eaMaximo,
-            sanMax: personagemBase.sanMaximo,
-            sanAtual: personagemBase.sanMaximo,
-            pvBarrasTotal,
-            pvBarrasRestantes,
-            nucleoAmaldicoadoAtivo,
-            nucleosDisponiveis,
-            limitePeEaPorTurno: personagemBase.limitePeEaPorTurno,
-            prestigioGeral: personagemBase.prestigioBase,
-            prestigioCla: personagemBase.prestigioClaBase,
-            defesaBase: personagemBase.defesaBase,
-            defesaEquipamento: personagemBase.defesaEquipamento,
-            defesaOutros: personagemBase.defesaOutros,
-            esquiva: personagemBase.esquiva,
-            bloqueio: personagemBase.bloqueio,
-            deslocamento: personagemBase.deslocamento,
-            turnosMorrendo: personagemBase.turnosMorrendo,
-            turnosEnlouquecendo: personagemBase.turnosEnlouquecendo,
-            espacosInventarioBase: personagemBase.espacosInventarioBase,
-            espacosInventarioExtra: personagemBase.espacosInventarioExtra,
-            espacosOcupados: personagemBase.espacosOcupados,
-            sobrecarregado: personagemBase.sobrecarregado,
-            tecnicaInataId: personagemBase.tecnicaInataId,
-            tecnicaInataSincronizaBase: sincronizarTecnicaInata,
-          },
-          select: {
-            id: true,
-          },
-        });
-      } catch (error) {
-        const conflitoDono = isUniqueConstraintViolation(error, [
-          'campanhaId',
-          'donoId',
-        ]);
-        const conflitoPersonagemBase = isUniqueConstraintViolation(error, [
-          'campanhaId',
-          'personagemBaseId',
-        ]);
-
-        if (
-          (conflitoDono && deveAplicarLimitePorUsuario) ||
-          conflitoPersonagemBase
-        ) {
-          throw new CampanhaPersonagemLimiteUsuarioException(
-            campanhaId,
-            personagemBase.donoId,
-          );
-        }
-        throw error;
-      }
-
-      if (personagemBase.resistencias.length > 0) {
-        await tx.personagemCampanhaResistencia.createMany({
-          data: personagemBase.resistencias.map((resistencia) => ({
-            personagemCampanhaId: personagemCriado.id,
-            resistenciaTipoId: resistencia.resistenciaTipoId,
-            valor: resistencia.valor,
-          })),
-        });
-      }
-
-      if (tecnicaInataPropriaBaseId) {
-        const tecnicaInataPropriaId =
-          await this.tecnicaInataPropriaService.clonarTecnicaInata({
-            usuarioId: personagemBase.donoId,
-            tecnicaBaseId: tecnicaInataPropriaBaseId,
-            personagemCampanhaId: personagemCriado.id,
-            prisma: tx,
+            select: {
+              id: true,
+            },
           });
+        } catch (error) {
+          const conflitoDono = isUniqueConstraintViolation(error, [
+            'campanhaId',
+            'donoId',
+          ]);
+          const conflitoPersonagemBase = isUniqueConstraintViolation(error, [
+            'campanhaId',
+            'personagemBaseId',
+          ]);
 
-        await tx.personagemCampanha.update({
-          where: { id: personagemCriado.id },
-          data: { tecnicaInataPropriaId },
-        });
-      }
+          if (
+            (conflitoDono && deveAplicarLimitePorUsuario) ||
+            conflitoPersonagemBase
+          ) {
+            throw new CampanhaPersonagemLimiteUsuarioException(
+              campanhaId,
+              personagemBase.donoId,
+            );
+          }
+          throw error;
+        }
 
-      await tx.personagemCampanhaHistorico.create({
-        data: {
-          personagemCampanhaId: personagemCriado.id,
-          campanhaId,
-          criadoPorId: solicitanteId,
-          tipo: 'VINCULO_PERSONAGEM_BASE',
-          descricao: 'Personagem-base associado a campanha',
-          dados: {
-            personagemBaseId: personagemBase.id,
-            donoId: personagemBase.donoId,
-          },
-        },
-      });
+        if (tecnicaInataPropriaBaseId) {
+          const tecnicaInataPropriaId =
+            await this.tecnicaInataPropriaService.clonarTecnicaInata({
+              usuarioId: personagemBase.donoId,
+              tecnicaBaseId: tecnicaInataPropriaBaseId,
+              personagemCampanhaId: personagemCriado.id,
+              prisma: tx,
+            });
 
-      const itensInventarioBase = await tx.inventarioItemBase.findMany({
-        where: { personagemBaseId: personagemBase.id },
-        include: {
-          modificacoes: true,
-        },
-      });
-
-      for (const itemBase of itensInventarioBase) {
-        const itemCriado = await tx.inventarioItemCampanha.create({
-          data: {
-            personagemCampanhaId: personagemCriado.id,
-            equipamentoId: itemBase.equipamentoId,
-            quantidade: itemBase.quantidade,
-            equipado: itemBase.equipado,
-            categoriaCalculada: itemBase.categoriaCalculada,
-            nomeCustomizado: itemBase.nomeCustomizado,
-            notas: itemBase.notas,
-            estado:
-              itemBase.estado !== undefined && itemBase.estado !== null
-                ? (itemBase.estado as Prisma.InputJsonValue)
-                : undefined,
-          },
-          select: { id: true },
-        });
-
-        if (itemBase.modificacoes.length > 0) {
-          await tx.inventarioItemCampanhaModificacao.createMany({
-            data: itemBase.modificacoes.map((mod) => ({
-              itemId: itemCriado.id,
-              modificacaoId: mod.modificacaoId,
-            })),
+          await tx.personagemCampanha.update({
+            where: { id: personagemCriado.id },
+            data: { tecnicaInataPropriaId },
           });
         }
-      }
 
-      return personagemCriado.id;
-    });
+        return personagemCriado.id;
+      },
+    );
 
     await this.inventarioService.recalcularEstadoInventarioCampanha(
       personagemCampanhaId,
@@ -733,6 +719,16 @@ export class CampanhaPersonagensService {
   ) {
     await this.tecnicaInataPropriaService.removerTecnicaClonada(
       tecnicaInataPropriaId,
+      prisma,
+    );
+  }
+
+  async removerTecnicasInatasClonadas(
+    tecnicaInataPropriaIds: number[],
+    prisma: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    await this.tecnicaInataPropriaService.removerTecnicasClonadas(
+      tecnicaInataPropriaIds,
       prisma,
     );
   }

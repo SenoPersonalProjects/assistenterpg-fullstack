@@ -3,7 +3,6 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { EngineResult } from './engine/personagem-base.engine.types';
-import type { ItemInventarioEstadoDto } from './dto/create-personagem-base.dto';
 
 type PrismaLike = PrismaService | Prisma.TransactionClient;
 
@@ -91,38 +90,6 @@ function toNullableInputJson(
   return value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
 }
 
-function normalizarEstadoInventarioParaJson(
-  estado: Prisma.JsonValue | ItemInventarioEstadoDto | null | undefined,
-): Prisma.JsonValue | undefined {
-  if (estado === undefined) return undefined;
-  if (estado === null) return null;
-
-  if (typeof estado === 'object' && !Array.isArray(estado)) {
-    let funcoesAdicionaisPericias: string[] | undefined;
-    if (Array.isArray(estado.funcoesAdicionaisPericias)) {
-      funcoesAdicionaisPericias = [];
-      for (const codigo of estado.funcoesAdicionaisPericias) {
-        if (typeof codigo !== 'string') continue;
-        const normalizado = codigo.trim().toUpperCase();
-        if (normalizado.length > 0) {
-          funcoesAdicionaisPericias.push(normalizado);
-        }
-      }
-      if (funcoesAdicionaisPericias.length === 0) {
-        funcoesAdicionaisPericias = undefined;
-      }
-    }
-
-    return {
-      periciaCodigo:
-        'periciaCodigo' in estado ? (estado.periciaCodigo ?? null) : null,
-      ...(funcoesAdicionaisPericias ? { funcoesAdicionaisPericias } : {}),
-    };
-  }
-
-  return estado;
-}
-
 @Injectable()
 export class PersonagemBasePersistence {
   constructor(private readonly prisma: PrismaService) {}
@@ -165,11 +132,6 @@ export class PersonagemBasePersistence {
     const resistenciasParaCriar = await this.prepararResistenciasParaCriacao(
       estado.resistenciasFinais,
       prisma,
-    );
-
-    // ✅ NOVO: Preparar itens do inventário
-    const itensInventarioParaCriar = this.prepararItensInventarioParaCriacao(
-      estado.dtoNormalizado.itensInventario ?? [],
     );
 
     return prisma.personagemBase.create({
@@ -260,13 +222,6 @@ export class PersonagemBasePersistence {
               create: resistenciasParaCriar,
             }
           : undefined,
-
-        // ✅ CORRIGIDO: Criar itens do inventário com nome correto
-        inventarioItens: itensInventarioParaCriar.length
-          ? {
-              create: itensInventarioParaCriar,
-            }
-          : undefined,
       } as unknown as Prisma.PersonagemBaseCreateInput,
       include: personagemCriadoInclude,
     }) as unknown as Promise<PersonagemCriadoEntity>;
@@ -309,11 +264,6 @@ export class PersonagemBasePersistence {
     const resistenciasParaCriar = await this.prepararResistenciasParaCriacao(
       estado.resistenciasFinais,
       prisma,
-    );
-
-    // ✅ NOVO: Preparar itens do inventário
-    const itensInventarioParaCriar = this.prepararItensInventarioParaCriacao(
-      estado.dtoNormalizado.itensInventario ?? [],
     );
 
     // 1) update base (inclui proficienciasExtrasCodigos se vier no dataUpdateBase)
@@ -410,16 +360,6 @@ export class PersonagemBasePersistence {
               }
             : {}),
         },
-
-        // ✅ CORRIGIDO: Rebuild inventário
-        inventarioItens: {
-          deleteMany: {},
-          ...(itensInventarioParaCriar.length
-            ? {
-                create: itensInventarioParaCriar,
-              }
-            : {}),
-        },
       },
       include: {
         cla: true,
@@ -508,61 +448,5 @@ export class PersonagemBasePersistence {
         valor,
         resistenciaTipo: { connect: { codigo } },
       }));
-  }
-
-  /**
-   * ✅ NOVA FUNÇÃO: Prepara itens do inventário para criação no Prisma
-   * Converte array de ItemInventarioPayload → formato correto para nested create
-   */
-  private prepararItensInventarioParaCriacao(
-    itensInventario: Array<{
-      equipamentoId: number;
-      quantidade: number;
-      equipado?: boolean;
-      modificacoesIds?: number[];
-      nomeCustomizado?: string | null;
-      notas?: string | null;
-      estado?: Prisma.JsonValue | ItemInventarioEstadoDto | null;
-    }>,
-  ): Array<{
-    equipamento: { connect: { id: number } };
-    quantidade: number;
-    equipado: boolean;
-    nomeCustomizado?: string | null;
-    notas?: string | null;
-    estado?: Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput;
-    modificacoes?: {
-      create: Array<{
-        modificacao: { connect: { id: number } };
-      }>;
-    };
-  }> {
-    if (!itensInventario || itensInventario.length === 0) {
-      return [];
-    }
-
-    return itensInventario.map((item) => {
-      const estadoJson = normalizarEstadoInventarioParaJson(item.estado);
-
-      return {
-        equipamento: { connect: { id: item.equipamentoId } },
-        quantidade: item.quantidade,
-        equipado: item.equipado ?? false,
-        nomeCustomizado: item.nomeCustomizado || null,
-        notas: item.notas || null,
-        estado:
-          estadoJson === undefined
-            ? undefined
-            : toNullableInputJson(estadoJson),
-        modificacoes:
-          item.modificacoesIds && item.modificacoesIds.length > 0
-            ? {
-                create: item.modificacoesIds.map((modId) => ({
-                  modificacao: { connect: { id: modId } },
-                })),
-              }
-            : undefined,
-      };
-    });
   }
 }
