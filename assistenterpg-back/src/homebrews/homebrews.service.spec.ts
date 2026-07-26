@@ -14,7 +14,11 @@ describe('HomebrewsService', () => {
       update: jest.Mock;
       delete: jest.Mock;
     };
+    homebrewGrupo: {
+      create: jest.Mock;
+    };
     $transaction: jest.Mock;
+    executarTransacao: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -26,8 +30,20 @@ describe('HomebrewsService', () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
+      homebrewGrupo: {
+        create: jest.fn(),
+      },
       $transaction: jest.fn(),
+      executarTransacao: jest.fn(),
     };
+    prisma.executarTransacao.mockImplementation(
+      (
+        _contexto: string,
+        callback: (tx: {
+          homebrewGrupo: typeof prisma.homebrewGrupo;
+        }) => Promise<unknown>,
+      ) => callback({ homebrewGrupo: prisma.homebrewGrupo }),
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -166,5 +182,87 @@ describe('HomebrewsService', () => {
     );
 
     expect(prisma.homebrew.delete).not.toHaveBeenCalled();
+  });
+
+  it('importa 100 homebrews com uma unica arvore de escrita atomica', async () => {
+    const itens = Array.from({ length: 100 }, (_, indice) => ({
+      nome: `Homebrew ${indice}`,
+    }));
+    const preparados = itens.map((_, indice) => ({
+      item: {
+        codigo: `HB_VOLUME_${indice}`,
+        nome: `Homebrew ${indice}`,
+        descricao: null,
+        tipo: TipoHomebrewConteudo.EQUIPAMENTO,
+        status: StatusPublicacao.RASCUNHO,
+        versao: '1.0.0',
+        tags: [],
+        dados: {},
+      },
+      codigo: `HB_VOLUME_${indice}`,
+    }));
+    jest
+      .spyOn(service as never, 'normalizarItemImportado')
+      .mockImplementation((item) => item);
+    jest
+      .spyOn(service as never, 'prepararHomebrewsImportados')
+      .mockResolvedValue(preparados);
+    jest
+      .spyOn(service as never, 'mapDetalhado')
+      .mockImplementation((item) => item);
+    prisma.homebrewGrupo.create.mockResolvedValue({
+      id: 77,
+      nome: 'Grupo volume',
+      itens: preparados.map(({ item }, indice) => ({
+        homebrew: { id: indice + 1, ...item },
+      })),
+    });
+
+    const resultado = await service.importarHomebrewJson(9, {
+      schemaVersion: 1,
+      exportType: 'homebrew-group',
+      group: { nome: 'Grupo volume' },
+      items: itens,
+    } as never);
+
+    expect(prisma.executarTransacao).toHaveBeenCalledWith(
+      'homebrew.importarGrupo',
+      expect.any(Function),
+    );
+    expect(prisma.homebrewGrupo.create).toHaveBeenCalledTimes(1);
+    const escrita = prisma.homebrewGrupo.create.mock.calls[0][0];
+    expect(escrita.data.itens.create).toHaveLength(100);
+    expect(resultado.importedCount).toBe(100);
+  });
+
+  it('propaga falha da arvore do grupo para rollback atomico', async () => {
+    const item = {
+      codigo: 'HB_ATOMICO',
+      nome: 'Homebrew atomico',
+      descricao: null,
+      tipo: TipoHomebrewConteudo.EQUIPAMENTO,
+      status: StatusPublicacao.RASCUNHO,
+      versao: '1.0.0',
+      tags: [],
+      dados: {},
+    };
+    jest
+      .spyOn(service as never, 'normalizarItemImportado')
+      .mockReturnValue(item);
+    jest
+      .spyOn(service as never, 'prepararHomebrewsImportados')
+      .mockResolvedValue([{ item, codigo: item.codigo }]);
+    const falha = new Error('falha intermediaria');
+    prisma.homebrewGrupo.create.mockRejectedValue(falha);
+
+    await expect(
+      service.importarHomebrewJson(9, {
+        schemaVersion: 1,
+        exportType: 'homebrew-group',
+        group: { nome: 'Grupo atomico' },
+        items: [{}],
+      } as never),
+    ).rejects.toBe(falha);
+    expect(prisma.homebrewGrupo.create).toHaveBeenCalledTimes(1);
   });
 });

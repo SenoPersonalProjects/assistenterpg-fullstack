@@ -12,7 +12,9 @@ describe('UsuarioService', () => {
     usuario = {
       findUnique: jest.fn(),
     };
-    service = new UsuarioService({ usuario } as unknown as PrismaService);
+    service = new UsuarioService({
+      usuario,
+    } as unknown as PrismaService);
   });
 
   it('should be defined', () => {

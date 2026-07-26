@@ -44,6 +44,9 @@ describe('AuthSessionService', () => {
     };
     prisma = {
       sessaoAutenticacao,
+      executarLeituraComRetry: jest.fn((operacao: () => Promise<unknown>) =>
+        operacao(),
+      ),
       $transaction: jest.fn((callback) =>
         callback({
           sessaoAutenticacao,

@@ -26,6 +26,7 @@ describe('SessaoService', () => {
       findUnique: jest.fn(),
     },
     $transaction: jest.fn(),
+    executarTransacao: jest.fn(),
   };
 
   function configurarEventoEfeitosAutomaticos() {
@@ -145,6 +146,10 @@ describe('SessaoService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    prisma.executarTransacao.mockImplementation(
+      (_contexto: string, callback: (tx: typeof prisma) => Promise<unknown>) =>
+        prisma.$transaction(callback),
+    );
     delete (prisma as any).inventarioItemCampanha;
     delete (prisma as any).eventoSessao;
     delete (prisma as any).personagemSessaoHabilidadeSustentada;
@@ -155,6 +160,9 @@ describe('SessaoService', () => {
     delete (prisma as any).npcAmeacaSessao;
     delete (prisma as any).sessaoRegraOpcional;
     delete (prisma as any).sessaoIniciativaAlternada;
+    delete (prisma as any).sessaoIniciativaAlternadaParticipante;
+    delete (prisma as any).personagemCampanhaMacro;
+    delete (prisma as any).pericia;
     (prisma as any).sessao = {
       findUnique: jest.fn().mockResolvedValue({
         id: 21,
@@ -2710,6 +2718,182 @@ describe('SessaoService', () => {
     await expect(
       service.obterIniciativaAlternadaSessao(7, 21, 10),
     ).resolves.toEqual({ ativo: false, ladoAtualId: null, lados: [] });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('reconstroi iniciativa com 100 participantes em lote preservando checklist e lado atual', async () => {
+    const participantes = Array.from({ length: 100 }, (_, indice) => ({
+      token: `participante:${indice}`,
+      tipoParticipante:
+        indice < 50 ? ('PERSONAGEM' as const) : ('NPC' as const),
+      personagemSessaoId: indice < 50 ? indice + 1 : null,
+      npcSessaoId: indice >= 50 ? indice + 1 : null,
+      nomePersonagem: `Participante ${indice}`,
+    }));
+    const dto = {
+      ladoAtualId: 502,
+      lados: [
+        {
+          id: 501,
+          nome: 'Jogadores',
+          ordem: 0,
+          participantes: participantes.slice(0, 50).map((participante) => ({
+            participanteToken: participante.token,
+          })),
+        },
+        {
+          id: 502,
+          nome: 'Oposicao',
+          ordem: 1,
+          participantes: participantes.slice(50).map((participante) => ({
+            participanteToken: participante.token,
+          })),
+        },
+      ],
+    };
+    const tx = {
+      sessaoIniciativaAlternada: {
+        upsert: jest.fn().mockResolvedValue({ id: 900 }),
+        update: jest.fn().mockResolvedValue({ id: 900 }),
+      },
+      sessaoIniciativaAlternadaParticipante: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { participanteToken: 'participante:0', jaAgiu: true },
+          ]),
+        deleteMany: jest.fn().mockResolvedValue({ count: 100 }),
+        createMany: jest.fn().mockResolvedValue({ count: 100 }),
+      },
+      sessaoIniciativaAlternadaLado: {
+        deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
+        createMany: jest.fn().mockResolvedValue({ count: 2 }),
+        findMany: jest.fn().mockResolvedValue([
+          { id: 701, ordem: 0 },
+          { id: 702, ordem: 1 },
+        ]),
+      },
+    };
+
+    await (service as any).atualizarLadosIniciativaAlternadaTx(
+      tx,
+      21,
+      participantes,
+      dto,
+    );
+
+    expect(tx.sessaoIniciativaAlternadaLado.createMany).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(
+      tx.sessaoIniciativaAlternadaParticipante.createMany,
+    ).toHaveBeenCalledTimes(1);
+    const criados =
+      tx.sessaoIniciativaAlternadaParticipante.createMany.mock.calls[0][0].data;
+    expect(criados).toHaveLength(100);
+    expect(criados[0]).toEqual(
+      expect.objectContaining({
+        participanteToken: 'participante:0',
+        jaAgiu: true,
+        ladoId: 701,
+      }),
+    );
+    expect(tx.sessaoIniciativaAlternada.update).toHaveBeenCalledWith({
+      where: { id: 900 },
+      data: { ladoAtualId: 702 },
+    });
+  });
+
+  it('lista 100 macros de armas com quantidade constante de consultas', async () => {
+    jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
+      acesso: { ehMestre: true },
+      sessao: { status: 'EM_ANDAMENTO' },
+    });
+    (prisma as any).personagemSessao = {
+      findFirst: jest.fn().mockResolvedValue({
+        personagemCampanhaId: 77,
+        personagemCampanha: {
+          donoId: 10,
+          nome: 'Jiwa',
+          personagemBase: {
+            agilidade: 1,
+            forca: 2,
+            intelecto: 4,
+            presenca: 3,
+            vigor: 2,
+            pericias: [
+              {
+                grauTreinamento: 5,
+                bonusExtra: 0,
+                pericia: {
+                  codigo: 'LUTA',
+                  nome: 'Luta',
+                  atributoBase: 'FOR',
+                },
+              },
+            ],
+            habilidadesBase: [],
+            poderesGenericos: [],
+          },
+          modificadores: [],
+        },
+        condicoes: [],
+      }),
+    };
+    const armas = Array.from({ length: 100 }, (_, indice) => ({
+      id: indice + 1,
+      equipamentoId: 1_000 + indice,
+      nomeCustomizado: null,
+      equipamento: {
+        nome: `Arma ${indice}`,
+        tipoArma: 'CORPO_A_CORPO',
+        agil: false,
+        empunhaduras: ['UMA_MAO'],
+        criticoValor: 20,
+        criticoMultiplicador: 2,
+        danos: [],
+      },
+    }));
+    (prisma as any).inventarioItemCampanha = {
+      findMany: jest
+        .fn()
+        .mockResolvedValueOnce(armas)
+        .mockResolvedValueOnce([]),
+    };
+    (prisma as any).personagemCampanhaMacro = {
+      findMany: jest.fn().mockResolvedValue(
+        Array.from({ length: 100 }, (_, indice) => ({
+          id: indice + 1,
+          nome: `Macro ${indice}`,
+          descricao: null,
+          tipo: 'FORMULA_LIVRE',
+          visibilidadePadrao: 'PUBLICA',
+          configVersao: 1,
+          config: { formula: '1d20' },
+          ordem: indice,
+          revisao: 1,
+        })),
+      ),
+    };
+    (prisma as any).pericia = {
+      findMany: jest
+        .fn()
+        .mockResolvedValue([
+          { codigo: 'LUTA', nome: 'Luta', atributoBase: 'FOR' },
+        ]),
+    };
+
+    const resultado = await service.listarMacrosPersonagemSessao(7, 21, 31, 10);
+
+    expect(resultado.armas).toHaveLength(100);
+    expect(resultado.personalizadas).toHaveLength(100);
+    expect(
+      (prisma as any).inventarioItemCampanha.findMany,
+    ).toHaveBeenCalledTimes(2);
+    expect(
+      (prisma as any).personagemCampanhaMacro.findMany,
+    ).toHaveBeenCalledTimes(1);
+    expect((prisma as any).pericia.findMany).toHaveBeenCalledTimes(1);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 

@@ -73,9 +73,11 @@ type PrismaMock = {
   };
   personagemSessao: {
     findFirst: jest.Mock;
+    deleteMany: jest.Mock;
   };
   personagemCampanhaResistencia: {
     createMany: jest.Mock;
+    deleteMany: jest.Mock;
   };
   personagemCampanhaHistorico: {
     findMany: jest.Mock;
@@ -92,14 +94,32 @@ type PrismaMock = {
   };
   cena: {
     findFirst: jest.Mock;
+    deleteMany: jest.Mock;
   };
+  eventoSessao: {
+    deleteMany: jest.Mock;
+  };
+  condicaoPersonagemSessao: {
+    deleteMany: jest.Mock;
+  };
+  $queryRaw: jest.Mock;
   $transaction: jest.Mock;
+  executarTransacao: jest.Mock;
 };
 
 describe('CampanhaService', () => {
   let service: CampanhaService;
   let prisma: PrismaMock;
   let presenca: { estaOnline: jest.Mock };
+  let tecnicaInataPropria: {
+    garantirTecnicaPropriaPersonagemBase: jest.Mock;
+    clonarTecnicaInata: jest.Mock;
+    removerTecnicaClonada: jest.Mock;
+    removerTecnicasClonadas: jest.Mock;
+  };
+  let inventarioCampanha: {
+    recalcularEstadoInventarioCampanha: jest.Mock;
+  };
 
   beforeEach(async () => {
     prisma = {
@@ -149,9 +169,11 @@ describe('CampanhaService', () => {
       },
       personagemSessao: {
         findFirst: jest.fn(),
+        deleteMany: jest.fn(),
       },
       personagemCampanhaResistencia: {
         createMany: jest.fn(),
+        deleteMany: jest.fn(),
       },
       personagemCampanhaHistorico: {
         findMany: jest.fn(),
@@ -168,11 +190,33 @@ describe('CampanhaService', () => {
       },
       cena: {
         findFirst: jest.fn(),
+        deleteMany: jest.fn(),
       },
+      eventoSessao: {
+        deleteMany: jest.fn(),
+      },
+      condicaoPersonagemSessao: {
+        deleteMany: jest.fn(),
+      },
+      $queryRaw: jest.fn(),
       $transaction: jest.fn(),
+      executarTransacao: jest.fn(),
     };
+    prisma.executarTransacao.mockImplementation(
+      (_contexto: string, callback: (tx: PrismaMock) => Promise<unknown>) =>
+        prisma.$transaction(callback),
+    );
 
     presenca = { estaOnline: jest.fn().mockReturnValue(false) };
+    tecnicaInataPropria = {
+      garantirTecnicaPropriaPersonagemBase: jest.fn().mockResolvedValue(null),
+      clonarTecnicaInata: jest.fn(),
+      removerTecnicaClonada: jest.fn(),
+      removerTecnicasClonadas: jest.fn(),
+    };
+    inventarioCampanha = {
+      recalcularEstadoInventarioCampanha: jest.fn(),
+    };
     prisma.usuario.findUnique.mockImplementation(
       ({ where }: { where?: { email?: unknown } }) =>
         Promise.resolve({
@@ -195,9 +239,7 @@ describe('CampanhaService', () => {
         CampanhaConvitesService,
         {
           provide: CampanhaInventarioService,
-          useValue: {
-            recalcularEstadoInventarioCampanha: jest.fn(),
-          },
+          useValue: inventarioCampanha,
         },
         {
           provide: CampanhaItensSessaoService,
@@ -209,13 +251,7 @@ describe('CampanhaService', () => {
         },
         {
           provide: TecnicaInataPropriaService,
-          useValue: {
-            garantirTecnicaPropriaPersonagemBase: jest
-              .fn()
-              .mockResolvedValue(null),
-            clonarTecnicaInata: jest.fn(),
-            removerTecnicaClonada: jest.fn(),
-          },
+          useValue: tecnicaInataPropria,
         },
         {
           provide: PresencaService,
@@ -277,6 +313,81 @@ describe('CampanhaService', () => {
     grausAprimoramento: [],
     modificadores: [],
     ...overrides,
+  });
+
+  it('exclui campanha grande com quantidade constante de escritas', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({ donoId: 1 });
+    prisma.$queryRaw.mockResolvedValue([{ id: 7 }]);
+    prisma.personagemCampanha.findMany.mockResolvedValue(
+      Array.from({ length: 100 }, (_, indice) => ({
+        tecnicaInataPropriaId: 10_000 + indice,
+      })),
+    );
+    prisma.$transaction.mockImplementation(
+      async (callback: (tx: PrismaMock) => Promise<unknown>) =>
+        callback(prisma),
+    );
+    tecnicaInataPropria.removerTecnicasClonadas.mockResolvedValue(undefined);
+
+    await expect(service.excluirCampanha(7, 1)).resolves.toEqual({
+      message: 'Campanha excluida com sucesso',
+      id: 7,
+    });
+
+    expect(prisma.executarTransacao).toHaveBeenCalledWith(
+      'campanha.excluir',
+      expect.any(Function),
+    );
+    expect(prisma.eventoSessao.deleteMany).toHaveBeenCalledTimes(1);
+    expect(prisma.condicaoPersonagemSessao.deleteMany).toHaveBeenCalledTimes(1);
+    expect(prisma.personagemSessao.deleteMany).toHaveBeenCalledTimes(1);
+    expect(prisma.cena.deleteMany).toHaveBeenCalledTimes(1);
+    expect(
+      prisma.personagemCampanhaResistencia.deleteMany,
+    ).toHaveBeenCalledTimes(1);
+    expect(prisma.campanha.delete).toHaveBeenCalledTimes(1);
+    expect(tecnicaInataPropria.removerTecnicasClonadas).toHaveBeenCalledWith(
+      expect.arrayContaining([10_000, 10_099]),
+      prisma,
+    );
+    expect(tecnicaInataPropria.removerTecnicasClonadas).toHaveBeenCalledTimes(
+      1,
+    );
+  });
+
+  it('nao executa recalculo final quando a arvore de vinculo falha', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 7,
+      donoId: 1,
+      membros: [{ usuarioId: 3, papel: 'JOGADOR' }],
+    });
+    prisma.personagemBase.findUnique.mockResolvedValue({
+      id: 42,
+      donoId: 3,
+      nome: 'Personagem atomico',
+      nivel: 1,
+      pvBarrasTotal: 1,
+      resistencias: [],
+      inventarioItens: [],
+    });
+    prisma.personagemCampanha.findFirst.mockResolvedValue(null);
+    const falha = new Error('item intermediario invalido');
+    const tx = {
+      personagemCampanha: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockRejectedValue(falha),
+      },
+    };
+    prisma.$transaction.mockImplementation(
+      async (callback: (cliente: typeof tx) => Promise<unknown>) =>
+        callback(tx),
+    );
+
+    await expect(service.vincularPersonagemBase(7, 3, 42)).rejects.toBe(falha);
+    expect(tx.personagemCampanha.create).toHaveBeenCalledTimes(1);
+    expect(
+      inventarioCampanha.recalcularEstadoInventarioCampanha,
+    ).not.toHaveBeenCalled();
   });
 
   it('deve criar convite após colisão de código com retry', async () => {
@@ -711,6 +822,19 @@ describe('CampanhaService', () => {
       sobrecarregado: false,
       tecnicaInataId: null,
       resistencias: [{ resistenciaTipoId: 11, valor: 2 }],
+      inventarioItens: Array.from({ length: 100 }, (_, indice) => ({
+        equipamentoId: 1_000 + indice,
+        quantidade: 1,
+        equipado: indice % 2 === 0,
+        categoriaCalculada: indice % 3,
+        nomeCustomizado: `Item ${indice}`,
+        notas: null,
+        estado: { indice },
+        modificacoes: [
+          { modificacaoId: 2_000 + indice * 2 },
+          { modificacaoId: 2_001 + indice * 2 },
+        ],
+      })),
     });
     prisma.personagemCampanha.findFirst.mockResolvedValue(null);
 
@@ -773,8 +897,21 @@ describe('CampanhaService', () => {
     const personagem = await service.vincularPersonagemBase(7, 3, 42);
 
     expect(tx.personagemCampanha.create).toHaveBeenCalled();
-    expect(tx.personagemCampanhaResistencia.createMany).toHaveBeenCalled();
-    expect(tx.personagemCampanhaHistorico.create).toHaveBeenCalled();
+    const escritaPersonagem =
+      tx.personagemCampanha.create.mock.calls[0][0].data;
+    expect(escritaPersonagem.inventarioItens.create).toHaveLength(100);
+    expect(
+      escritaPersonagem.inventarioItens.create[0].modificacoes.create,
+    ).toHaveLength(2);
+    expect(tx.inventarioItemCampanha.create).not.toHaveBeenCalled();
+    expect(escritaPersonagem.resistencias.create).toHaveLength(1);
+    expect(escritaPersonagem.historico.create).toEqual(
+      expect.objectContaining({
+        tipo: 'VINCULO_PERSONAGEM_BASE',
+      }),
+    );
+    expect(tx.personagemCampanhaResistencia.createMany).not.toHaveBeenCalled();
+    expect(tx.personagemCampanhaHistorico.create).not.toHaveBeenCalled();
     expect(personagem.id).toBe(501);
     expect(personagem.recursos.eaMax).toBe(100);
   });
@@ -901,6 +1038,7 @@ describe('CampanhaService', () => {
       sobrecarregado: false,
       tecnicaInataId: null,
       resistencias: [],
+      inventarioItens: [],
     });
 
     await expect(
@@ -1058,6 +1196,7 @@ describe('CampanhaService', () => {
       sobrecarregado: false,
       tecnicaInataId: null,
       resistencias: [],
+      inventarioItens: [],
     });
     prisma.personagemCampanha.findFirst.mockResolvedValue({ id: 88 });
 
@@ -1103,6 +1242,7 @@ describe('CampanhaService', () => {
       sobrecarregado: false,
       tecnicaInataId: null,
       resistencias: [],
+      inventarioItens: [],
     });
 
     const tx = {

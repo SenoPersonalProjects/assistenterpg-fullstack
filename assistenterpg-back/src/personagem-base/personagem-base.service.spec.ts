@@ -7,30 +7,16 @@ import { PersonagemBaseMapper } from './personagem-base.mapper';
 import { PersonagemBasePersistence } from './personagem-base.persistence';
 import { InventarioService } from '../inventario/inventario.service';
 import { TecnicaInataPropriaService } from '../tecnicas-amaldicoadas/tecnica-inata-propria.service';
+import { CreatePersonagemBaseDto } from './dto/create-personagem-base.dto';
+import { ImportarPersonagemBaseDto } from './dto/importar-personagem-base.dto';
 
 describe('PersonagemBaseService', () => {
   let service: PersonagemBaseService;
 
-  const adicionarItemMock = jest.fn();
-  const deleteModsMock = jest.fn();
-  const deleteItensMock = jest.fn();
-  const updatePersonagemMock = jest.fn();
-
+  const substituirInventarioBasePreparadoMock = jest.fn();
   const inventarioServiceMock = {
-    adicionarItem: adicionarItemMock,
+    substituirInventarioBasePreparado: substituirInventarioBasePreparadoMock,
   };
-
-  const txMock = {
-    inventarioItemBaseModificacao: {
-      deleteMany: deleteModsMock,
-    },
-    inventarioItemBase: {
-      deleteMany: deleteItensMock,
-    },
-    personagemBase: {
-      update: updatePersonagemMock,
-    },
-  } as unknown as Prisma.TransactionClient;
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -69,56 +55,24 @@ describe('PersonagemBaseService', () => {
     service = module.get<PersonagemBaseService>(PersonagemBaseService);
   });
 
-  it('não deve sincronizar inventario quando itensInventario não for enviado', async () => {
-    await (
-      service as unknown as {
-        sincronizarItensInventarioNoUpdate: (
-          donoId: number,
-          personagemBaseId: number,
-          itensInventario: unknown,
-          tx: Prisma.TransactionClient,
-        ) => Promise<void>;
-      }
-    ).sincronizarItensInventarioNoUpdate(1, 10, undefined, txMock);
+  it('mantem inventario intacto quando itensInventario nao foi informado', async () => {
+    const serviceInterno = service as unknown as {
+      persistirInventarioSeInformado: (
+        personagemBaseId: number,
+        itensPreparados: undefined,
+        espacosInventarioExtraBase: number,
+        tx: Prisma.TransactionClient,
+      ) => Promise<void>;
+    };
 
-    expect(deleteModsMock).not.toHaveBeenCalled();
-    expect(deleteItensMock).not.toHaveBeenCalled();
-    expect(updatePersonagemMock).not.toHaveBeenCalled();
-    expect(adicionarItemMock).not.toHaveBeenCalled();
-  });
+    await serviceInterno.persistirInventarioSeInformado(
+      1,
+      undefined,
+      0,
+      {} as Prisma.TransactionClient,
+    );
 
-  it('deve limpar inventario e zerar ocupacao quando receber lista vazia', async () => {
-    await (
-      service as unknown as {
-        sincronizarItensInventarioNoUpdate: (
-          donoId: number,
-          personagemBaseId: number,
-          itensInventario: unknown[],
-          tx: Prisma.TransactionClient,
-        ) => Promise<void>;
-      }
-    ).sincronizarItensInventarioNoUpdate(5, 42, [], txMock);
-
-    expect(deleteModsMock).toHaveBeenCalledWith({
-      where: {
-        item: {
-          personagemBaseId: 42,
-        },
-      },
-    });
-    expect(deleteItensMock).toHaveBeenCalledWith({
-      where: {
-        personagemBaseId: 42,
-      },
-    });
-    expect(updatePersonagemMock).toHaveBeenCalledWith({
-      where: { id: 42 },
-      data: {
-        espacosOcupados: 0,
-        sobrecarregado: false,
-      },
-    });
-    expect(adicionarItemMock).not.toHaveBeenCalled();
+    expect(substituirInventarioBasePreparadoMock).not.toHaveBeenCalled();
   });
 
   it('deve reconstruir graus livres removendo bônus fixo de habilidades no update parcial', async () => {
@@ -178,72 +132,80 @@ describe('PersonagemBaseService', () => {
     ]);
   });
 
-  it('deve recriar itens do inventario via InventarioService quando receber lista no update', async () => {
-    const itens = [
-      {
-        equipamentoId: 100,
-        quantidade: 2,
-        equipado: true,
-        modificacoesIds: [7, 8],
-        nomeCustomizado: 'Arma principal',
-        notas: 'Com mira',
-      },
-      {
-        equipamentoId: 200,
-        quantidade: 1,
-        equipado: false,
-      },
+  it('encaminha a importacao da Jiwa Kasumi com os 14 itens em um unico create', async () => {
+    const idsEquipamentos = [
+      133, 165, 168, 87, 69, 169, 170, 72, 183, 64, 49, 173, 3, 93,
     ];
+    const personagem = {
+      nome: 'Jiwa Kasumi',
+      nivel: 4,
+      classeId: 3,
+      intelecto: 4,
+      periciasLivresCodigos: Array.from(
+        { length: 12 },
+        (_, index) => `PERICIA_${index + 1}`,
+      ),
+      itensInventario: idsEquipamentos.map((equipamentoId) => ({
+        equipamentoId,
+        quantidade: equipamentoId === 93 ? 2 : 1,
+        equipado: equipamentoId === 133,
+        modificacoesIds:
+          equipamentoId === 165 ? [7] : equipamentoId === 173 ? [20] : [],
+        estado: {},
+      })),
+    } as unknown as CreatePersonagemBaseDto;
+    const importacao = {
+      schema: 'assistenterpg.personagem-base.v1',
+      schemaVersion: 1,
+      personagem,
+    } as ImportarPersonagemBaseDto;
+    const serviceInterno = service as unknown as {
+      montarDtoParaImportacao: (
+        dto: ImportarPersonagemBaseDto,
+      ) => Promise<CreatePersonagemBaseDto>;
+    };
+    jest
+      .spyOn(serviceInterno, 'montarDtoParaImportacao')
+      .mockResolvedValue(personagem);
+    const criarSpy = jest.spyOn(service, 'criar').mockResolvedValue({
+      id: 1,
+      nome: 'Jiwa Kasumi',
+      nivel: 4,
+      cla: 'Kasumi',
+      origem: 'Operário',
+      classe: 'Especialista',
+      trilha: 'Técnico',
+      caminho: null,
+    });
 
-    await (
-      service as unknown as {
-        sincronizarItensInventarioNoUpdate: (
-          donoId: number,
-          personagemBaseId: number,
-          itensInventario: typeof itens,
-          tx: Prisma.TransactionClient,
-        ) => Promise<void>;
-      }
-    ).sincronizarItensInventarioNoUpdate(3, 77, itens, txMock);
+    const resultado = await service.importar(9, importacao);
 
-    expect(deleteModsMock).toHaveBeenCalledTimes(1);
-    expect(deleteItensMock).toHaveBeenCalledTimes(1);
-    expect(updatePersonagemMock).not.toHaveBeenCalled();
-
-    expect(adicionarItemMock).toHaveBeenCalledTimes(2);
-    expect(adicionarItemMock).toHaveBeenNthCalledWith(
-      1,
-      3,
-      {
-        personagemBaseId: 77,
-        equipamentoId: 100,
-        quantidade: 2,
-        equipado: true,
-        modificacoes: [7, 8],
-        nomeCustomizado: 'Arma principal',
-        notas: 'Com mira',
-      },
-      {
-        tx: txMock,
-        skipOwnershipCheck: true,
-      },
+    expect(criarSpy).toHaveBeenCalledTimes(1);
+    expect(criarSpy).toHaveBeenCalledWith(
+      9,
+      expect.objectContaining({
+        nome: 'Jiwa Kasumi',
+        itensInventario: expect.arrayContaining([
+          expect.objectContaining({ equipamentoId: 133, equipado: true }),
+          expect.objectContaining({
+            equipamentoId: 165,
+            modificacoesIds: [7],
+          }),
+          expect.objectContaining({
+            equipamentoId: 173,
+            modificacoesIds: [20],
+          }),
+        ]),
+      }),
     );
-    expect(adicionarItemMock).toHaveBeenNthCalledWith(
-      2,
-      3,
-      {
-        personagemBaseId: 77,
-        equipamentoId: 200,
-        quantidade: 1,
-        equipado: false,
-        modificacoes: [],
-        nomeCustomizado: undefined,
-        notas: undefined,
-      },
-      {
-        tx: txMock,
-        skipOwnershipCheck: true,
-      },
+    expect(personagem.itensInventario).toHaveLength(14);
+    expect(resultado).toEqual(
+      expect.objectContaining({
+        id: 1,
+        importado: true,
+        schema: 'assistenterpg.personagem-base.v1',
+        schemaVersion: 1,
+      }),
     );
   });
 });
