@@ -23,10 +23,12 @@ import { CampanhaMacrosService } from './campanha.macros.service';
 import { CampanhaRoletaService } from './campanha.roleta.service';
 import { CampanhaGateway } from './campanha.gateway';
 import { AmizadesModule } from 'src/amizades/amizades.module';
+import { SessaoCondicoesAutomaticasModule } from 'src/sessao-condicoes-automaticas/sessao-condicoes-automaticas.module';
 
 @Module({
   imports: [
     PrismaModule,
+    SessaoCondicoesAutomaticasModule,
     InventarioModule,
     TecnicasAmaldicoadasModule,
     AmizadesModule,

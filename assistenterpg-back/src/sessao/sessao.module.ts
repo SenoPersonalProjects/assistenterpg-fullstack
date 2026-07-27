@@ -11,10 +11,12 @@ import { SessaoActivationService } from './sessao-activation.service';
 import { SessaoController } from './sessao.controller';
 import { SessaoService } from './sessao.service';
 import { SessaoGateway } from './sessao.gateway';
+import { SessaoCondicoesAutomaticasModule } from 'src/sessao-condicoes-automaticas/sessao-condicoes-automaticas.module';
 
 @Module({
   imports: [
     PrismaModule,
+    SessaoCondicoesAutomaticasModule,
     ConfigModule,
     GoogleModule,
     JwtModule.registerAsync({

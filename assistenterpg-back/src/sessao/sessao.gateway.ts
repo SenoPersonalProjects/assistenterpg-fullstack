@@ -20,6 +20,7 @@ import {
 import { AuthSessionService } from 'src/auth/auth-session.service';
 import { createCorsOptions } from 'src/common/config/security.config';
 import { SessaoService } from './sessao.service';
+import type { AtualizacaoIncrementalSessao } from './sessao-atualizacao.types';
 
 type SocketAutenticado = Socket & {
   data: {
@@ -64,6 +65,7 @@ type EventoSessaoAtualizada = {
     | 'INICIATIVA_ALTERNADA_ATUALIZADA'
     | 'CONSUMIVEL_USADO';
   em: string;
+  atualizacao?: AtualizacaoIncrementalSessao;
 };
 
 type MetaSalaSessao = {
@@ -264,6 +266,7 @@ export class SessaoGateway
     campanhaId: number,
     sessaoId: number,
     tipo: EventoSessaoAtualizada['tipo'],
+    atualizacao?: AtualizacaoIncrementalSessao,
   ): void {
     if (!this.server) return;
 
@@ -272,6 +275,7 @@ export class SessaoGateway
       sessaoId,
       tipo,
       em: new Date().toISOString(),
+      ...(atualizacao ? { atualizacao } : {}),
     };
 
     this.server

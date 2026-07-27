@@ -29,11 +29,7 @@ const LEITURAS_PROTEGIDAS = new Set([
   'findUniqueOrThrow',
   'groupBy',
 ]);
-const ALLOWLIST_AWAIT_EM_LOOP = new Set([
-  // Preexistente e fora desta etapa: registra no maximo quatro campos fixos
-  // de recurso alterados; a cardinalidade nao depende de dados persistidos.
-  'sessao/sessao.service.ts:atualizarRecursosPersonagemSessao:create',
-]);
+const ALLOWLIST_AWAIT_EM_LOOP = new Set<string>();
 
 type Violacao = {
   arquivo: string;

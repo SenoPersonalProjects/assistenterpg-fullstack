@@ -17,6 +17,7 @@ import {
   TipoFichaNpcAmeaca,
   TipoNpcAmeaca,
 } from '@prisma/client';
+import { SessaoCondicoesAutomaticasService } from 'src/sessao-condicoes-automaticas/sessao-condicoes-automaticas.service';
 
 describe('SessaoService', () => {
   let service: SessaoService;
@@ -183,6 +184,13 @@ describe('SessaoService', () => {
         {
           provide: PrismaService,
           useValue: prisma,
+        },
+        {
+          provide: SessaoCondicoesAutomaticasService,
+          useValue: {
+            sincronizarPersonagemSessaoTx: jest.fn().mockResolvedValue([]),
+            sincronizarNpcSessaoTx: jest.fn().mockResolvedValue([]),
+          },
         },
       ],
     }).compile();
@@ -482,9 +490,6 @@ describe('SessaoService', () => {
         acesso: { ehMestre: true },
         sessao: { status: 'EM_ANDAMENTO' },
       });
-    jest
-      .spyOn(service as any, 'buscarDetalheSessao')
-      .mockResolvedValue({ id: 21 });
     const loggerWarn = jest
       .spyOn((service as any).logger, 'warn')
       .mockImplementation();
@@ -495,10 +500,17 @@ describe('SessaoService', () => {
         pvAtual: 9,
         peAtual: 7,
       }),
-    ).resolves.toEqual({ id: 21 });
+    ).resolves.toMatchObject({
+      tipo: 'RECURSO_AJUSTADO',
+      eventoId: null,
+      valores: {},
+    });
 
-    expect(loggerWarn).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(loggerWarn.mock.calls[0][0] as string)).toEqual({
+    expect(loggerWarn).toHaveBeenCalledTimes(2);
+    const warnings = loggerWarn.mock.calls.map(([mensagem]) =>
+      JSON.parse(mensagem as string),
+    );
+    expect(warnings).toContainEqual({
       evento: 'ajuste_recursos_sessao_sem_precondicao',
       fluxo: 'AJUSTAR_RECURSOS_PERSONAGEM',
       campanhaId: 7,
@@ -515,9 +527,6 @@ describe('SessaoService', () => {
         acesso: { ehMestre: true },
         sessao: { status: 'EM_ANDAMENTO' },
       });
-    jest
-      .spyOn(service as any, 'buscarDetalheSessao')
-      .mockResolvedValue({ id: 21 });
     const loggerWarn = jest
       .spyOn((service as any).logger, 'warn')
       .mockImplementation();
@@ -528,7 +537,14 @@ describe('SessaoService', () => {
       pvAtualEsperado: 10,
     });
 
-    expect(loggerWarn).not.toHaveBeenCalled();
+    expect(
+      loggerWarn.mock.calls
+        .map(([mensagem]) => JSON.parse(mensagem as string))
+        .some(
+          (warning) =>
+            warning.evento === 'ajuste_recursos_sessao_sem_precondicao',
+        ),
+    ).toBe(false);
   });
 
   it('recusa ajuste manual de NPC baseado em snapshot obsoleto', async () => {
@@ -2655,26 +2671,23 @@ describe('SessaoService', () => {
     });
   });
 
-  it('não sincroniza condições automáticas ao ler detalhe encerrado', async () => {
+  it('não executa transação nem sincroniza condições ao ler detalhe encerrado', async () => {
     jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
       acesso: { ehMestre: true },
       sessao: { status: 'ENCERRADA' },
     });
-    const sincronizar = jest.spyOn(
-      service as any,
-      'sincronizarCondicoesAutomaticasSessao',
-    );
     (prisma as any).sessao = {
       findUnique: jest.fn().mockResolvedValue(null),
     };
+    prisma.$transaction.mockClear();
 
     await expect(service.buscarDetalheSessao(7, 21, 10)).rejects.toBeInstanceOf(
       SessaoCampanhaNaoEncontradaException,
     );
-    expect(sincronizar).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it('valida campanha e sessão antes de sincronizar o detalhe', async () => {
+  it('valida campanha e sessão sem iniciar transação de reparo no detalhe', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 7,
       donoId: 10,
@@ -2689,15 +2702,12 @@ describe('SessaoService', () => {
         rodadaAtual: 1,
       }),
     };
-    const sincronizar = jest.spyOn(
-      service as any,
-      'sincronizarCondicoesAutomaticasSessao',
-    );
+    prisma.$transaction.mockClear();
 
     await expect(service.buscarDetalheSessao(7, 21, 10)).rejects.toBeInstanceOf(
       SessaoCampanhaNaoEncontradaException,
     );
-    expect(sincronizar).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('lê iniciativa alternada persistida sem criar estado em sessão encerrada', async () => {

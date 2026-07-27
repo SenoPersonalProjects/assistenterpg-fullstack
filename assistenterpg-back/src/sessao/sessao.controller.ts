@@ -269,11 +269,14 @@ export class SessaoController {
         dto,
       );
 
-    this.sessaoGateway.emitirSessaoAtualizada(
-      campanhaId,
-      sessaoId,
-      'RECURSO_AJUSTADO',
-    );
+    if (resultado.eventoId !== null) {
+      this.sessaoGateway.emitirSessaoAtualizada(
+        campanhaId,
+        sessaoId,
+        'RECURSO_AJUSTADO',
+        resultado,
+      );
+    }
 
     return resultado;
   }
@@ -829,13 +832,16 @@ export class SessaoController {
       dto,
     );
     if (resultado.criadoAgora) {
-      this.sessaoGateway.emitirSessaoAtualizada(
-        campanhaId,
-        sessaoId,
-        'INSPIRACAO_AJUSTADA',
-      );
+      if (resultado.atualizacao.eventoId !== null) {
+        this.sessaoGateway.emitirSessaoAtualizada(
+          campanhaId,
+          sessaoId,
+          'INSPIRACAO_AJUSTADA',
+          resultado.atualizacao,
+        );
+      }
     }
-    return resultado.detalhe;
+    return resultado.atualizacao;
   }
 
   @Post(':sessaoId/inspiracao/:personagemCampanhaId/gastar')
@@ -854,13 +860,16 @@ export class SessaoController {
       dto,
     );
     if (resultado.criadoAgora) {
-      this.sessaoGateway.emitirSessaoAtualizada(
-        campanhaId,
-        sessaoId,
-        'INSPIRACAO_GASTA',
-      );
+      if (resultado.atualizacao.eventoId !== null) {
+        this.sessaoGateway.emitirSessaoAtualizada(
+          campanhaId,
+          sessaoId,
+          'INSPIRACAO_GASTA',
+          resultado.atualizacao,
+        );
+      }
     }
-    return resultado.detalhe;
+    return resultado.atualizacao;
   }
 
   @Patch(':sessaoId/mecanicas/social/encontros')

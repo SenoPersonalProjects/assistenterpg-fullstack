@@ -32,6 +32,7 @@ import {
   type NucleoAmaldicoadoCodigo,
 } from 'src/common/utils/pv-barras';
 import { TecnicaInataPropriaService } from '../tecnicas-amaldicoadas/tecnica-inata-propria.service';
+import { SessaoCondicoesAutomaticasService } from 'src/sessao-condicoes-automaticas/sessao-condicoes-automaticas.service';
 
 @Injectable()
 export class CampanhaPersonagensService {
@@ -42,6 +43,7 @@ export class CampanhaPersonagensService {
     private readonly mapper: CampanhaMapper,
     private readonly persistence: CampanhaPersistence,
     private readonly tecnicaInataPropriaService: TecnicaInataPropriaService,
+    private readonly condicoesAutomaticasService: SessaoCondicoesAutomaticasService,
   ) {}
 
   private async buscarSnapshotPersonagemBase(
@@ -692,6 +694,11 @@ export class CampanhaPersonagensService {
         },
         data: { precisaRecalculo: true },
       });
+
+      await this.condicoesAutomaticasService.sincronizarPersonagemCampanhaTx(
+        tx,
+        personagemCampanhaId,
+      );
     });
 
     await this.inventarioService.recalcularEstadoInventarioCampanha(
@@ -779,34 +786,47 @@ export class CampanhaPersonagensService {
           : clamp(dto.sanAtual, 0, contexto.personagem.sanMax),
     };
 
-    const atualizado = await this.prisma.$transaction(async (tx) => {
-      const personagem = await tx.personagemCampanha.update({
-        where: { id: personagemCampanhaId },
-        data: {
-          pvAtual: depois.pvAtual,
-          peAtual: depois.peAtual,
-          eaAtual: depois.eaAtual,
-          sanAtual: depois.sanAtual,
-        },
-        select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
-      });
-
-      await tx.personagemCampanhaHistorico.create({
-        data: {
-          personagemCampanhaId,
-          campanhaId,
-          criadoPorId: usuarioId,
-          tipo: 'ATUALIZACAO_RECURSOS',
-          descricao: 'Recursos atuais da ficha foram atualizados manualmente',
-          dados: {
-            antes,
-            depois,
+    const atualizado = await this.prisma.executarTransacao(
+      'campanha.personagem.recursos.atualizar',
+      async (tx) => {
+        const personagem = await tx.personagemCampanha.update({
+          where: { id: personagemCampanhaId },
+          data: {
+            pvAtual: depois.pvAtual,
+            peAtual: depois.peAtual,
+            eaAtual: depois.eaAtual,
+            sanAtual: depois.sanAtual,
           },
-        },
-      });
+          select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
+        });
 
-      return personagem;
-    });
+        await tx.personagemCampanhaHistorico.create({
+          data: {
+            personagemCampanhaId,
+            campanhaId,
+            criadoPorId: usuarioId,
+            tipo: 'ATUALIZACAO_RECURSOS',
+            descricao: 'Recursos atuais da ficha foram atualizados manualmente',
+            dados: {
+              antes,
+              depois,
+            },
+          },
+        });
+
+        if (
+          antes.pvAtual !== depois.pvAtual ||
+          antes.sanAtual !== depois.sanAtual
+        ) {
+          await this.condicoesAutomaticasService.sincronizarPersonagemCampanhaTx(
+            tx,
+            personagemCampanhaId,
+          );
+        }
+
+        return personagem;
+      },
+    );
 
     return this.mapper.mapearPersonagemCampanhaResposta(atualizado);
   }
@@ -942,20 +962,30 @@ export class CampanhaPersonagensService {
       infoPv.pvBarrasRestantes - 1,
     );
 
-    const atualizado = await this.prisma.personagemCampanha.update({
-      where: { id: personagemCampanhaId },
-      data: {
-        pvBarrasRestantes: infoAtualizado.pvBarrasRestantes,
-        pvAtual: infoAtualizado.pvBarraMaxAtual,
-        nucleoAmaldicoadoAtivo: novoNucleoAtivo,
-        nucleosDisponiveis: novosNucleos,
-        peAtual:
-          modo === 'OUTRO'
-            ? Math.max(0, contexto.personagem.peAtual - 3)
-            : contexto.personagem.peAtual,
+    const atualizado = await this.prisma.executarTransacao(
+      'campanha.personagem.nucleo.sacrificar',
+      async (tx) => {
+        const personagem = await tx.personagemCampanha.update({
+          where: { id: personagemCampanhaId },
+          data: {
+            pvBarrasRestantes: infoAtualizado.pvBarrasRestantes,
+            pvAtual: infoAtualizado.pvBarraMaxAtual,
+            nucleoAmaldicoadoAtivo: novoNucleoAtivo,
+            nucleosDisponiveis: novosNucleos,
+            peAtual:
+              modo === 'OUTRO'
+                ? Math.max(0, contexto.personagem.peAtual - 3)
+                : contexto.personagem.peAtual,
+          },
+          select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
+        });
+        await this.condicoesAutomaticasService.sincronizarPersonagemCampanhaTx(
+          tx,
+          personagemCampanhaId,
+        );
+        return personagem;
       },
-      select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
-    });
+    );
 
     return this.mapper.mapearPersonagemCampanhaResposta(atualizado);
   }

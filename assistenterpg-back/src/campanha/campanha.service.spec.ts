@@ -25,6 +25,7 @@ import {
 } from 'src/common/exceptions/campanha.exception';
 import { AmizadeNaoEncontradaException } from 'src/common/exceptions/amizade.exception';
 import { UsuarioEmailNaoEncontradoException } from 'src/common/exceptions/usuario.exception';
+import { SessaoCondicoesAutomaticasService } from 'src/sessao-condicoes-automaticas/sessao-condicoes-automaticas.service';
 
 type PrismaMock = {
   campanha: {
@@ -260,6 +261,14 @@ describe('CampanhaService', () => {
         {
           provide: PrismaService,
           useValue: prisma,
+        },
+        {
+          provide: SessaoCondicoesAutomaticasService,
+          useValue: {
+            sincronizarPersonagemCampanhaTx: jest
+              .fn()
+              .mockResolvedValue(undefined),
+          },
         },
       ],
     }).compile();

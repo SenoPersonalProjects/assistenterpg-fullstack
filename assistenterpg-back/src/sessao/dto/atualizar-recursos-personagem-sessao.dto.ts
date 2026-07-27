@@ -1,6 +1,10 @@
-﻿import { IsInt, IsOptional, Min } from 'class-validator';
+﻿import { IsInt, IsOptional, IsUUID, Min } from 'class-validator';
 
 export class AtualizarRecursosPersonagemSessaoDto {
+  @IsOptional()
+  @IsUUID()
+  clientRequestId?: string;
+
   @IsOptional()
   @IsInt()
   @Min(0)

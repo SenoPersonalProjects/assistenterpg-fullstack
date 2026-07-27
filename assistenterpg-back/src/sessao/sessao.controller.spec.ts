@@ -503,8 +503,18 @@ describe('SessaoController', () => {
 
   it('deve emitir evento ao ajustar inspiracao', async () => {
     const dto = { delta: 1 };
+    const atualizacao = {
+      tipo: 'INSPIRACAO_AJUSTADA' as const,
+      mutacaoId: 'mutacao-1',
+      eventoId: 91,
+      campanhaId: 7,
+      sessaoId: 12,
+      personagemCampanhaId: 44,
+      pontosInspiracao: 2,
+      em: '2026-07-26T12:00:00.000Z',
+    };
     sessaoServiceMock.ajustarInspiracaoSessao.mockResolvedValue({
-      detalhe: {},
+      atualizacao,
       criadoAgora: true,
     });
 
@@ -527,13 +537,24 @@ describe('SessaoController', () => {
       7,
       12,
       'INSPIRACAO_AJUSTADA',
+      atualizacao,
     );
   });
 
   it('deve emitir evento ao gastar inspiracao', async () => {
     const dto = { custo: 1, efeito: 'BONUS_5' as const };
+    const atualizacao = {
+      tipo: 'INSPIRACAO_GASTA' as const,
+      mutacaoId: 'mutacao-2',
+      eventoId: 92,
+      campanhaId: 7,
+      sessaoId: 12,
+      personagemCampanhaId: 44,
+      pontosInspiracao: 1,
+      em: '2026-07-26T12:01:00.000Z',
+    };
     sessaoServiceMock.gastarInspiracaoSessao.mockResolvedValue({
-      detalhe: {},
+      atualizacao,
       criadoAgora: true,
     });
 
@@ -556,6 +577,7 @@ describe('SessaoController', () => {
       7,
       12,
       'INSPIRACAO_GASTA',
+      atualizacao,
     );
   });
 
