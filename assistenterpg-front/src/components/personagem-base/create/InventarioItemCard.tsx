@@ -9,8 +9,6 @@ import { Badge } from '@/components/ui/Badge';
 import {
   getIconeTipo,
   CATEGORIA_GRAU_LABELS,
-  calcularCategoriaFinal,
-  contarModificacoesEfetivasItem,
   equipamentoUsaPericiaPersonalizada,
   extrairFuncoesAdicionaisPericias,
 } from '@/lib/utils/inventario';
@@ -19,12 +17,14 @@ import type {
   EquipamentoCatalogo,
   ModificacaoCatalogo,
   PericiaCatalogo,
+  ItemInventarioPreviewDto,
 } from '@/lib/api';
 
 type Props = {
   item: ItemInventarioPayload; // ??? MUDOU
   equipamento: EquipamentoCatalogo;
   modificacoes: ModificacaoCatalogo[]; // Catálogo completo
+  calculado?: ItemInventarioPreviewDto;
   pericias?: PericiaCatalogo[];
   onEdit: () => void;
   onDuplicate: () => void;
@@ -35,6 +35,7 @@ export function InventarioItemCard({
   item,
   equipamento,
   modificacoes, // ??? ADICIONAR
+  calculado,
   pericias = [],
   onEdit,
   onDuplicate,
@@ -46,30 +47,9 @@ export function InventarioItemCard({
     return modificacoes.filter((mod) => item.modificacoesIds?.includes(mod.id));
   }, [item.modificacoesIds, modificacoes]);
 
-  // ✅ NOVO: Calcular espaços (sem espacosCalculados do backend)
-  const espacosPorUnidade = useMemo(() => {
-    let espacos = equipamento.espacos;
-    modsAplicadas.forEach((mod) => {
-      espacos += mod.incrementoEspacos;
-    });
-    return espacos;
-  }, [equipamento.espacos, modsAplicadas]);
-
-  const espacosTotal = espacosPorUnidade * item.quantidade;
-
-  // ✅ Normalizar categoria
-  const categoriaFinal = calcularCategoriaFinal(
-    equipamento.categoria,
-    contarModificacoesEfetivasItem({
-      modificacoesIds: item.modificacoesIds,
-      modificacoesCatalogo: modificacoes,
-      estado: item.estado,
-    }),
-  );
-
   // ✅ Obter label da categoria
-  const categoriaLabel = CATEGORIA_GRAU_LABELS[categoriaFinal] || {
-    nome: `Cat. ${categoriaFinal}`,
+  const categoriaLabel = CATEGORIA_GRAU_LABELS[calculado?.categoriaCalculada ?? ''] || {
+    nome: calculado ? `Cat. ${calculado.categoriaCalculada}` : 'Calculando categoria',
     cor: 'text-app-muted',
   };
 
@@ -114,7 +94,8 @@ export function InventarioItemCard({
           </div>
 
           <p className="text-xs text-app-muted ml-6 mb-2">
-            {item.quantidade}× • {espacosPorUnidade} esp./un • Total: {espacosTotal}
+            {item.quantidade}× • {calculado ? `${calculado.espacosPorUnidade} esp./un` : 'calculando'}{' '}
+            • Total: {calculado?.espacosTotal ?? '—'}
           </p>
 
           <div className="flex flex-wrap gap-1 ml-6">

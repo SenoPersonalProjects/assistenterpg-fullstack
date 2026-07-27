@@ -25,7 +25,6 @@ import {
   contarItensVestiveis,
   LIMITES_VESTIR,
   CATEGORIA_GRAU_LABELS,
-  calcularCategoriaFinal,
   normalizarCategoria,
 } from '@/lib/utils/inventario';
 
@@ -49,10 +48,12 @@ export function SecaoInventario({
   );
 
   // Usar dados do backend.
-  const espacosBase = personagem.espacosInventarioBase;
-  const espacosExtra = personagem.espacosInventarioExtra || 0;
-  const espacosOcupados = personagem.espacosOcupados || 0;
-  const sobrecarregado = personagem.sobrecarregado || false;
+  const capacidade = personagem.capacidadeInventario;
+  const espacosBase = capacidade?.base ?? personagem.espacosInventarioBase;
+  const espacosExtra = capacidade?.extra ?? personagem.espacosInventarioExtra;
+  const espacosOcupados = capacidade?.ocupados ?? personagem.espacosOcupados;
+  const sobrecarregado =
+    capacidade?.sobrecarregado ?? personagem.sobrecarregado;
   
   const espacosTotal = espacosBase + espacosExtra;
   const espacosRestantes = espacosTotal - espacosOcupados;
@@ -76,10 +77,7 @@ export function SecaoInventario({
     };
 
     itensInventario.forEach((item) => {
-      const categoriaRaw =
-        item.categoriaCalculada ??
-        calcularCategoriaFinal(item.equipamento?.categoria, item.modificacoes?.length ?? 0);
-      const categoria = normalizarCategoria(categoriaRaw);
+      const categoria = normalizarCategoria(item.categoriaCalculada);
       contagem[categoria] = (contagem[categoria] || 0) + item.quantidade;
     });
 
@@ -222,10 +220,28 @@ export function SecaoInventario({
           </div>
 
           <p className="text-xs text-app-muted">
-            Base: {espacosBase} (Força × 5)
-            {espacosExtra > 0 && (
+            Base: {espacosBase}
+            {capacidade?.formula && (
+              <>
+                {' '}
+                ({capacidade.formula.forca} Força
+                {capacidade.formula.intelectoAplicado !== 0
+                  ? ` + ${capacidade.formula.intelectoAplicado} Intelecto`
+                  : ''}
+                ) × {capacidade.formula.multiplicador}
+              </>
+            )}
+            {capacidade?.formula.minimoAplicado && (
+              <span className="ml-2">mínimo de 2 aplicado</span>
+            )}
+            {(capacidade?.extraHabilidades ?? 0) !== 0 && (
               <span className="text-app-success ml-2">
-                + {espacosExtra} de itens especiais
+                + {capacidade?.extraHabilidades} de habilidades
+              </span>
+            )}
+            {(capacidade?.extraItens ?? espacosExtra) !== 0 && (
+              <span className="text-app-success ml-2">
+                + {capacidade?.extraItens ?? espacosExtra} de itens especiais
               </span>
             )}
           </p>
@@ -410,9 +426,7 @@ export function SecaoInventario({
                 const espacosTotal = espacosPorUnidade * item.quantidade;
                 const modsAplicadas = item.modificacoes || [];
 
-                const categoriaRaw =
-                  item.categoriaCalculada ??
-                  calcularCategoriaFinal(equip.categoria, modsAplicadas.length);
+                const categoriaRaw = item.categoriaCalculada;
                 const categoriaFinal = normalizarCategoria(categoriaRaw);
                 
                 const categoriaLabel = CATEGORIA_GRAU_LABELS[categoriaFinal] || {

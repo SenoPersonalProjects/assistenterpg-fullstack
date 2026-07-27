@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
 
@@ -26,7 +26,9 @@ import {
   type EquipamentoCatalogo,
   type ModificacaoCatalogo,
   type ItemInventarioPayload,
+  type PreviewItensInventarioResponse,
 } from '@/lib/api';
+import { converterPreviewPersonagemParaInventario } from '@/lib/utils/inventario-preview';
 
 import { Button } from '@/components/ui/Button';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -477,6 +479,34 @@ export function PersonagemBaseWizard(props: Props) {
 
   const previewPayloadHash = useMemo(
     () => (previewPayload ? JSON.stringify(previewPayload) : null),
+    [previewPayload],
+  );
+
+  const previewInventarioGlobal = useMemo(() => {
+    if (!previewGlobal) return null;
+    try {
+      return converterPreviewPersonagemParaInventario(previewGlobal);
+    } catch {
+      return null;
+    }
+  }, [previewGlobal]);
+
+  const resolverPreviewInventario = useCallback(
+    async (
+      itens: ItemInventarioPayload[],
+    ): Promise<PreviewItensInventarioResponse> => {
+      if (!previewPayload) {
+        throw new Error(
+          'Preencha os dados obrigatórios antes de validar o inventário.',
+        );
+      }
+
+      const resultado = await apiPreviewPersonagemBase({
+        ...previewPayload,
+        itensInventario: sanitizarItensInventario(itens),
+      });
+      return converterPreviewPersonagemParaInventario(resultado);
+    },
     [previewPayload],
   );
 
@@ -985,6 +1015,8 @@ export function PersonagemBaseWizard(props: Props) {
                 modificacoes={modificacoes}
                 itensInventario={itensInventario}
                 onChangeItensInventario={setItensInventario}
+                previewInventarioAutoritativo={previewInventarioGlobal}
+                resolverPreviewInventario={resolverPreviewInventario}
                 creditoCategoriaBonus={previewGlobal?.creditoCategoriaBonus}
                 onEquipamentoHomebrewInlineCriado={props.onEquipamentoHomebrewInlineCriado}
               />

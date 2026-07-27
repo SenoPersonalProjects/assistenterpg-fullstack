@@ -8,6 +8,7 @@ import type {
   EquipamentoCatalogo,
   ModificacaoCatalogo,
   PreviewAdicionarItemResponse,
+  PreviewItensInventarioResponse,
   PericiaCatalogo,
 } from '@/lib/api';
 import {
@@ -19,10 +20,7 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { useToast } from '@/context/ToastContext';
 import { getGrauXamaPorPrestigio } from '@/lib/utils/prestigio';
 import {
-  // calcularEspacosExtraDeItens
-  calcularCategoriaFinal,
   CODIGO_MOD_FUNCAO_ADICIONAL,
-  contarModificacoesEfetivasItem,
   equipamentoUsaPericiaPersonalizada,
   filtrarModificacoesCompativeis,
   listarPericiasElegiveisItemPersonalizado,
@@ -53,6 +51,7 @@ import type { CreateHomebrewDto, EquipamentoHomebrewInlineResultado } from '@/li
 import type { UserErrorState } from '@/lib/types';
 
 type Props = {
+  personagemBaseId?: number;
   forca: number;
   intelecto?: number;
   somarIntelecto?: boolean;
@@ -66,6 +65,10 @@ type Props = {
   pericias: PericiaCatalogo[];
   itensInventario: ItemInventarioPayload[];
   onChangeItensInventario: (itens: ItemInventarioPayload[]) => void;
+  previewInventarioAutoritativo?: PreviewItensInventarioResponse | null;
+  resolverPreviewInventario?: (
+    itens: ItemInventarioPayload[],
+  ) => Promise<PreviewItensInventarioResponse>;
   onEquipamentoHomebrewInlineCriado?: (resultado: EquipamentoHomebrewInlineResultado) => void;
 };
 
@@ -75,7 +78,13 @@ const LIMITE_RENDER_ITENS_INICIAL = 80;
 export function PersonagemBaseStepInventario(props: Props) {
   const { showToast } = useToast();
   const { onEquipamentoHomebrewInlineCriado } = props;
-  const { sincronizarInventario, carregando: carregandoSincronizacao } = useInventarioPreview({
+  const {
+    sincronizarInventario,
+    carregando: carregandoSincronizacao,
+    erro: erroSincronizacao,
+    preview: previewInventario,
+  } = useInventarioPreview({
+    personagemBaseId: props.personagemBaseId,
     forca: props.forca,
     intelecto: props.intelecto,
     somarIntelecto: props.somarIntelecto,
@@ -83,6 +92,8 @@ export function PersonagemBaseStepInventario(props: Props) {
     reduzirCategoriaEm: props.reduzirCategoriaEm,
     reduzirCategoriaExcetoTipos: props.reduzirCategoriaExcetoTipos,
     prestigioBase: props.prestigioBase,
+    previewInicial: props.previewInventarioAutoritativo,
+    resolverPreviewInventario: props.resolverPreviewInventario,
   });
 
   // Estados básicos
@@ -90,15 +101,6 @@ export function PersonagemBaseStepInventario(props: Props) {
   const [erroCriarEquipamento, setErroCriarEquipamento] = useState<UserErrorState | null>(null);
   const equipamentos = useMemo(() => props.equipamentos, [props.equipamentos]);
   const modificacoes = props.modificacoes;
-
-  // Estado para armazenar preview do backend (espaços calculados)
-  const [previewInventario, setPreviewInventario] = useState<{
-    espacosBase: number;
-    espacosExtra: number;
-    espacosTotal: number;
-    espacosOcupados: number;
-    sobrecarregado: boolean;
-  } | null>(null);
 
   // Filtros da lista de itens
   const [filtroCategoria, setFiltroCategoria] = useState<string>('TODOS');
@@ -202,122 +204,30 @@ export function PersonagemBaseStepInventario(props: Props) {
 
   // Sincronizar com backend sempre que itens mudarem
   useEffect(() => {
-    if (props.itensInventario.length === 0) {
-      // Caso vazio: calcular espaços base manualmente
-      const base =
-        props.somarIntelecto && typeof props.intelecto === 'number'
-          ? (props.forca + props.intelecto) * 5
-          : props.forca * 5;
-      setPreviewInventario({
-        espacosBase: base,
-        espacosExtra: 0,
-        espacosTotal: base,
-        espacosOcupados: 0,
-        sobrecarregado: false,
-      });
-      return;
-    }
-
-    let isCancelled = false;
-
-    const buscarPreview = async () => {
-      try {
-        const payload = {
-          forca: props.forca,
-          intelecto: props.intelecto,
-          somarIntelecto: props.somarIntelecto,
-          reduzirItensLeves: props.reduzirItensLeves,
-          prestigioBase: props.prestigioBase,
-          itens: props.itensInventario.map((item) => ({
-            equipamentoId: item.equipamentoId,
-            quantidade: item.quantidade,
-            equipado: item.equipado,
-            modificacoes: item.modificacoesIds ?? [],
-            nomeCustomizado: item.nomeCustomizado || undefined,
-            estado: item.estado ?? undefined,
-          })),
-        };
-
-        const data = await apiPreviewItensInventario(payload);
-
-        if (!isCancelled) {
-          setPreviewInventario({
-            espacosBase: data.espacosBase,
-            espacosExtra: data.espacosExtra,
-            espacosTotal: data.espacosTotal,
-            espacosOcupados: data.espacosOcupados,
-            sobrecarregado: data.sobrecarregado,
-          });
-        }
-      } catch {
-        if (!isCancelled) {
-          // Fallback
-          const base =
-            props.somarIntelecto && typeof props.intelecto === 'number'
-              ? (props.forca + props.intelecto) * 5
-              : props.forca * 5;
-          setPreviewInventario({
-            espacosBase: base,
-            espacosExtra: 0,
-            espacosTotal: base,
-            espacosOcupados: 0,
-            sobrecarregado: false,
-          });
-        }
-      }
-    };
-
-    buscarPreview();
-
-    return () => {
-      isCancelled = true;
-    };
+    if (props.previewInventarioAutoritativo) return;
+    void sincronizarInventario(props.itensInventario).catch(() => undefined);
   }, [
     props.itensInventario,
-    props.forca,
-    props.intelecto,
-    props.somarIntelecto,
-    props.reduzirItensLeves,
-    props.prestigioBase,
+    props.previewInventarioAutoritativo,
+    sincronizarInventario,
   ]);
 
-  // Usar preview do backend
-  const espacosBase = previewInventario?.espacosBase ?? props.forca * 5;
-  const espacosExtra = previewInventario?.espacosExtra ?? 0;
-  const espacosTotal = previewInventario?.espacosTotal ?? espacosBase;
-  const espacosOcupados = previewInventario?.espacosOcupados ?? 0;
-  const espacosRestantes = espacosTotal - espacosOcupados;
+  const capacidade = previewInventario?.capacidade ?? null;
+  const espacosTotal = capacidade?.total ?? 0;
+  const espacosOcupados = capacidade?.ocupados ?? 0;
+  const itemCalculadoPorIndice = useMemo(
+    () =>
+      new Map(
+        (previewInventario?.itens ?? []).map((item, indice) => [
+          item.indiceEntrada ?? indice,
+          item,
+        ]),
+      ),
+    [previewInventario],
+  );
 
   // Contagem de itens por categoria
-  const itensPorCategoria = useMemo(() => {
-    const contagem: Record<string, number> = {
-      '0': 0,
-      '4': 0,
-      '3': 0,
-      '2': 0,
-      '1': 0,
-      ESPECIAL: 0,
-    };
-
-    if (!Array.isArray(props.itensInventario)) return contagem;
-
-    props.itensInventario.forEach((item) => {
-      const equip = equipamentoPorId.get(item.equipamentoId);
-      if (equip) {
-        const cat = calcularCategoriaFinal(
-          equip.categoria,
-          contarModificacoesEfetivasItem({
-            modificacoesIds: item.modificacoesIds,
-            modificacoesCatalogo: modificacoes,
-            estado: item.estado,
-          }),
-        );
-        contagem[cat] = (contagem[cat] || 0) + item.quantidade;
-      }
-    });
-
-    return contagem;
-  }, [props.itensInventario, equipamentoPorId, modificacoes]);
+  const itensPorCategoria = previewInventario?.itensPorCategoria ?? {};
 
   // Itens filtrados (categoria + busca)
   const itensFiltrados = useMemo(() => {
@@ -325,19 +235,11 @@ export function PersonagemBaseStepInventario(props: Props) {
 
     // Filtro por categoria
     if (filtroCategoria !== 'TODOS') {
-      itens = itens.filter(({ item }) => {
-        const equip = equipamentoPorId.get(item.equipamentoId);
-        if (!equip) return false;
-        const cat = calcularCategoriaFinal(
-          equip.categoria,
-          contarModificacoesEfetivasItem({
-            modificacoesIds: item.modificacoesIds,
-            modificacoesCatalogo: modificacoes,
-            estado: item.estado,
-          }),
-        );
-        return cat === filtroCategoria;
-      });
+      itens = itens.filter(
+        ({ indexOriginal }) =>
+          itemCalculadoPorIndice.get(indexOriginal)?.categoriaCalculada ===
+          filtroCategoria,
+      );
     }
 
     // Busca por nome
@@ -355,7 +257,13 @@ export function PersonagemBaseStepInventario(props: Props) {
     }
 
     return itens;
-  }, [props.itensInventario, filtroCategoria, termoBuscaItemDeferred, equipamentoPorId, modificacoes]);
+  }, [
+    props.itensInventario,
+    filtroCategoria,
+    termoBuscaItemDeferred,
+    equipamentoPorId,
+    itemCalculadoPorIndice,
+  ]);
 
   useEffect(() => {
     setLimiteRenderItens(LIMITE_RENDER_ITENS_INICIAL);
@@ -660,56 +568,100 @@ export function PersonagemBaseStepInventario(props: Props) {
     setErroValidacao(null);
 
     try {
-      const categoria = calcularCategoriaFinal(
-        equipamentoSelecionado.categoria,
-        modificacoesSelecionadas.length,
-      );
-      const limiteCategoria = grauXama.limitesPorCategoria[categoria] ?? Infinity;
-      const itensAtuaisNaCategoria = itensPorCategoria[categoria] || 0;
+      const itemCandidato: ItemInventarioPayload = {
+        equipamentoId: equipamentoSelecionado.id,
+        quantidade,
+        equipado,
+        modificacoesIds: modificacoesSelecionadas.map(
+          (modificacao) => modificacao.id,
+        ),
+        nomeCustomizado: nomeCustomizado.trim() || null,
+        notas: null,
+        estado:
+          equipamentoUsaPericiaPersonalizada(equipamentoSelecionado) ||
+          funcoesAdicionaisPericias.length > 0
+            ? {
+                ...(periciaPersonalizada
+                  ? { periciaCodigo: periciaPersonalizada }
+                  : {}),
+                ...(funcoesAdicionaisPericias.length > 0
+                  ? { funcoesAdicionaisPericias }
+                  : {}),
+              }
+            : undefined,
+      };
+      const listaCandidata = [...props.itensInventario, itemCandidato];
+      const previewCandidato = props.resolverPreviewInventario
+        ? await props.resolverPreviewInventario(listaCandidata)
+        : await apiPreviewItensInventario({
+            personagemBaseId: props.personagemBaseId,
+            forca:
+              props.personagemBaseId === undefined ? props.forca : undefined,
+            intelecto:
+              props.personagemBaseId === undefined
+                ? props.intelecto
+                : undefined,
+            somarIntelecto:
+              props.personagemBaseId === undefined
+                ? props.somarIntelecto
+                : undefined,
+            reduzirItensLeves:
+              props.personagemBaseId === undefined
+                ? props.reduzirItensLeves
+                : undefined,
+            reduzirCategoriaEm:
+              props.personagemBaseId === undefined
+                ? props.reduzirCategoriaEm
+                : undefined,
+            reduzirCategoriaExcetoTipos:
+              props.personagemBaseId === undefined
+                ? props.reduzirCategoriaExcetoTipos
+                : undefined,
+            prestigioBase:
+              props.personagemBaseId === undefined
+                ? props.prestigioBase
+                : undefined,
+            itens: listaCandidata,
+          });
+      const indiceCandidato = listaCandidata.length - 1;
+      const itemCalculado =
+        previewCandidato.itens.find(
+          (item) => item.indiceEntrada === indiceCandidato,
+        ) ?? previewCandidato.itens[indiceCandidato];
+      if (!itemCalculado) {
+        throw new Error('O servidor não retornou o item candidato calculado.');
+      }
+
+      const categoria = itemCalculado.categoriaCalculada;
+      const limites = previewCandidato.grauXama.limitesPorCategoria;
+      const limiteCategoria = limites[categoria] ?? Infinity;
+      const totalCategoria =
+        previewCandidato.itensPorCategoria[categoria] ?? 0;
 
       if (
         categoria !== '0' &&
         !ignorarLimites &&
-        itensAtuaisNaCategoria + quantidade > limiteCategoria
+        totalCategoria > limiteCategoria
       ) {
         setErroValidacao(
-          `Limite de categoria ${categoria}: ${itensAtuaisNaCategoria + quantidade}/${limiteCategoria}`,
+          `Limite de categoria ${categoria}: ${totalCategoria}/${limiteCategoria}`,
         );
-        setCarregandoPreview(false);
         return;
       }
 
-      // Preview simplificado (backend calculará ao sincronizar)
-      let espacosPorUnidade = equipamentoSelecionado.espacos;
-      if (props.reduzirItensLeves && espacosPorUnidade > 0 && espacosPorUnidade <= 0.5) {
-        espacosPorUnidade = espacosPorUnidade / 2;
-      }
-      modificacoesSelecionadas.forEach((mod) => {
-        espacosPorUnidade += mod.incrementoEspacos;
-      });
-
-      const espacosNecessarios = espacosPorUnidade * quantidade;
-      const espacosDisponiveisAposAdicao = espacosTotal - (espacosOcupados + espacosNecessarios);
-
       const previewSimulado: PreviewAdicionarItemResponse = {
         espacos: {
-          espacosTotal: espacosTotal,
-          espacosOcupados: espacosOcupados + espacosNecessarios,
-          espacosDisponiveis: espacosDisponiveisAposAdicao,
-          sobrecarregado: espacosOcupados + espacosNecessarios > espacosTotal,
+          espacosTotal: previewCandidato.capacidade.total,
+          espacosOcupados: previewCandidato.capacidade.ocupados,
+          espacosDisponiveis: previewCandidato.capacidade.restantes,
+          sobrecarregado: previewCandidato.capacidade.sobrecarregado,
         },
         grauXama: {
-          valido:
-            categoria === '0' ||
-            ignorarLimites ||
-            itensAtuaisNaCategoria + quantidade <= limiteCategoria,
+          valido: categoria === '0' || ignorarLimites || totalCategoria <= limiteCategoria,
           erros: [],
-          grauAtual: grauXama.grau,
-          limitesAtuais: grauXama.limitesPorCategoria,
-          itensPorCategoriaAtual: {
-            ...itensPorCategoria,
-            [categoria]: (itensPorCategoria[categoria] || 0) + quantidade,
-          },
+          grauAtual: previewCandidato.grauXama.grau,
+          limitesAtuais: limites,
+          itensPorCategoriaAtual: previewCandidato.itensPorCategoria,
         },
         stats: {},
       };
@@ -725,13 +677,13 @@ export function PersonagemBaseStepInventario(props: Props) {
   }, [
     equipamentoSelecionado,
     quantidade,
+    equipado,
+    nomeCustomizado,
     modificacoesSelecionadas,
-    grauXama,
-    itensPorCategoria,
+    periciaPersonalizada,
+    funcoesAdicionaisPericias,
     ignorarLimites,
-    espacosOcupados,
-    espacosTotal,
-    props.reduzirItensLeves,
+    props,
   ]);
 
   const avancarStep = useCallback(() => {
@@ -808,9 +760,16 @@ export function PersonagemBaseStepInventario(props: Props) {
           : undefined,
     };
 
-    const itensAtualizados = await sincronizarInventario([...props.itensInventario, novoItem]);
-    props.onChangeItensInventario(itensAtualizados);
-    fecharModal();
+    try {
+      const resultado = await sincronizarInventario([
+        ...props.itensInventario,
+        novoItem,
+      ]);
+      props.onChangeItensInventario(resultado.itens);
+      fecharModal();
+    } catch {
+      setErroValidacao('Não foi possível validar a lista completa do inventário.');
+    }
   }, [
     equipamentoSelecionado,
     quantidade,
@@ -882,9 +841,13 @@ export function PersonagemBaseStepInventario(props: Props) {
     const novosItens = [...props.itensInventario];
     novosItens[indiceItemEditando] = itemAtualizado;
 
-    const itensAtualizados = await sincronizarInventario(novosItens);
-    props.onChangeItensInventario(itensAtualizados);
-    fecharModal();
+    try {
+      const resultado = await sincronizarInventario(novosItens);
+      props.onChangeItensInventario(resultado.itens);
+      fecharModal();
+    } catch {
+      setErroValidacao('Não foi possível validar a lista completa do inventário.');
+    }
   }, [
     itemEditando,
     indiceItemEditando,
@@ -909,17 +872,28 @@ export function PersonagemBaseStepInventario(props: Props) {
   const confirmarRemocao = useCallback(async () => {
     if (itemToRemove !== null) {
       const novosItens = props.itensInventario.filter((_, i) => i !== itemToRemove);
-      const itensAtualizados = await sincronizarInventario(novosItens);
-      props.onChangeItensInventario(itensAtualizados);
-      setItemToRemove(null);
+      try {
+        const resultado = await sincronizarInventario(novosItens);
+        props.onChangeItensInventario(resultado.itens);
+        setItemToRemove(null);
+      } catch {
+        return;
+      }
     }
   }, [itemToRemove, props, sincronizarInventario]);
 
   const duplicarItem = useCallback(
     async (item: ItemInventarioPayload) => {
       const novoItem = { ...item };
-      const itensAtualizados = await sincronizarInventario([...props.itensInventario, novoItem]);
-      props.onChangeItensInventario(itensAtualizados);
+      try {
+        const resultado = await sincronizarInventario([
+          ...props.itensInventario,
+          novoItem,
+        ]);
+        props.onChangeItensInventario(resultado.itens);
+      } catch {
+        return;
+      }
     },
     [props, sincronizarInventario],
   );
@@ -960,19 +934,19 @@ export function PersonagemBaseStepInventario(props: Props) {
             {/* Grau Xamã */}
             <InventarioGrauXama
               grauXama={grauXama}
-              itensInventario={props.itensInventario}
-              equipamentos={equipamentos}
+              itensPorCategoria={itensPorCategoria}
               creditoCategoriaBonus={props.creditoCategoriaBonus}
             />
 
             {/* Capacidade de Carga */}
-            <InventarioCapacidadeCarga
-              espacosBase={espacosBase}
-              espacosExtra={espacosExtra}
-              espacosTotal={espacosTotal}
-              espacosOcupados={espacosOcupados}
-              espacosRestantes={espacosRestantes}
-            />
+            {erroSincronizacao && <ErrorAlert message={erroSincronizacao} />}
+            {capacidade ? (
+              <InventarioCapacidadeCarga capacidade={capacidade} />
+            ) : (
+              <div className="rounded-lg border border-app-border bg-app-surface p-4 text-sm text-app-muted">
+                Calculando capacidade no servidor...
+              </div>
+            )}
 
             {/* Alerta de Sistema de Vestir */}
             {props.itensInventario.length > 0 && (
@@ -1079,6 +1053,7 @@ export function PersonagemBaseStepInventario(props: Props) {
                         item={item}
                         equipamento={equip}
                         modificacoes={modificacoes}
+                        calculado={itemCalculadoPorIndice.get(indexOriginal)}
                         pericias={props.pericias}
                         onEdit={() => abrirEdicaoItem(item, indexOriginal)}
                         onDuplicate={() => duplicarItem(item)}

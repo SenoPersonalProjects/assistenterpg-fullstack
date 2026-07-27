@@ -272,30 +272,51 @@ export type ItemInventarioDto = {
 };
 
 export type ItemInventarioPreviewDto = {
+  indiceEntrada: number;
   equipamentoId: number;
   quantidade: number;
   equipado: boolean;
 
   categoriaCalculada: string;
   espacosCalculados: number;
+  espacosPorUnidade: number;
+  espacosTotal: number;
 
   nomeCustomizado?: string | null;
 
   modificacoes: Array<{
     id: number;
     nome: string;
-    codigo: string;
-    tipo: string;
+    codigo?: string;
+    tipo?: string;
     incrementoEspacos: number;
   }>;
 
   equipamento: {
     id: number;
     nome: string;
-    codigo: string;
+    codigo?: string;
     tipo: string;
     categoria: string;
     espacos: number;
+  };
+};
+
+export type CapacidadeInventarioCalculada = {
+  base: number;
+  extraHabilidades: number;
+  extraItens: number;
+  extra: number;
+  total: number;
+  ocupados: number;
+  restantes: number;
+  sobrecarregado: boolean;
+  formula: {
+    forca: number;
+    intelectoAplicado: number;
+    atributoTotal: number;
+    multiplicador: number;
+    minimoAplicado: boolean;
   };
 };
 
@@ -319,6 +340,7 @@ export type StatsEquipadosDto = {
 };
 
 export type InventarioCompletoDto = {
+  capacidade: CapacidadeInventarioCalculada;
   espacos: {
     espacosTotal: number;
     espacosOcupados: number;
@@ -498,13 +520,14 @@ export type PreviewAdicionarItemResponse = {
 };
 
 export type PreviewItensInventarioPayload = {
-  forca: number;
+  personagemBaseId?: number;
+  forca?: number;
   intelecto?: number;
   somarIntelecto?: boolean;
   reduzirItensLeves?: boolean;
   reduzirCategoriaEm?: number;
   reduzirCategoriaExcetoTipos?: string[];
-  prestigioBase: number;
+  prestigioBase?: number;
   itens: ItemInventarioPayload[];
 };
 
@@ -516,6 +539,7 @@ export type PreviewItensInventarioResponse = {
   espacosTotal: number;
   espacosOcupados: number;
   sobrecarregado: boolean;
+  capacidade: CapacidadeInventarioCalculada;
 
   grauXama: {
     grau: string;

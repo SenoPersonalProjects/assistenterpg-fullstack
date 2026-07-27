@@ -1,32 +1,44 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiPreviewItensInventario, criarErroUsuario } from '@/lib/api';
 import type { ItemInventarioPayload } from '@/lib/api';
-import type { UserErrorState } from '@/lib/types';
+import type { PreviewItensInventarioResponse, UserErrorState } from '@/lib/types';
 
 type UseInventarioPreviewParams = {
-  forca: number;
+  personagemBaseId?: number;
+  forca?: number;
   intelecto?: number;
   somarIntelecto?: boolean;
   reduzirItensLeves?: boolean;
   reduzirCategoriaEm?: number;
   reduzirCategoriaExcetoTipos?: string[];
-  prestigioBase: number;
+  prestigioBase?: number;
+  previewInicial?: PreviewItensInventarioResponse | null;
+  resolverPreviewInventario?: (
+    itens: ItemInventarioPayload[],
+  ) => Promise<PreviewItensInventarioResponse>;
 };
 
 type UseInventarioPreviewReturn = {
-  sincronizarInventario: (itens: ItemInventarioPayload[]) => Promise<ItemInventarioPayload[]>;
+  sincronizarInventario: (
+    itens: ItemInventarioPayload[],
+  ) => Promise<{
+    itens: ItemInventarioPayload[];
+    preview: PreviewItensInventarioResponse;
+  }>;
   carregando: boolean;
   erro: UserErrorState | null;
+  preview: PreviewItensInventarioResponse | null;
 };
 
 type PreviewPayload = {
-  forca: number;
+  personagemBaseId?: number;
+  forca?: number;
   intelecto?: number;
   somarIntelecto?: boolean;
   reduzirItensLeves?: boolean;
   reduzirCategoriaEm?: number;
   reduzirCategoriaExcetoTipos?: string[];
-  prestigioBase: number;
+  prestigioBase?: number;
   itens: Array<{
     equipamentoId: number;
     quantidade: number;
@@ -62,22 +74,35 @@ function sanitizarItensInventario(itens: ItemInventarioPayload[]): ItemInventari
 
 function construirPayloadPreview(
   itens: ItemInventarioPayload[],
-  forca: number,
+  personagemBaseId: number | undefined,
+  forca: number | undefined,
   intelecto: number | undefined,
   somarIntelecto: boolean | undefined,
   reduzirItensLeves: boolean | undefined,
   reduzirCategoriaEm: number | undefined,
   reduzirCategoriaExcetoTipos: string[] | undefined,
-  prestigioBase: number,
+  prestigioBase: number | undefined,
 ): PreviewPayload {
   return {
-    forca: Number(forca),
+    personagemBaseId,
+    forca:
+      personagemBaseId === undefined && typeof forca === 'number'
+        ? Number(forca)
+        : undefined,
     intelecto: typeof intelecto === 'number' ? Number(intelecto) : undefined,
-    somarIntelecto,
-    reduzirItensLeves,
-    reduzirCategoriaEm,
-    reduzirCategoriaExcetoTipos,
-    prestigioBase: Number(prestigioBase),
+    somarIntelecto: personagemBaseId === undefined ? somarIntelecto : undefined,
+    reduzirItensLeves:
+      personagemBaseId === undefined ? reduzirItensLeves : undefined,
+    reduzirCategoriaEm:
+      personagemBaseId === undefined ? reduzirCategoriaEm : undefined,
+    reduzirCategoriaExcetoTipos:
+      personagemBaseId === undefined
+        ? reduzirCategoriaExcetoTipos
+        : undefined,
+    prestigioBase:
+      personagemBaseId === undefined && typeof prestigioBase === 'number'
+        ? Number(prestigioBase)
+        : undefined,
     itens: itens.map((item) => ({
       equipamentoId: Number(item.equipamentoId),
       quantidade: Number(item.quantidade),
@@ -90,6 +115,7 @@ function construirPayloadPreview(
 }
 
 export function useInventarioPreview({
+  personagemBaseId,
   forca,
   intelecto,
   somarIntelecto,
@@ -97,32 +123,52 @@ export function useInventarioPreview({
   reduzirCategoriaEm,
   reduzirCategoriaExcetoTipos,
   prestigioBase,
+  previewInicial,
+  resolverPreviewInventario,
 }: UseInventarioPreviewParams): UseInventarioPreviewReturn {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<UserErrorState | null>(null);
+  const [preview, setPreview] =
+    useState<PreviewItensInventarioResponse | null>(previewInicial ?? null);
+  const ultimoPreviewRef = useRef<PreviewItensInventarioResponse | null>(
+    previewInicial ?? null,
+  );
 
   const ultimoPayloadHashRef = useRef<string | null>(null);
   const ultimoResultadoRef = useRef<ItemInventarioPayload[] | null>(null);
   const requisicaoEmVooRef = useRef<{
     hash: string;
     requestId: symbol;
-    promise: Promise<ItemInventarioPayload[]>;
+    promise: Promise<{
+      itens: ItemInventarioPayload[];
+      preview: PreviewItensInventarioResponse;
+    }>;
   } | null>(null);
 
-  const sincronizarInventario = useCallback(
-    async (itens: ItemInventarioPayload[]): Promise<ItemInventarioPayload[]> => {
-      if (itens.length === 0) {
-        setErro(null);
-        setCarregando(false);
-        ultimoPayloadHashRef.current = '[]';
-        ultimoResultadoRef.current = [];
-        requisicaoEmVooRef.current = null;
-        return [];
-      }
+  useEffect(() => {
+    if (previewInicial) {
+      ultimoPreviewRef.current = previewInicial;
+      setPreview(previewInicial);
+      ultimoPayloadHashRef.current = null;
+    }
+  }, [previewInicial]);
 
+  useEffect(() => {
+    ultimoPayloadHashRef.current = null;
+    ultimoResultadoRef.current = null;
+  }, [personagemBaseId, resolverPreviewInventario]);
+
+  const sincronizarInventario = useCallback(
+    async (
+      itens: ItemInventarioPayload[],
+    ): Promise<{
+      itens: ItemInventarioPayload[];
+      preview: PreviewItensInventarioResponse;
+    }> => {
       const itensSanitizados = sanitizarItensInventario(itens);
       const payload = construirPayloadPreview(
         itensSanitizados,
+        personagemBaseId,
         forca,
         intelecto,
         somarIntelecto,
@@ -137,7 +183,14 @@ export function useInventarioPreview({
         ultimoPayloadHashRef.current === payloadHash &&
         Array.isArray(ultimoResultadoRef.current)
       ) {
-        return ultimoResultadoRef.current;
+        if (!ultimoPreviewRef.current) {
+          ultimoPayloadHashRef.current = null;
+        } else {
+          return {
+            itens: ultimoResultadoRef.current,
+            preview: ultimoPreviewRef.current,
+          };
+        }
       }
 
       if (requisicaoEmVooRef.current?.hash === payloadHash) {
@@ -148,13 +201,21 @@ export function useInventarioPreview({
       setErro(null);
 
       const requestId = Symbol('inventario-preview-request');
-      const request = (async (): Promise<ItemInventarioPayload[]> => {
+      const request = (async (): Promise<{
+        itens: ItemInventarioPayload[];
+        preview: PreviewItensInventarioResponse;
+      }> => {
         try {
-          const preview = await apiPreviewItensInventario(payload);
+          const resultadoPreview = resolverPreviewInventario
+            ? await resolverPreviewInventario(itensSanitizados)
+            : await apiPreviewItensInventario(payload);
 
           const itensAtualizados: ItemInventarioPayload[] = itensSanitizados.map(
             (itemLocal, index) => {
-              const itemBackend = preview.itens[index];
+              const itemBackend =
+                resultadoPreview.itens.find(
+                  (item) => item.indiceEntrada === index,
+                ) ?? resultadoPreview.itens[index];
               return {
                 ...itemLocal,
                 nomeCustomizado: itemBackend?.nomeCustomizado ?? itemLocal.nomeCustomizado,
@@ -164,10 +225,12 @@ export function useInventarioPreview({
 
           ultimoPayloadHashRef.current = payloadHash;
           ultimoResultadoRef.current = itensAtualizados;
-          return itensAtualizados;
+          ultimoPreviewRef.current = resultadoPreview;
+          setPreview(resultadoPreview);
+          return { itens: itensAtualizados, preview: resultadoPreview };
         } catch (err) {
           setErro(criarErroUsuario(err));
-          return itensSanitizados;
+          throw err;
         } finally {
           if (
             requisicaoEmVooRef.current?.hash === payloadHash &&
@@ -195,6 +258,8 @@ export function useInventarioPreview({
       reduzirCategoriaEm,
       reduzirCategoriaExcetoTipos,
       prestigioBase,
+      personagemBaseId,
+      resolverPreviewInventario,
     ],
   );
 
@@ -202,5 +267,6 @@ export function useInventarioPreview({
     sincronizarInventario,
     carregando,
     erro,
+    preview,
   };
 }

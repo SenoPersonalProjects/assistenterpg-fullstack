@@ -9,23 +9,29 @@ import {
   getCorBarraProgresso,
   getCorTextoProgresso,
 } from '@/lib/utils/inventario';
+import type { CapacidadeInventarioCalculada } from '@/lib/types/inventario.types';
 
 type Props = {
-  espacosBase: number;
-  espacosExtra: number;
-  espacosTotal: number;
-  espacosOcupados: number;
-  espacosRestantes: number;
+  capacidade: CapacidadeInventarioCalculada;
 };
 
 export function InventarioCapacidadeCarga({
-  espacosBase,
-  espacosExtra,
-  espacosTotal,
-  espacosOcupados,
-  espacosRestantes,
+  capacidade,
 }: Props) {
+  const {
+    base: espacosBase,
+    total: espacosTotal,
+    ocupados: espacosOcupados,
+    restantes: espacosRestantes,
+    extraHabilidades,
+    extraItens,
+    formula,
+  } = capacidade;
   const espacosPercentual = formatarPercentualCarga(espacosOcupados, espacosTotal);
+  const formulaAtributos =
+    formula.intelectoAplicado !== 0
+      ? `(${formula.forca} Força + ${formula.intelectoAplicado} Intelecto)`
+      : `${formula.forca} Força`;
 
   return (
     <div>
@@ -46,8 +52,24 @@ export function InventarioCapacidadeCarga({
             <p className={`text-2xl font-bold ${getCorTextoProgresso(espacosPercentual)}`}>
               {espacosPercentual}%
             </p>
-            <p className="text-xs text-app-muted">Base: {espacosBase} (Força × 5)</p>
-            {espacosExtra > 0 && <p className="text-xs text-app-success">+{espacosExtra} extras</p>}
+            <p className="text-xs text-app-muted">
+              Base: {espacosBase} ({formulaAtributos} × {formula.multiplicador})
+            </p>
+            {formula.minimoAplicado && (
+              <p className="text-xs text-app-muted">Mínimo de 2 espaços aplicado</p>
+            )}
+            {extraHabilidades !== 0 && (
+              <p className="text-xs text-app-success">
+                {extraHabilidades > 0 ? '+' : ''}
+                {extraHabilidades} por habilidades
+              </p>
+            )}
+            {extraItens !== 0 && (
+              <p className="text-xs text-app-success">
+                {extraItens > 0 ? '+' : ''}
+                {extraItens} por itens
+              </p>
+            )}
           </div>
         </div>
 
@@ -83,4 +105,3 @@ export function InventarioCapacidadeCarga({
     </div>
   );
 }
-

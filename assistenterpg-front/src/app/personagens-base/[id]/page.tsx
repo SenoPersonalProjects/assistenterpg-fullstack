@@ -1087,6 +1087,7 @@ export default function PersonagemBaseDetalhePage() {
           />
 
           <PersonagemBaseStepInventario
+            personagemBaseId={personagem.id}
             forca={personagem.forca}
             intelecto={personagem.intelecto}
             prestigioBase={personagem.prestigioBase}

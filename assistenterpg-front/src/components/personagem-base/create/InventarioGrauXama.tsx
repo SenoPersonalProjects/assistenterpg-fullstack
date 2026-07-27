@@ -2,7 +2,6 @@
 
 'use client';
 
-import { useMemo } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { InfoTile } from '@/components/ui/InfoTile';
 import {
@@ -10,59 +9,23 @@ import {
   getLimiteCreditoComBonus,
   type GrauXama,
 } from '@/lib/utils/prestigio';
-import {
-  calcularCategoriaFinal,
-  contarModificacoesEfetivasItem,
-  isCategoriaBloquada,
-} from '@/lib/utils/inventario';
-import type { ItemInventarioPayload, EquipamentoCatalogo } from '@/lib/api';
+import { isCategoriaBloquada } from '@/lib/utils/inventario';
 
 type Props = {
   grauXama: GrauXama;
-  itensInventario: ItemInventarioPayload[]; // ✅ MUDOU
-  equipamentos: EquipamentoCatalogo[];
+  itensPorCategoria: Record<string, number>;
   creditoCategoriaBonus?: number;
 };
 
 export function InventarioGrauXama({
   grauXama,
-  itensInventario,
-  equipamentos,
+  itensPorCategoria,
   creditoCategoriaBonus = 0,
 }: Props) {
   const limiteCredito = getLimiteCreditoComBonus(
     grauXama.grau,
     creditoCategoriaBonus,
   );
-  // ✅ NOVO: Contar itens por categoria manualmente
-  const itensPorCategoria = useMemo(() => {
-    const contagem: Record<string, number> = {
-      '0': 0,
-      '4': 0,
-      '3': 0,
-      '2': 0,
-      '1': 0,
-      ESPECIAL: 0,
-    };
-
-    itensInventario.forEach((item) => {
-      const equip = equipamentos.find((e) => e.id === item.equipamentoId);
-      if (equip) {
-        const cat = calcularCategoriaFinal(
-          equip.categoria,
-          contarModificacoesEfetivasItem({
-            modificacoesIds: item.modificacoesIds,
-            modificacoesCatalogo: [],
-            estado: item.estado,
-          }),
-        );
-        contagem[cat] = (contagem[cat] || 0) + item.quantidade;
-      }
-    });
-
-    return contagem;
-  }, [itensInventario, equipamentos]);
-
   return (
     <div>
       <h3 className="text-sm font-semibold text-app-fg mb-3 flex items-center gap-2">

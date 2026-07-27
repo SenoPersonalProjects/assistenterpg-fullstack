@@ -295,11 +295,14 @@ export type PersonagemBasePreview = {
   resistenciasDetalhadas?: Record<string, ResistenciaDetalhadaDto>;
 
   itensInventario?: Array<{
+    indiceEntrada: number;
     equipamentoId: number;
     equipamento: {
       id: number;
+      codigo: string;
       nome: string;
       tipo: string;
+      categoria: string;
       espacos: number;
       descricao?: string | null;
     };
@@ -315,6 +318,7 @@ export type PersonagemBasePreview = {
     espacosTotal: number;
     nomeCustomizado?: string | null;
     notas?: string | null;
+    categoriaCalculada: string;
   }>;
 
   espacosInventario?: {
@@ -324,6 +328,15 @@ export type PersonagemBasePreview = {
     ocupados?: number;
     restantes?: number;
     sobrecarregado?: boolean;
+    extraHabilidades?: number;
+    extraItens?: number;
+    formula?: {
+      forca: number;
+      intelectoAplicado: number;
+      atributoTotal: number;
+      multiplicador: number;
+      minimoAplicado: boolean;
+    };
     limitesPorCategoria?: Record<string, number>;
     itensPorCategoria?: Record<string, number>;
   };
@@ -520,6 +533,7 @@ export type PersonagemBaseDetalhe = {
   espacosInventarioExtra: number;
   espacosOcupados: number;
   sobrecarregado: boolean;
+  capacidadeInventario?: import('./inventario.types').CapacidadeInventarioCalculada;
 
   itensInventario?: ItemInventarioDto[]; // Importado de inventario.types.ts
   fontesConteudo?: FontesConteudoPayload;
