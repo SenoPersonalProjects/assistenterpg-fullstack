@@ -37,6 +37,9 @@ type PrismaMock = {
   pericia: {
     findMany: jest.Mock;
   };
+  grauFeiticeiroLimite: {
+    findFirst: jest.Mock;
+  };
 };
 
 describe('InventarioService', () => {
@@ -70,6 +73,9 @@ describe('InventarioService', () => {
       pericia: {
         findMany: jest.fn(),
       },
+      grauFeiticeiroLimite: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
     };
 
     service = new InventarioService(
@@ -81,6 +87,51 @@ describe('InventarioService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('usa mecanicas persistidas no preview identificado e ignora flags forjadas', async () => {
+    prisma.personagemBase.findFirst.mockResolvedValue({
+      forca: 0,
+      intelecto: 4,
+      prestigioBase: 30,
+      habilidadesBase: [
+        {
+          habilidade: {
+            mecanicasEspeciais: {
+              inventario: { somarIntelecto: true },
+            },
+          },
+        },
+      ],
+      poderesGenericos: [],
+    });
+    prisma.equipamentoCatalogo.findMany.mockResolvedValue([]);
+    prisma.modificacaoEquipamento.findMany.mockResolvedValue([]);
+
+    const resultado = (await service.previewItensInventario(
+      {
+        personagemBaseId: 1,
+        forca: 99,
+        intelecto: 0,
+        somarIntelecto: false,
+        reduzirItensLeves: false,
+        prestigioBase: 0,
+        itens: [],
+      },
+      { donoId: 7 },
+    )) as {
+      capacidade: { base: number; formula: { intelectoAplicado: number } };
+    };
+
+    expect(resultado.capacidade).toMatchObject({
+      base: 20,
+      formula: { intelectoAplicado: 4 },
+    });
+    expect(prisma.personagemBase.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 1, donoId: 7 },
+      }),
+    );
   });
 
   it('bloqueia atualizacao de item de personagem de outro usuário', async () => {
@@ -153,7 +204,6 @@ describe('InventarioService', () => {
       42,
       [],
       prisma as unknown as Prisma.TransactionClient,
-      0,
     );
 
     expect(prisma.personagemBase.update).toHaveBeenCalledTimes(1);
@@ -277,7 +327,6 @@ describe('InventarioService', () => {
       1,
       preparados,
       prisma as unknown as Prisma.TransactionClient,
-      0,
     );
 
     expect(prisma.personagemBase.update).toHaveBeenCalledTimes(1);
