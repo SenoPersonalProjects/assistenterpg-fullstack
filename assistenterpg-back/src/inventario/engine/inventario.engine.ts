@@ -14,6 +14,11 @@ import {
   TipoEquipamento,
   TipoAcessorio,
 } from '@prisma/client';
+import {
+  calcularCategoriaInventario,
+  calcularEspacoUnitarioInventario,
+  calcularEspacosExtraItensInventario,
+} from '../utils/inventario-calculo';
 
 const ORDEM_CATEGORIAS: CategoriaEquipamento[] = [
   CategoriaEquipamento.CATEGORIA_0,
@@ -48,17 +53,6 @@ function extrairNumeroJson(value: unknown, key: string): number | undefined {
  */
 @Injectable()
 export class InventarioEngine {
-  private ajustarEspacosBase(item: ItemInventarioComDados): number {
-    const base = item.equipamento.espacos;
-    if (!item.reduzirItensLeves) return base;
-
-    if (base > 0 && base <= 0.5) {
-      return base / 2;
-    }
-
-    return base;
-  }
-
   /**
    * ✅ NOVO: Calcula a categoria final baseado na quantidade de modificações
    * Progressão: CATEGORIA_0 → CATEGORIA_4 → CATEGORIA_3 → CATEGORIA_2 → CATEGORIA_1 → ESPECIAL
@@ -67,54 +61,30 @@ export class InventarioEngine {
     categoriaOriginal: string,
     quantidadeModificacoes: number,
   ): CategoriaEquipamento {
-    if (!isCategoriaEquipamento(categoriaOriginal)) {
-      return CategoriaEquipamento.CATEGORIA_0;
-    }
-
-    const indexOriginal = ORDEM_CATEGORIAS.indexOf(categoriaOriginal);
-
-    if (indexOriginal === -1) {
-      return CategoriaEquipamento.CATEGORIA_0;
-    }
-
-    const indexFinal = Math.min(
-      indexOriginal + quantidadeModificacoes,
-      ORDEM_CATEGORIAS.length - 1,
+    return calcularCategoriaInventario(
+      categoriaOriginal,
+      quantidadeModificacoes,
     );
-
-    return ORDEM_CATEGORIAS[indexFinal];
   }
 
   /**
    * Calcula espaços ocupados por um item (com modificações)
    */
   calcularEspacosItem(item: ItemInventarioComDados): number {
-    const espacosBase = this.ajustarEspacosBase(item);
-
-    const incrementoModificacoes = item.modificacoes.reduce(
-      (total, mod) => total + (mod.modificacao.incrementoEspacos || 0),
-      0,
-    );
-
-    // ✅ NOVO: Garantir que espaços não sejam negativos
-    const espacosUnitario = Math.max(0, espacosBase + incrementoModificacoes);
-
-    return espacosUnitario * item.quantidade;
+    return this.calcularEspacoUnitario(item) * item.quantidade;
   }
 
   /**
    * Calcula espaço unitário (por unidade) sem quantidade
    */
   calcularEspacoUnitario(item: ItemInventarioComDados): number {
-    const espacosBase = this.ajustarEspacosBase(item);
-
-    const incrementoModificacoes = item.modificacoes.reduce(
-      (total, mod) => total + (mod.modificacao.incrementoEspacos || 0),
-      0,
-    );
-
-    // ✅ NOVO: Garantir que espaços não sejam negativos
-    return Math.max(0, espacosBase + incrementoModificacoes);
+    return calcularEspacoUnitarioInventario({
+      espacosBase: item.equipamento.espacos,
+      reduzirItensLeves: item.reduzirItensLeves,
+      incrementosModificacoes: item.modificacoes.map(
+        (modificacao) => modificacao.modificacao.incrementoEspacos ?? 0,
+      ),
+    });
   }
 
   /**
@@ -131,39 +101,7 @@ export class InventarioEngine {
    * Exemplo: Mochila Militar (espacos: 0, efeito: +2 espaços)
    */
   calcularEspacosExtraDeItens(itens: ItemInventarioComDados[]): number {
-    let espacosExtra = 0;
-
-    for (const item of itens) {
-      const equip = item.equipamento;
-
-      // ✅ Detectar itens que aumentam capacidade
-      if (equip.espacos === 0 && equip.efeito) {
-        const efeitoLower = equip.efeito.toLowerCase();
-
-        const palavrasChave = [
-          'aumenta capacidade',
-          'aumenta sua capacidade',
-          'capacidade de carga',
-          'espaços de inventário',
-          'espaços extras',
-          'espaços adicionais',
-        ];
-
-        const temPalavraChave = palavrasChave.some((palavra) =>
-          efeitoLower.includes(palavra),
-        );
-
-        if (temPalavraChave) {
-          const match = equip.efeito.match(/(\d+)\s*espaço/i);
-          if (match) {
-            const valor = parseInt(match[1], 10);
-            espacosExtra += valor * item.quantidade;
-          }
-        }
-      }
-    }
-
-    return espacosExtra;
+    return calcularEspacosExtraItensInventario(itens);
   }
 
   /**

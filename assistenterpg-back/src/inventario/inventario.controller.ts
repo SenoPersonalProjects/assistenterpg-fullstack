@@ -61,11 +61,12 @@ export class InventarioController {
    */
   @Post('preview')
   async previewItensInventario(
+    @Request() req: { user: { id: number } },
     @Body() dto: PreviewItensInventarioDto,
   ): Promise<unknown> {
-    return this.inventarioService.previewItensInventario(
-      dto,
-    ) as Promise<unknown>;
+    return this.inventarioService.previewItensInventario(dto, {
+      donoId: req.user.id,
+    }) as Promise<unknown>;
   }
 
   // ==================== CRUD DE ITENS ====================

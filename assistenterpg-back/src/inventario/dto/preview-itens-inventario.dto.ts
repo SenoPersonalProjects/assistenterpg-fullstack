@@ -8,6 +8,7 @@ import {
   IsBoolean,
   IsString,
   IsObject,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -37,8 +38,15 @@ export class ItemPreviewDto {
 }
 
 export class PreviewItensInventarioDto {
+  @IsOptional()
   @IsInt()
-  forca: number;
+  personagemBaseId?: number;
+
+  @ValidateIf(
+    (dto: PreviewItensInventarioDto) => dto.personagemBaseId === undefined,
+  )
+  @IsInt()
+  forca?: number;
 
   @IsOptional()
   @IsInt()
@@ -61,8 +69,11 @@ export class PreviewItensInventarioDto {
   @IsString({ each: true })
   reduzirCategoriaExcetoTipos?: string[];
 
+  @ValidateIf(
+    (dto: PreviewItensInventarioDto) => dto.personagemBaseId === undefined,
+  )
   @IsInt()
-  prestigioBase: number;
+  prestigioBase?: number;
 
   @IsArray()
   @ValidateNested({ each: true })

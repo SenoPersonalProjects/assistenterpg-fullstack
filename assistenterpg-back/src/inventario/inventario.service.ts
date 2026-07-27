@@ -25,12 +25,18 @@ import { calcularBloqueioEsquiva } from '../personagem-base/regras-criacao/regra
 import { extrairResistenciasDeHabilidades } from '../personagem-base/regras-criacao/regras-poderes-efeitos';
 import { somarMapasResistencias } from '../personagem-base/regras-criacao/resistencias-personagem';
 import {
-  calcularAtributoBaseInventario,
-  calcularEspacosInventarioBase,
-} from './utils/inventario-capacidade';
+  aplicarReducaoCategoriaDeterministica,
+  calcularCapacidadeInventario,
+  calcularCategoriaInventario,
+  calcularEspacoUnitarioInventario,
+  calcularQuantidadeModificacoesEfetivas,
+  normalizarCategoriaInventario,
+  resolverModificadoresInventario,
+  type CapacidadeInventarioCalculada,
+  type ModificadoresInventario,
+} from './utils/inventario-calculo';
 import {
   CODIGO_MOD_FUNCAO_ADICIONAL,
-  contarInstanciasFuncaoAdicional,
   equipamentoUsaPericiaPersonalizada,
   validarENormalizarEstadoItemPersonalizado,
 } from './utils/item-personalizado';
@@ -151,6 +157,7 @@ const personagemInventarioSelect =
     intelecto: true,
     presenca: true,
     vigor: true,
+    prestigioBase: true,
     espacosInventarioBase: true,
     defesaBase: true,
     defesaEquipamento: true,
@@ -187,17 +194,6 @@ const personagemInventarioSelect =
 type PersonagemInventarioPayload = Prisma.PersonagemBaseGetPayload<{
   select: typeof personagemInventarioSelect;
 }>;
-
-type ItemCategoriaRef = {
-  categoriaCalculada?: string | null;
-  espacosCalculados?: number;
-  quantidade?: number;
-  equipamento: {
-    tipo: TipoEquipamento;
-    categoria: string;
-    tipoArma?: string | null;
-  };
-};
 
 function normalizarCategoriaGrau(valor: unknown): string {
   if (valor === null || valor === undefined) return '0';
@@ -242,44 +238,6 @@ function normalizarCategoriaGrau(valor: unknown): string {
   return '0';
 }
 
-const ORDEM_CATEGORIAS: CategoriaEquipamento[] = [
-  CategoriaEquipamento.CATEGORIA_0,
-  CategoriaEquipamento.CATEGORIA_4,
-  CategoriaEquipamento.CATEGORIA_3,
-  CategoriaEquipamento.CATEGORIA_2,
-  CategoriaEquipamento.CATEGORIA_1,
-  CategoriaEquipamento.ESPECIAL,
-];
-
-function normalizarCategoriaEquipamento(valor: unknown): CategoriaEquipamento {
-  if (typeof valor === 'string') {
-    if (ORDEM_CATEGORIAS.includes(valor as CategoriaEquipamento)) {
-      return valor as CategoriaEquipamento;
-    }
-
-    if (valor === 'ESPECIAL' || valor === 'CATEGORIA_ESPECIAL') {
-      return CategoriaEquipamento.ESPECIAL;
-    }
-
-    const match = valor.match(/CATEGORIA_(\d+)/i);
-    if (match && match[1]) {
-      const candidato = `CATEGORIA_${match[1]}`.toUpperCase();
-      if (ORDEM_CATEGORIAS.includes(candidato as CategoriaEquipamento)) {
-        return candidato as CategoriaEquipamento;
-      }
-    }
-
-    if (/^\d+$/.test(valor)) {
-      const candidato = `CATEGORIA_${valor}`;
-      if (ORDEM_CATEGORIAS.includes(candidato as CategoriaEquipamento)) {
-        return candidato as CategoriaEquipamento;
-      }
-    }
-  }
-
-  return CategoriaEquipamento.CATEGORIA_0;
-}
-
 @Injectable()
 export class InventarioService {
   constructor(
@@ -304,17 +262,7 @@ export class InventarioService {
     modificacoes: Array<{ codigo: string | null | undefined }>;
     estado?: unknown;
   }): number {
-    const totalBase = params.modificacoes.length;
-    const possuiFuncaoAdicional = params.modificacoes.some(
-      (mod) => mod.codigo === CODIGO_MOD_FUNCAO_ADICIONAL,
-    );
-    if (!possuiFuncaoAdicional) return totalBase;
-
-    const totalFuncoesAdicionais = contarInstanciasFuncaoAdicional(
-      params.estado,
-    );
-    if (totalFuncoesAdicionais <= 1) return totalBase;
-    return totalBase + (totalFuncoesAdicionais - 1);
+    return calcularQuantidadeModificacoesEfetivas(params);
   }
 
   private extrairCodigosPericiaDosEstados(
@@ -492,21 +440,20 @@ export class InventarioService {
               periciaBaseBonificada: equipamento.periciaBonificada,
             },
           );
-        const categoriaCalculada = this.engine.calcularCategoriaFinal(
+        const categoriaCalculada = calcularCategoriaInventario(
           equipamento.categoria,
           this.contarModificacoesEfetivas({
             modificacoes: modificacoesItem,
             estado: estadoNormalizado,
           }),
         );
-        const espacosBaseItem = this.ajustarEspacosBaseItem(
-          equipamento.espacos,
-          opcoes.reduzirItensLeves,
-        );
-        const incrementoModificacoes = modificacoesItem.reduce(
-          (total, modificacao) => total + (modificacao.incrementoEspacos ?? 0),
-          0,
-        );
+        const espacosCalculados = calcularEspacoUnitarioInventario({
+          espacosBase: equipamento.espacos,
+          reduzirItensLeves: opcoes.reduzirItensLeves,
+          incrementosModificacoes: modificacoesItem.map(
+            (modificacao) => modificacao.incrementoEspacos ?? 0,
+          ),
+        });
         const preparado: ItemInventarioBasePreparado = {
           equipamentoId: item.equipamentoId,
           quantidade: item.quantidade,
@@ -516,10 +463,7 @@ export class InventarioService {
           notas: item.notas ?? null,
           estado: estadoNormalizado as Prisma.JsonObject,
           categoriaCalculada,
-          espacosCalculados: Math.max(
-            0,
-            espacosBaseItem + incrementoModificacoes,
-          ),
+          espacosCalculados,
         };
 
         return {
@@ -545,7 +489,7 @@ export class InventarioService {
     const itensEngine = itensComCategoriaReduzida.map((item) => {
       const preparado = {
         ...item.preparado,
-        categoriaCalculada: normalizarCategoriaEquipamento(
+        categoriaCalculada: normalizarCategoriaInventario(
           item.categoriaCalculada,
         ),
       };
@@ -589,7 +533,7 @@ export class InventarioService {
 
     return itensEngine.map((item, index) => ({
       ...itensComCategoriaReduzida[index].preparado,
-      categoriaCalculada: normalizarCategoriaEquipamento(
+      categoriaCalculada: normalizarCategoriaInventario(
         item.categoriaCalculada,
       ),
     }));
@@ -599,7 +543,6 @@ export class InventarioService {
     personagemBaseId: number,
     itens: ItemInventarioBasePreparado[],
     prisma: Prisma.TransactionClient,
-    espacosInventarioExtraBase: number,
   ): Promise<void> {
     await prisma.personagemBase.update({
       where: { id: personagemBaseId },
@@ -633,11 +576,7 @@ export class InventarioService {
       },
     });
 
-    await this.atualizarEstadoInventario(
-      personagemBaseId,
-      prisma,
-      espacosInventarioExtraBase,
-    );
+    await this.atualizarEstadoInventario(personagemBaseId, prisma);
   }
 
   // ==================== HELPERS PRIVADOS ====================
@@ -655,149 +594,29 @@ export class InventarioService {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 
-  private getBooleanField(
-    value: Record<string, unknown> | null | undefined,
-    key: string,
-  ): boolean | null {
-    if (!value) return null;
-    const current = value[key];
-    return typeof current === 'boolean' ? current : null;
-  }
-
-  private getInventarioFlag(
-    mecanicas: Prisma.JsonValue | null,
-    flag: 'reduzirItensLeves' | 'somarIntelecto',
-  ): boolean {
-    if (!this.isRecord(mecanicas)) return false;
-    const inventario = mecanicas.inventario;
-    if (!this.isRecord(inventario)) return false;
-    return this.getBooleanField(inventario, flag) === true;
-  }
-
-  private getInventarioReducaoCategoria(mecanicas: Prisma.JsonValue | null): {
-    reduzirCategoriaEm: number;
-    excetoTipos: string[];
-  } {
-    if (!this.isRecord(mecanicas)) {
-      return { reduzirCategoriaEm: 0, excetoTipos: [] };
-    }
-
-    const itens = mecanicas.itens;
-    if (!this.isRecord(itens)) {
-      return { reduzirCategoriaEm: 0, excetoTipos: [] };
-    }
-
-    const reduzirCategoriaEm =
-      typeof itens.reduzCategoriaEm === 'number' ? itens.reduzCategoriaEm : 0;
-
-    const excetoTipos = Array.isArray(itens.excetoTipos)
-      ? itens.excetoTipos.filter((t) => typeof t === 'string')
-      : [];
-
-    return {
-      reduzirCategoriaEm,
-      excetoTipos,
-    };
-  }
-
-  private isItemElegivelReducaoCategoria(
-    item: ItemCategoriaRef,
-    excetoTipos: Set<string>,
-  ): boolean {
-    const tipo = item.equipamento.tipo;
-    const tipoTexto = String(tipo).toUpperCase();
-
-    if (excetoTipos.has(tipoTexto)) return false;
-
-    if (excetoTipos.has('ARMA')) {
-      if (tipo === TipoEquipamento.ARMA) return false;
-      if (item.equipamento.tipoArma) return false;
-    }
-
-    return true;
-  }
-
-  private selecionarItemReducaoCategoria<T extends ItemCategoriaRef>(
-    itens: T[],
-    reduzirCategoriaEm: number,
-    excetoTipos: string[],
-  ): number | null {
-    if (!reduzirCategoriaEm || reduzirCategoriaEm <= 0) return null;
-
-    const excetoSet = new Set(excetoTipos.map((t) => t.toUpperCase()));
-    let escolhido: number | null = null;
-    let melhorIndice = -1;
-    let melhorQuantidade = -1;
-    let melhorEspacos = -1;
-
-    itens.forEach((item, index) => {
-      if (!this.isItemElegivelReducaoCategoria(item, excetoSet)) return;
-
-      const categoriaAtual = normalizarCategoriaEquipamento(
-        item.categoriaCalculada ?? item.equipamento.categoria,
-      );
-      const indiceCategoria = ORDEM_CATEGORIAS.indexOf(categoriaAtual);
-      if (indiceCategoria <= 0) return;
-
-      const quantidade = item.quantidade ?? 1;
-      const espacos = item.espacosCalculados ?? 0;
-
-      if (
-        indiceCategoria > melhorIndice ||
-        (indiceCategoria === melhorIndice && quantidade > melhorQuantidade) ||
-        (indiceCategoria === melhorIndice &&
-          quantidade === melhorQuantidade &&
-          espacos > melhorEspacos)
-      ) {
-        melhorIndice = indiceCategoria;
-        melhorQuantidade = quantidade;
-        melhorEspacos = espacos;
-        escolhido = index;
-      }
-    });
-
-    return escolhido;
-  }
-
-  private aplicarReducaoCategoriaEmItensRaw<T extends ItemCategoriaRef>(
-    itens: T[],
-    reduzirCategoriaEm: number,
-    excetoTipos: string[],
-  ): T[] {
-    const indice = this.selecionarItemReducaoCategoria(
+  private aplicarReducaoCategoriaEmItensRaw<
+    T extends {
+      categoriaCalculada: string;
+      espacosCalculados?: number;
+      quantidade?: number;
+      equipamento: {
+        tipo: string;
+        categoria: string;
+        tipoArma?: string | null;
+      };
+    },
+  >(itens: T[], reduzirCategoriaEm: number, excetoTipos: string[]): T[] {
+    return aplicarReducaoCategoriaDeterministica(
       itens,
       reduzirCategoriaEm,
       excetoTipos,
     );
-
-    if (indice === null) return itens;
-
-    const item = itens[indice];
-    const categoriaAtual = normalizarCategoriaEquipamento(
-      item.categoriaCalculada ?? item.equipamento.categoria,
-    );
-    const indiceAtual = ORDEM_CATEGORIAS.indexOf(categoriaAtual);
-    if (indiceAtual <= 0) return itens;
-
-    const indiceFinal = Math.max(0, indiceAtual - reduzirCategoriaEm);
-    const novaCategoria = ORDEM_CATEGORIAS[indiceFinal];
-
-    const atualizado = {
-      ...item,
-      categoriaCalculada: novaCategoria,
-    };
-
-    return itens.map((atual, idx) => (idx === indice ? atualizado : atual));
   }
 
   private async obterFlagsInventario(
     personagemBaseId: number,
     prisma?: PrismaLike,
-  ): Promise<{
-    reduzirItensLeves: boolean;
-    reduzirCategoriaEm: number;
-    reduzirCategoriaExcetoTipos: string[];
-  }> {
+  ): Promise<ModificadoresInventario> {
     const db = prisma || this.prisma;
 
     const [habilidades, poderes] = await Promise.all([
@@ -811,54 +630,20 @@ export class InventarioService {
       }),
     ]);
 
-    const reduzirItensLeves =
-      habilidades.some((h) =>
-        this.getInventarioFlag(
-          h.habilidade.mecanicasEspeciais,
-          'reduzirItensLeves',
-        ),
-      ) ||
-      poderes.some((p) =>
-        this.getInventarioFlag(
-          p.habilidade.mecanicasEspeciais,
-          'reduzirItensLeves',
-        ),
-      );
-
-    let reduzirCategoriaEm = 0;
-    const excetoTipos = new Set<string>();
-
-    const fontes = [
+    return resolverModificadoresInventario([
       ...habilidades.map((h) => h.habilidade.mecanicasEspeciais),
       ...poderes.map((p) => p.habilidade.mecanicasEspeciais),
-    ];
-
-    fontes.forEach((mecanicas) => {
-      const config = this.getInventarioReducaoCategoria(mecanicas);
-      if (config.reduzirCategoriaEm > reduzirCategoriaEm) {
-        reduzirCategoriaEm = config.reduzirCategoriaEm;
-      }
-      config.excetoTipos.forEach((tipo) =>
-        excetoTipos.add(String(tipo).toUpperCase()),
-      );
-    });
-
-    return {
-      reduzirItensLeves,
-      reduzirCategoriaEm,
-      reduzirCategoriaExcetoTipos: Array.from(excetoTipos),
-    };
+    ]);
   }
 
   private ajustarEspacosBaseItem(
     espacosBase: number,
     reduzirItensLeves?: boolean,
   ): number {
-    if (reduzirItensLeves && espacosBase > 0 && espacosBase <= 0.5) {
-      return espacosBase / 2;
-    }
-
-    return espacosBase;
+    return calcularEspacoUnitarioInventario({
+      espacosBase,
+      reduzirItensLeves,
+    });
   }
 
   /**
@@ -915,7 +700,7 @@ export class InventarioService {
     const itens = await db.inventarioItemBase.findMany({
       where: { personagemBaseId },
       include: inventarioItemComDadosInclude,
-      orderBy: [{ equipado: 'desc' }, { equipamento: { nome: 'asc' } }],
+      orderBy: { id: 'asc' },
     });
 
     const {
@@ -926,6 +711,22 @@ export class InventarioService {
 
     const itensComFlags = itens.map((item) => ({
       ...item,
+      categoriaCalculada: calcularCategoriaInventario(
+        item.equipamento.categoria,
+        this.contarModificacoesEfetivas({
+          modificacoes: item.modificacoes.map(
+            (modificacao) => modificacao.modificacao,
+          ),
+          estado: item.estado,
+        }),
+      ),
+      espacosCalculados: calcularEspacoUnitarioInventario({
+        espacosBase: item.equipamento.espacos,
+        reduzirItensLeves,
+        incrementosModificacoes: item.modificacoes.map(
+          (modificacao) => modificacao.modificacao.incrementoEspacos ?? 0,
+        ),
+      }),
       reduzirItensLeves,
     }));
 
@@ -936,16 +737,29 @@ export class InventarioService {
     );
   }
 
+  private async buscarItemInventarioCalculado(
+    personagemBaseId: number,
+    itemId: number,
+    prisma?: PrismaLike,
+  ): Promise<ItemInventarioComDados> {
+    const itens = await this.carregarItensInventario(personagemBaseId, prisma);
+    const item = itens.find((candidato) => candidato.id === itemId);
+    if (!item) throw new InventarioItemNaoEncontradoException(itemId);
+    return item;
+  }
+
   /**
    * Calcula espaços totais do personagem (força + extras)
    */
   private async calcularEspacosPersonagem(
     personagemBaseId: number,
     prisma?: PrismaLike,
+    itensCarregados?: ItemInventarioComDados[],
   ): Promise<{
     espacosBase: number;
     espacosExtra: number;
     prestigioBase: number;
+    capacidade: CapacidadeInventarioCalculada;
   }> {
     const db = prisma || this.prisma;
 
@@ -953,9 +767,18 @@ export class InventarioService {
       where: { id: personagemBaseId },
       select: {
         forca: true,
-        espacosInventarioBase: true,
-        espacosInventarioExtra: true,
+        intelecto: true,
         prestigioBase: true,
+        habilidadesBase: {
+          select: {
+            habilidade: { select: { mecanicasEspeciais: true } },
+          },
+        },
+        poderesGenericos: {
+          select: {
+            habilidade: { select: { mecanicasEspeciais: true } },
+          },
+        },
       },
     });
 
@@ -963,10 +786,30 @@ export class InventarioService {
       throw new InventarioPersonagemNaoEncontradoException(personagemBaseId);
     }
 
+    const itens =
+      itensCarregados ??
+      (await this.carregarItensInventario(personagemBaseId, db));
+    const modificadores = resolverModificadoresInventario([
+      ...personagem.habilidadesBase.map(
+        (habilidade) => habilidade.habilidade.mecanicasEspeciais,
+      ),
+      ...personagem.poderesGenericos.map(
+        (poder) => poder.habilidade.mecanicasEspeciais,
+      ),
+    ]);
+    const capacidade = calcularCapacidadeInventario({
+      forca: personagem.forca,
+      intelecto: personagem.intelecto,
+      modificadores,
+      espacosExtraItens: this.engine.calcularEspacosExtraDeItens(itens),
+      espacosOcupados: this.engine.calcularEspacosOcupados(itens),
+    });
+
     return {
-      espacosBase: personagem.espacosInventarioBase,
-      espacosExtra: personagem.espacosInventarioExtra,
+      espacosBase: capacidade.base,
+      espacosExtra: capacidade.extra,
       prestigioBase: personagem.prestigioBase,
+      capacidade,
     };
   }
 
@@ -980,10 +823,47 @@ export class InventarioService {
    *
    * Deve ser chamado após qualquer CRUD de itens
    */
+  async recalcularEstadoInventarioBase(
+    personagemBaseId: number,
+    prisma?: PrismaLike,
+  ): Promise<void> {
+    await this.atualizarEstadoInventario(personagemBaseId, prisma);
+  }
+
+  private async atualizarCacheItensInventario(
+    itens: ItemInventarioComDados[],
+    prisma: PrismaLike,
+  ): Promise<void> {
+    if (itens.length === 0) return;
+
+    const categorias = itens.map(
+      (item) =>
+        Prisma.sql`WHEN ${item.id} THEN ${normalizarCategoriaInventario(
+          item.categoriaCalculada,
+        )}`,
+    );
+    const espacos = itens.map(
+      (item) =>
+        Prisma.sql`WHEN ${item.id} THEN ${this.engine.calcularEspacoUnitario(
+          item,
+        )}`,
+    );
+    const ids = itens.map((item) => item.id);
+
+    await prisma.$executeRaw(
+      Prisma.sql`
+        UPDATE InventarioItemBase
+        SET
+          categoriaCalculada = CASE id ${Prisma.join(categorias, ' ')} END,
+          espacosCalculados = CASE id ${Prisma.join(espacos, ' ')} END
+        WHERE id IN (${Prisma.join(ids)})
+      `,
+    );
+  }
+
   private async atualizarEstadoInventario(
     personagemBaseId: number,
     prisma?: PrismaLike,
-    espacosInventarioExtraBase = 0,
   ): Promise<void> {
     const db = prisma || this.prisma;
 
@@ -995,20 +875,29 @@ export class InventarioService {
 
     if (!personagem) return;
 
+    const modificadores = resolverModificadoresInventario([
+      ...personagem.habilidadesBase.map(
+        (habilidade) => habilidade.habilidade.mecanicasEspeciais,
+      ),
+      ...personagem.poderesGenericos.map(
+        (poder) => poder.habilidade.mecanicasEspeciais,
+      ),
+    ]);
+
     // 1. Calcular espacosExtra de itens (Mochila Militar, etc)
     const espacosExtraDeItens = this.engine.calcularEspacosExtraDeItens(itens);
-    const espacosInventarioExtra =
-      espacosInventarioExtraBase + espacosExtraDeItens;
 
     // 2. Calcular espaços ocupados
     const espacosOcupados = this.engine.calcularEspacosOcupados(itens);
 
-    // 3. Calcular capacidade total
-    const espacosTotal =
-      personagem.espacosInventarioBase + espacosInventarioExtra;
-
-    // 4. Flag sobrecarregado (acima da capacidade)
-    const sobrecarregado = espacosOcupados > espacosTotal;
+    // 3. Calcular capacidade pela mesma fonte usada em previews e detalhes
+    const capacidade = calcularCapacidadeInventario({
+      forca: personagem.forca,
+      intelecto: personagem.intelecto,
+      modificadores,
+      espacosExtraItens: espacosExtraDeItens,
+      espacosOcupados,
+    });
 
     // ✅ 5. Calcular stats dos equipamentos (defesa + RDs com modificações)
     const statsEquipados = this.engine.calcularStatsEquipados(itens);
@@ -1063,14 +952,17 @@ export class InventarioService {
     await db.personagemBase.update({
       where: { id: personagemBaseId },
       data: {
-        espacosInventarioExtra,
+        espacosInventarioBase: capacidade.base,
+        espacosInventarioExtra: capacidade.extra,
         espacosOcupados,
-        sobrecarregado,
+        sobrecarregado: capacidade.sobrecarregado,
         defesaEquipamento: defesaEquipamentoNovo, // ✅ Apenas defesa dos equipamentos
         esquiva: esquivaBaseNova,
         bloqueio: bloqueioBaseNovo,
       },
     });
+
+    await this.atualizarCacheItensInventario(itens, db);
 
     // ✅ 8.5. Sincronizar personagens da campanha preservando modificadores
     const deltaDefesaEquipamento =
@@ -1267,6 +1159,7 @@ export class InventarioService {
     const { espacosBase, espacosExtra } = await this.calcularEspacosPersonagem(
       personagemBaseId,
       db,
+      itens,
     );
 
     const espacosOcupados = this.engine.calcularEspacosOcupados(itens);
@@ -1298,8 +1191,8 @@ export class InventarioService {
     await this.validarPropriedade(personagemBaseId, donoId);
 
     const itens = await this.carregarItensInventario(personagemBaseId);
-    const { espacosBase, espacosExtra, prestigioBase } =
-      await this.calcularEspacosPersonagem(personagemBaseId);
+    const { espacosBase, espacosExtra, prestigioBase, capacidade } =
+      await this.calcularEspacosPersonagem(personagemBaseId, undefined, itens);
     const limitesGrauXama = await this.buscarLimitesGrauXama(prestigioBase);
 
     const resultadoEspacos = this.engine.calcularResultadoEspacos(
@@ -1332,6 +1225,7 @@ export class InventarioService {
 
     return {
       espacos: resultadoEspacos,
+      capacidade,
       grauXama: {
         grauAtual: this.engine.calcularGrauXama(prestigioBase).grau,
         prestigioMinimoRequisito: Math.max(
@@ -1369,7 +1263,11 @@ export class InventarioService {
       dto.personagemBaseId,
     );
     const { espacosBase, espacosExtra, prestigioBase } =
-      await this.calcularEspacosPersonagem(dto.personagemBaseId);
+      await this.calcularEspacosPersonagem(
+        dto.personagemBaseId,
+        undefined,
+        itensAtuais,
+      );
     const limitesGrauXama = await this.buscarLimitesGrauXama(prestigioBase);
 
     const previewCompleto = this.engine.previewAdicionarItem(
@@ -1392,12 +1290,76 @@ export class InventarioService {
   /**
    * ✅ Preview de itens de inventário (sem persistir)
    */
-  async previewItensInventario(dto: PreviewItensInventarioDto): Promise<any> {
+  async previewItensInventario(
+    dto: PreviewItensInventarioDto,
+    opcoes?: {
+      donoId?: number;
+      modificadores?: ModificadoresInventario;
+    },
+  ): Promise<any> {
     try {
-      const { forca, prestigioBase, itens } = dto;
-      const reduzirItensLeves = dto.reduzirItensLeves === true;
-      const reduzirCategoriaEm = dto.reduzirCategoriaEm ?? 0;
-      const reduzirCategoriaExcetoTipos = dto.reduzirCategoriaExcetoTipos ?? [];
+      const { itens } = dto;
+      let forca = dto.forca ?? 0;
+      let intelecto = dto.intelecto ?? 0;
+      let prestigioBase = dto.prestigioBase ?? 0;
+      let modificadores =
+        opcoes?.modificadores ??
+        ({
+          somarIntelecto: dto.somarIntelecto === true,
+          espacosExtraHabilidades: 0,
+          reduzirItensLeves: dto.reduzirItensLeves === true,
+          reduzirCategoriaEm: dto.reduzirCategoriaEm ?? 0,
+          reduzirCategoriaExcetoTipos: dto.reduzirCategoriaExcetoTipos ?? [],
+          creditoCategoriaBonus: 0,
+        } satisfies ModificadoresInventario);
+
+      if (dto.personagemBaseId !== undefined) {
+        const personagem = await this.prisma.personagemBase.findFirst({
+          where: {
+            id: dto.personagemBaseId,
+            donoId: opcoes?.donoId,
+          },
+          select: {
+            forca: true,
+            intelecto: true,
+            prestigioBase: true,
+            habilidadesBase: {
+              select: {
+                habilidade: { select: { mecanicasEspeciais: true } },
+              },
+            },
+            poderesGenericos: {
+              select: {
+                habilidade: { select: { mecanicasEspeciais: true } },
+              },
+            },
+          },
+        });
+
+        if (!personagem || opcoes?.donoId === undefined) {
+          throw new InventarioSemPermissaoException(
+            dto.personagemBaseId,
+            opcoes?.donoId ?? 0,
+          );
+        }
+
+        forca = personagem.forca;
+        intelecto = personagem.intelecto;
+        prestigioBase = personagem.prestigioBase;
+        modificadores = resolverModificadoresInventario([
+          ...personagem.habilidadesBase.map(
+            (habilidade) => habilidade.habilidade.mecanicasEspeciais,
+          ),
+          ...personagem.poderesGenericos.map(
+            (poder) => poder.habilidade.mecanicasEspeciais,
+          ),
+        ]);
+      }
+
+      const reduzirItensLeves = modificadores.reduzirItensLeves;
+      const reduzirCategoriaEm = modificadores.reduzirCategoriaEm;
+      const reduzirCategoriaExcetoTipos =
+        modificadores.reduzirCategoriaExcetoTipos;
 
       const equipamentosIds = [...new Set(itens.map((i) => i.equipamentoId))];
       const equipamentos = await this.prisma.equipamentoCatalogo.findMany({
@@ -1423,7 +1385,7 @@ export class InventarioService {
       const equipamentosMap = new Map(equipamentos.map((e) => [e.id, e]));
       const modificacoesMap = new Map(modificacoes.map((m) => [m.id, m]));
 
-      const itensCalculados = itens.map((item) => {
+      const itensCalculados = itens.map((item, indiceEntrada) => {
         const equipamento = equipamentosMap.get(item.equipamentoId);
         if (!equipamento) {
           throw new InventarioEquipamentoNaoEncontradoException(
@@ -1435,7 +1397,7 @@ export class InventarioService {
           .map((id) => modificacoesMap.get(id))
           .filter((mod): mod is NonNullable<typeof mod> => mod !== undefined);
 
-        const categoriaCalculada = this.engine.calcularCategoriaFinal(
+        const categoriaCalculada = calcularCategoriaInventario(
           equipamento.categoria,
           this.contarModificacoesEfetivas({
             modificacoes: modsDoItem,
@@ -1443,22 +1405,23 @@ export class InventarioService {
           }),
         );
 
-        const espacosBaseItem = this.ajustarEspacosBaseItem(
-          equipamento.espacos,
+        const espacosCalculados = calcularEspacoUnitarioInventario({
+          espacosBase: equipamento.espacos,
           reduzirItensLeves,
-        );
-        const incrementoMods = modsDoItem.reduce(
-          (total, m) => total + (m.incrementoEspacos || 0),
-          0,
-        );
-        const espacosCalculados = Math.max(0, espacosBaseItem + incrementoMods);
+          incrementosModificacoes: modsDoItem.map(
+            (modificacao) => modificacao.incrementoEspacos ?? 0,
+          ),
+        });
 
         return {
+          indiceEntrada,
           equipamentoId: item.equipamentoId,
           quantidade: item.quantidade,
           equipado: item.equipado,
           categoriaCalculada: String(categoriaCalculada),
           espacosCalculados,
+          espacosPorUnidade: espacosCalculados,
+          espacosTotal: espacosCalculados * item.quantidade,
           nomeCustomizado: item.nomeCustomizado,
           modificacoes: modsDoItem.map((m) => ({
             id: m.id,
@@ -1501,12 +1464,6 @@ export class InventarioService {
         reduzirCategoriaExcetoTipos,
       );
 
-      const atributoInventarioBase = calcularAtributoBaseInventario({
-        forca,
-        intelecto: dto.intelecto,
-        somarIntelecto: dto.somarIntelecto,
-      });
-      const espacosBase = calcularEspacosInventarioBase(atributoInventarioBase);
       const itensParaCalculoEspacosExtras: ItemInventarioComDados[] =
         itensCalculadosAjustados.map((item) => ({
           id: 0,
@@ -1534,13 +1491,18 @@ export class InventarioService {
       const espacosExtra = this.engine.calcularEspacosExtraDeItens(
         itensParaCalculoEspacosExtras,
       );
-      const espacosTotal = espacosBase + espacosExtra;
 
       const espacosOcupados = itensCalculadosAjustados.reduce((total, item) => {
         return total + item.espacosCalculados * item.quantidade;
       }, 0);
 
-      const sobrecarregado = espacosOcupados > espacosTotal;
+      const capacidade = calcularCapacidadeInventario({
+        forca,
+        intelecto,
+        modificadores,
+        espacosExtraItens: espacosExtra,
+        espacosOcupados,
+      });
 
       const grauXamaInfo = this.engine.calcularGrauXama(prestigioBase);
       const limitesGrauXama = await this.buscarLimitesGrauXama(prestigioBase);
@@ -1601,11 +1563,12 @@ export class InventarioService {
 
       return {
         itens: itensCalculadosAjustados,
-        espacosBase,
-        espacosExtra,
-        espacosTotal,
+        espacosBase: capacidade.base,
+        espacosExtra: capacidade.extra,
+        espacosTotal: capacidade.total,
         espacosOcupados,
-        sobrecarregado,
+        sobrecarregado: capacidade.sobrecarregado,
+        capacidade,
         grauXama: {
           grau: grauXamaInfo.grau,
           limitesPorCategoria: limitesGrauXama,
@@ -1790,17 +1753,12 @@ export class InventarioService {
       // 10. Atualizar estado do inventário (sobrecarregado, espacosExtra, defesa, RDs)
       await this.atualizarEstadoInventario(dto.personagemBaseId, db);
 
-      // 11. Recarregar item com modificações
-      const itemComMods = await db.inventarioItemBase.findUnique({
-        where: { id: item.id },
-        include: inventarioItemComDadosInclude,
-      });
-
-      if (!itemComMods) {
-        throw new InventarioItemNaoEncontradoException(item.id);
-      }
-
-      return this.mapper.mapItem(itemComMods);
+      const itemCalculado = await this.buscarItemInventarioCalculado(
+        dto.personagemBaseId,
+        item.id,
+        db,
+      );
+      return this.mapper.mapItem(itemCalculado);
     } catch (error: unknown) {
       this.tratarErroPrisma(error);
       throw error;
@@ -1841,7 +1799,11 @@ export class InventarioService {
           itemExiste.personagemBaseId,
         );
         const { espacosBase, espacosExtra } =
-          await this.calcularEspacosPersonagem(itemExiste.personagemBaseId);
+          await this.calcularEspacosPersonagem(
+            itemExiste.personagemBaseId,
+            undefined,
+            itensAtuais,
+          );
 
         // Remover espaços do item atual
         const espacosSemEsteItem = itensAtuais
@@ -1939,7 +1901,7 @@ export class InventarioService {
       );
 
       // Atualizar
-      const itemAtualizado = await this.prisma.inventarioItemBase.update({
+      await this.prisma.inventarioItemBase.update({
         where: { id: itemId },
         data: {
           quantidade: dto.quantidade,
@@ -1957,7 +1919,11 @@ export class InventarioService {
       // ✅ Atualizar estado do inventário (recalcula defesa e RDs)
       await this.atualizarEstadoInventario(itemExiste.personagemBaseId);
 
-      return this.mapper.mapItem(itemAtualizado);
+      const itemCalculado = await this.buscarItemInventarioCalculado(
+        itemExiste.personagemBaseId,
+        itemId,
+      );
+      return this.mapper.mapItem(itemCalculado);
     } catch (error: unknown) {
       this.tratarErroPrisma(error);
       throw error;
@@ -2124,17 +2090,11 @@ export class InventarioService {
       // Atualizar estado do inventário
       await this.atualizarEstadoInventario(item.personagemBaseId);
 
-      // Recarregar item
-      const itemAtualizado = await this.prisma.inventarioItemBase.findUnique({
-        where: { id: itemId },
-        include: inventarioItemComDadosInclude,
-      });
-
-      if (!itemAtualizado) {
-        throw new InventarioItemNaoEncontradoException(itemId);
-      }
-
-      return this.mapper.mapItem(itemAtualizado);
+      const itemCalculado = await this.buscarItemInventarioCalculado(
+        item.personagemBaseId,
+        itemId,
+      );
+      return this.mapper.mapItem(itemCalculado);
     } catch (error: unknown) {
       this.tratarErroPrisma(error);
       throw error;
@@ -2249,16 +2209,11 @@ export class InventarioService {
 
       await this.atualizarEstadoInventario(item.personagemBaseId);
 
-      const itemAtualizado = await this.prisma.inventarioItemBase.findUnique({
-        where: { id: itemId },
-        include: inventarioItemComDadosInclude,
-      });
-
-      if (!itemAtualizado) {
-        throw new InventarioItemNaoEncontradoException(itemId);
-      }
-
-      return this.mapper.mapItem(itemAtualizado);
+      const itemCalculado = await this.buscarItemInventarioCalculado(
+        item.personagemBaseId,
+        itemId,
+      );
+      return this.mapper.mapItem(itemCalculado);
     } catch (error: unknown) {
       this.tratarErroPrisma(error);
       throw error;

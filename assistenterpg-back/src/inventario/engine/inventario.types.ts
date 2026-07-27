@@ -1,6 +1,7 @@
 // src/inventario/engine/inventario.types.ts
 import { Prisma } from '@prisma/client';
 import { GrauFeiticeiro, TipoEquipamento } from '@prisma/client';
+import type { CapacidadeInventarioCalculada } from '../utils/inventario-calculo';
 
 /**
  * Item do inventário com equipamento e modificações carregados
@@ -145,6 +146,7 @@ export interface ResumoInventarioPorCategoria {
  */
 export interface ResumoInventarioCompleto {
   espacos: ResultadoEspacos;
+  capacidade: CapacidadeInventarioCalculada;
   grauXama: {
     grauAtual: GrauFeiticeiro;
     prestigioMinimoRequisito: number;

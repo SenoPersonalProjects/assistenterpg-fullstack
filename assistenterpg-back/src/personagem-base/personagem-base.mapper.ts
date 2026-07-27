@@ -14,9 +14,16 @@ import {
   montarMapaGraus,
 } from './regras-criacao/regras-tecnicas-nao-inatas';
 import {
-  calcularAtributoBaseInventario,
-  calcularEspacosInventarioBase,
-} from '../inventario/utils/inventario-capacidade';
+  aplicarReducaoCategoriaDeterministica,
+  calcularCapacidadeInventario,
+  calcularCategoriaInventario,
+  calcularEspacoUnitarioInventario,
+  calcularEspacosExtraItensInventario,
+  calcularQuantidadeModificacoesEfetivas,
+  resolverModificadoresInventario,
+  type CapacidadeInventarioCalculada,
+  type ModificadoresInventario,
+} from '../inventario/utils/inventario-calculo';
 import {
   extrairAtributoChaveEaDeHabilidades,
   extrairPericiasAtributoBaseOverride,
@@ -105,41 +112,6 @@ const inventarioItemDetalhadoInclude =
     },
   });
 
-const ORDEM_CATEGORIAS: CategoriaEquipamento[] = [
-  CategoriaEquipamento.CATEGORIA_0,
-  CategoriaEquipamento.CATEGORIA_4,
-  CategoriaEquipamento.CATEGORIA_3,
-  CategoriaEquipamento.CATEGORIA_2,
-  CategoriaEquipamento.CATEGORIA_1,
-  CategoriaEquipamento.ESPECIAL,
-];
-
-function isCategoriaEquipamento(value: unknown): value is CategoriaEquipamento {
-  return (
-    typeof value === 'string' &&
-    ORDEM_CATEGORIAS.includes(value as CategoriaEquipamento)
-  );
-}
-
-function calcularCategoriaFinal(
-  categoriaOriginal: CategoriaEquipamento,
-  quantidadeModificacoes: number,
-): CategoriaEquipamento {
-  if (!isCategoriaEquipamento(categoriaOriginal)) {
-    return CategoriaEquipamento.CATEGORIA_0;
-  }
-
-  const indexOriginal = ORDEM_CATEGORIAS.indexOf(categoriaOriginal);
-  if (indexOriginal === -1) return CategoriaEquipamento.CATEGORIA_0;
-
-  const indexFinal = Math.min(
-    indexOriginal + quantidadeModificacoes,
-    ORDEM_CATEGORIAS.length - 1,
-  );
-
-  return ORDEM_CATEGORIAS[indexFinal];
-}
-
 export type PersonagemBaseResumoEntity = Prisma.PersonagemBaseGetPayload<{
   include: { cla: true; classe: true };
 }>;
@@ -190,42 +162,11 @@ type InventarioItemMapeado = {
     tipo: TipoEquipamento;
     categoria: CategoriaEquipamento;
     espacos: number;
+    efeito: string | null;
     complexidadeMaldicao: string;
   };
   modificacoes: InventarioModificacaoMapeada[];
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function getInventarioSomarIntelectoFromMecanicas(
-  mecanicas: Prisma.JsonValue | null,
-): boolean {
-  if (!isRecord(mecanicas)) return false;
-  const inventario = mecanicas.inventario;
-  if (!isRecord(inventario)) return false;
-  return inventario.somarIntelecto === true;
-}
-
-function getInventarioReduzirItensLevesFromMecanicas(
-  mecanicas: Prisma.JsonValue | null,
-): boolean {
-  if (!isRecord(mecanicas)) return false;
-  const inventario = mecanicas.inventario;
-  if (!isRecord(inventario)) return false;
-  return inventario.reduzirItensLeves === true;
-}
-
-function getCreditoCategoriaBonusFromMecanicas(
-  mecanicas: Prisma.JsonValue | null,
-): number {
-  if (!isRecord(mecanicas)) return 0;
-  const economia = mecanicas.economia;
-  if (!isRecord(economia)) return 0;
-  const bonus = economia.creditoCategoriaBonus;
-  return typeof bonus === 'number' ? bonus : 0;
-}
 
 type ResistenciasMapeadas = Array<{
   codigo: string;
@@ -400,6 +341,7 @@ export type PersonagemDetalhadoMapeado = {
   espacosInventarioExtra: number;
   espacosOcupados: number;
   sobrecarregado: boolean;
+  capacidadeInventario: CapacidadeInventarioCalculada;
   itensInventario: InventarioItemMapeado[];
 };
 
@@ -480,54 +422,35 @@ export class PersonagemBaseMapper {
       })
       .filter((g): g is GrauAprimoramentoAjustado => g !== null);
 
-    const inventarioSomarIntelecto =
-      (personagem.habilidadesBase ?? []).some((h) =>
-        getInventarioSomarIntelectoFromMecanicas(
-          h.habilidade.mecanicasEspeciais,
-        ),
-      ) ||
-      (personagem.poderesGenericos ?? []).some((p) =>
-        getInventarioSomarIntelectoFromMecanicas(
-          p.habilidade.mecanicasEspeciais,
-        ),
-      );
-    const inventarioReduzirItensLeves =
-      (personagem.habilidadesBase ?? []).some((h) =>
-        getInventarioReduzirItensLevesFromMecanicas(
-          h.habilidade.mecanicasEspeciais,
-        ),
-      ) ||
-      (personagem.poderesGenericos ?? []).some((p) =>
-        getInventarioReduzirItensLevesFromMecanicas(
-          p.habilidade.mecanicasEspeciais,
-        ),
-      );
-    const atributoInventarioBase = calcularAtributoBaseInventario({
-      forca: personagem.forca,
-      intelecto: personagem.intelecto,
-      somarIntelecto: inventarioSomarIntelecto,
-    });
-    const espacosInventarioBaseFallback = calcularEspacosInventarioBase(
-      atributoInventarioBase,
+    const fontesMecanicasInventario = [
+      ...(personagem.habilidadesBase ?? []).map(
+        (habilidade) => habilidade.habilidade.mecanicasEspeciais,
+      ),
+      ...(personagem.poderesGenericos ?? []).map(
+        (poder) => poder.habilidade.mecanicasEspeciais,
+      ),
+    ];
+    const modificadoresInventario = resolverModificadoresInventario(
+      fontesMecanicasInventario,
     );
-    const espacosBase =
-      personagem.espacosInventarioBase ?? espacosInventarioBaseFallback;
-    const espacosExtra = personagem.espacosInventarioExtra ?? 0;
-    const espacosInventario = {
-      base: espacosBase,
-      extra: espacosExtra,
-      total: espacosBase + espacosExtra,
-    };
 
     const itensInventario = await this.mapItensInventario(
       personagem.id,
       prisma,
-      inventarioReduzirItensLeves,
+      modificadoresInventario,
     );
     const espacosOcupados = itensInventario.reduce((total, item) => {
       return total + item.espacosCalculados * item.quantidade;
     }, 0);
-    const sobrecarregado = espacosOcupados > espacosInventario.total;
+    const espacosExtraItens =
+      calcularEspacosExtraItensInventario(itensInventario);
+    const capacidadeInventario = calcularCapacidadeInventario({
+      forca: personagem.forca,
+      intelecto: personagem.intelecto,
+      modificadores: modificadoresInventario,
+      espacosExtraItens,
+      espacosOcupados,
+    });
 
     const habilidadesResistencias = [
       ...(personagem.habilidadesBase ?? []).map((h) => ({
@@ -750,14 +673,7 @@ export class PersonagemBaseMapper {
           )
         : null;
 
-    const creditoCategoriaBonus = [
-      ...(personagem.habilidadesBase ?? []).map((h) => h.habilidade),
-      ...(personagem.poderesGenericos ?? []).map((p) => p.habilidade),
-    ].reduce(
-      (acc, hab) =>
-        acc + getCreditoCategoriaBonusFromMecanicas(hab.mecanicasEspeciais),
-      0,
-    );
+    const creditoCategoriaBonus = modificadoresInventario.creditoCategoriaBonus;
 
     const habilidadesParaOverride = [
       ...(personagem.habilidadesBase ?? []).map((h) => ({
@@ -931,10 +847,11 @@ export class PersonagemBaseMapper {
       resistencias,
       tecnicasNaoInatas,
 
-      espacosInventarioBase: espacosInventario.base,
-      espacosInventarioExtra: espacosInventario.extra,
+      espacosInventarioBase: capacidadeInventario.base,
+      espacosInventarioExtra: capacidadeInventario.extra,
       espacosOcupados,
-      sobrecarregado,
+      sobrecarregado: capacidadeInventario.sobrecarregado,
+      capacidadeInventario,
       itensInventario,
     };
   }
@@ -942,7 +859,7 @@ export class PersonagemBaseMapper {
   private async mapItensInventario(
     personagemBaseId: number,
     prisma: PrismaLike,
-    reduzirItensLeves = false,
+    modificadores: ModificadoresInventario,
   ): Promise<InventarioItemMapeado[]> {
     try {
       const itens: InventarioItemDetalhadoEntity[] =
@@ -952,18 +869,9 @@ export class PersonagemBaseMapper {
           orderBy: { id: 'asc' },
         });
 
-      const itensMapeados: InventarioItemMapeado[] = [];
-
-      for (const item of itens) {
+      const itensMapeados = itens.flatMap((item): InventarioItemMapeado[] => {
         const equipamento = item.equipamento;
-        if (!equipamento) continue;
-
-        let espacosPorUnidade =
-          reduzirItensLeves &&
-          equipamento.espacos > 0 &&
-          equipamento.espacos <= 0.5
-            ? equipamento.espacos / 2
-            : equipamento.espacos;
+        if (!equipamento) return [];
 
         const modsAplicadas: InventarioModificacaoMapeada[] = (
           item.modificacoes ?? []
@@ -971,7 +879,6 @@ export class PersonagemBaseMapper {
           const mod = junction.modificacao;
           if (!mod) return [];
 
-          espacosPorUnidade += mod.incrementoEspacos;
           const restricoes = this.isJsonObject(mod.restricoes)
             ? mod.restricoes
             : null;
@@ -1000,35 +907,54 @@ export class PersonagemBaseMapper {
             },
           ];
         });
-
-        itensMapeados.push({
-          id: item.id,
-          equipamentoId: item.equipamentoId,
-          quantidade: item.quantidade,
-          equipado: item.equipado,
-          espacosCalculados: espacosPorUnidade,
-          categoriaCalculada: (
-            item.categoriaCalculada ??
-            calcularCategoriaFinal(equipamento.categoria, modsAplicadas.length)
-          ).toString(),
-          nomeCustomizado: item.nomeCustomizado,
-          notas: item.notas,
-          estado: item.estado ?? null,
-          equipamento: {
-            id: equipamento.id,
-            codigo: equipamento.codigo,
-            nome: equipamento.nome,
-            descricao: equipamento.descricao,
-            tipo: equipamento.tipo,
-            categoria: equipamento.categoria,
-            espacos: equipamento.espacos,
-            complexidadeMaldicao: equipamento.complexidadeMaldicao || 'NENHUMA',
-          },
-          modificacoes: modsAplicadas,
+        const espacosPorUnidade = calcularEspacoUnitarioInventario({
+          espacosBase: equipamento.espacos,
+          reduzirItensLeves: modificadores.reduzirItensLeves,
+          incrementosModificacoes: modsAplicadas.map(
+            (modificacao) => modificacao.incrementoEspacos,
+          ),
         });
-      }
+        const categoriaCalculada = calcularCategoriaInventario(
+          equipamento.categoria,
+          calcularQuantidadeModificacoesEfetivas({
+            modificacoes: modsAplicadas,
+            estado: item.estado,
+          }),
+        );
 
-      return itensMapeados;
+        return [
+          {
+            id: item.id,
+            equipamentoId: item.equipamentoId,
+            quantidade: item.quantidade,
+            equipado: item.equipado,
+            espacosCalculados: espacosPorUnidade,
+            categoriaCalculada,
+            nomeCustomizado: item.nomeCustomizado,
+            notas: item.notas,
+            estado: item.estado ?? null,
+            equipamento: {
+              id: equipamento.id,
+              codigo: equipamento.codigo,
+              nome: equipamento.nome,
+              descricao: equipamento.descricao,
+              tipo: equipamento.tipo,
+              categoria: equipamento.categoria,
+              espacos: equipamento.espacos,
+              efeito: equipamento.efeito,
+              complexidadeMaldicao:
+                equipamento.complexidadeMaldicao || 'NENHUMA',
+            },
+            modificacoes: modsAplicadas,
+          },
+        ];
+      });
+
+      return aplicarReducaoCategoriaDeterministica(
+        itensMapeados,
+        modificadores.reduzirCategoriaEm,
+        modificadores.reduzirCategoriaExcetoTipos,
+      );
     } catch (error) {
       console.error('[MAPPER] Erro ao mapear itens de inventário:', error);
       return [];

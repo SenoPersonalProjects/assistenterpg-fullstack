@@ -17,6 +17,11 @@ import {
   InventarioService,
   type ItemInventarioBasePreparado,
 } from '../inventario/inventario.service';
+import {
+  resolverModificadoresInventario,
+  type CapacidadeInventarioCalculada,
+  type ModificadoresInventario,
+} from '../inventario/utils/inventario-calculo';
 
 // ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
@@ -114,6 +119,7 @@ type ErroItemPreview = {
 };
 
 type PreviewInventarioItem = {
+  indiceEntrada: number;
   equipamentoId: number;
   quantidade: number;
   equipado: boolean;
@@ -157,6 +163,7 @@ type PreviewInventarioResponse = {
   espacosTotal: number;
   espacosOcupados: number;
   sobrecarregado: boolean;
+  capacidade: CapacidadeInventarioCalculada;
   grauXama?: {
     limitesPorCategoria?: Record<string, number>;
   };
@@ -1010,26 +1017,6 @@ export class PersonagemBaseService {
     return typeof current === 'number' ? current : null;
   }
 
-  private getBooleanField(
-    value: Record<string, unknown> | null | undefined,
-    key: string,
-  ): boolean | null {
-    if (!value) return null;
-    const current = value[key];
-    return typeof current === 'boolean' ? current : null;
-  }
-
-  private getStringArrayField(
-    value: Record<string, unknown> | null | undefined,
-    key: string,
-  ): string[] | null {
-    if (!value) return null;
-    const current = value[key];
-    if (!Array.isArray(current)) return null;
-    const valid = current.filter((item) => typeof item === 'string');
-    return valid.length > 0 ? valid : [];
-  }
-
   private extrairItensPreviewInventario(value: unknown): unknown[] {
     if (!this.isRecord(value)) return [];
     const itens = value.itens;
@@ -1079,7 +1066,6 @@ export class PersonagemBaseService {
   private async persistirInventarioSeInformado(
     personagemBaseId: number,
     itensPreparados: ItemInventarioBasePreparado[] | undefined,
-    espacosInventarioExtraBase: number,
     tx: Prisma.TransactionClient,
   ): Promise<void> {
     if (itensPreparados === undefined) return;
@@ -1088,7 +1074,6 @@ export class PersonagemBaseService {
       personagemBaseId,
       itensPreparados,
       tx,
-      espacosInventarioExtraBase,
     );
   }
 
@@ -1612,10 +1597,7 @@ export class PersonagemBaseService {
 
   private async validarItensInventarioNoPreview(
     dto: CreatePersonagemBaseDto,
-    inventarioSomarIntelecto?: boolean,
-    inventarioReduzirItensLeves?: boolean,
-    inventarioReduzirCategoriaEm?: number,
-    inventarioReduzirCategoriaExcetoTipos?: string[],
+    modificadores: ModificadoresInventario,
   ): Promise<{
     itensValidados: unknown[];
     errosItens: ErroItemPreview[];
@@ -1623,16 +1605,15 @@ export class PersonagemBaseService {
   }> {
     if (!dto.itensInventario?.length) {
       const previewInventario =
-        (await this.inventarioService.previewItensInventario({
-          forca: dto.forca,
-          intelecto: dto.intelecto,
-          somarIntelecto: inventarioSomarIntelecto,
-          reduzirItensLeves: inventarioReduzirItensLeves,
-          reduzirCategoriaEm: inventarioReduzirCategoriaEm,
-          reduzirCategoriaExcetoTipos: inventarioReduzirCategoriaExcetoTipos,
-          prestigioBase: dto.prestigioBase ?? 0,
-          itens: [],
-        })) as PreviewInventarioResponse;
+        (await this.inventarioService.previewItensInventario(
+          {
+            forca: dto.forca,
+            intelecto: dto.intelecto,
+            prestigioBase: dto.prestigioBase ?? 0,
+            itens: [],
+          },
+          { modificadores },
+        )) as PreviewInventarioResponse;
 
       return {
         itensValidados: [],
@@ -1651,16 +1632,15 @@ export class PersonagemBaseService {
 
     try {
       const previewInventario =
-        (await this.inventarioService.previewItensInventario({
-          forca: dto.forca,
-          intelecto: dto.intelecto,
-          somarIntelecto: inventarioSomarIntelecto,
-          reduzirItensLeves: inventarioReduzirItensLeves,
-          reduzirCategoriaEm: inventarioReduzirCategoriaEm,
-          reduzirCategoriaExcetoTipos: inventarioReduzirCategoriaExcetoTipos,
-          prestigioBase: dto.prestigioBase ?? 0,
-          itens: itensPreview,
-        })) as PreviewInventarioResponse;
+        (await this.inventarioService.previewItensInventario(
+          {
+            forca: dto.forca,
+            intelecto: dto.intelecto,
+            prestigioBase: dto.prestigioBase ?? 0,
+            itens: itensPreview,
+          },
+          { modificadores },
+        )) as PreviewInventarioResponse;
       const itensValidados =
         this.extrairItensPreviewInventario(previewInventario);
 
@@ -1674,33 +1654,34 @@ export class PersonagemBaseService {
       const errosItens: ErroItemPreview[] = [];
       const itensValidosPayload: typeof itensPreview = [];
 
-      for (const item of dto.itensInventario) {
+      for (const [indiceEntrada, item] of dto.itensInventario.entries()) {
         try {
           const previewItem =
-            (await this.inventarioService.previewItensInventario({
-              forca: dto.forca,
-              intelecto: dto.intelecto,
-              somarIntelecto: inventarioSomarIntelecto,
-              reduzirItensLeves: inventarioReduzirItensLeves,
-              reduzirCategoriaEm: inventarioReduzirCategoriaEm,
-              reduzirCategoriaExcetoTipos:
-                inventarioReduzirCategoriaExcetoTipos,
-              prestigioBase: dto.prestigioBase ?? 0,
-              itens: [
-                {
-                  equipamentoId: item.equipamentoId,
-                  quantidade: item.quantidade,
-                  equipado: item.equipado ?? false,
-                  modificacoes: item.modificacoesIds ?? [],
-                  nomeCustomizado: item.nomeCustomizado,
-                },
-              ],
-            })) as PreviewInventarioResponse;
+            (await this.inventarioService.previewItensInventario(
+              {
+                forca: dto.forca,
+                intelecto: dto.intelecto,
+                prestigioBase: dto.prestigioBase ?? 0,
+                itens: [
+                  {
+                    equipamentoId: item.equipamentoId,
+                    quantidade: item.quantidade,
+                    equipado: item.equipado ?? false,
+                    modificacoes: item.modificacoesIds ?? [],
+                    nomeCustomizado: item.nomeCustomizado,
+                  },
+                ],
+              },
+              { modificadores },
+            )) as PreviewInventarioResponse;
 
           const itensPreviewItem =
             this.extrairItensPreviewInventario(previewItem);
           if (itensPreviewItem[0]) {
-            itensValidados.push(itensPreviewItem[0]);
+            itensValidados.push({
+              ...(itensPreviewItem[0] as Record<string, unknown>),
+              indiceEntrada,
+            });
             itensValidosPayload.push({
               equipamentoId: item.equipamentoId,
               quantidade: item.quantidade,
@@ -1725,17 +1706,15 @@ export class PersonagemBaseService {
       if (itensValidosPayload.length > 0) {
         try {
           previewInventario =
-            (await this.inventarioService.previewItensInventario({
-              forca: dto.forca,
-              intelecto: dto.intelecto,
-              somarIntelecto: inventarioSomarIntelecto,
-              prestigioBase: dto.prestigioBase ?? 0,
-              reduzirItensLeves: inventarioReduzirItensLeves,
-              reduzirCategoriaEm: inventarioReduzirCategoriaEm,
-              reduzirCategoriaExcetoTipos:
-                inventarioReduzirCategoriaExcetoTipos,
-              itens: itensValidosPayload,
-            })) as PreviewInventarioResponse;
+            (await this.inventarioService.previewItensInventario(
+              {
+                forca: dto.forca,
+                intelecto: dto.intelecto,
+                prestigioBase: dto.prestigioBase ?? 0,
+                itens: itensValidosPayload,
+              },
+              { modificadores },
+            )) as PreviewInventarioResponse;
         } catch {
           previewInventario = null;
         }
@@ -2054,9 +2033,6 @@ export class PersonagemBaseService {
         : null;
       const recursos = this.getNestedRecord(mecanicas, 'recursos');
       const defesa = this.getNestedRecord(mecanicas, 'defesa');
-      const inventario = this.getNestedRecord(mecanicas, 'inventario');
-      const itens = this.getNestedRecord(mecanicas, 'itens');
-      const economia = this.getNestedRecord(mecanicas, 'economia');
       const sanidade = this.getNestedRecord(mecanicas, 'sanidade');
       const pvPorNivel = this.getNumberField(mecanicas, 'pvPorNivel');
       const pvExtra = this.getNumberField(mecanicas, 'pvExtra');
@@ -2068,18 +2044,6 @@ export class PersonagemBaseService {
         'limitePePorTurnoBonus',
       );
       const defesaBonus = this.getNumberField(defesa, 'bonus');
-      const espacosExtra = this.getNumberField(inventario, 'espacosExtra');
-      const somarIntelecto = this.getBooleanField(inventario, 'somarIntelecto');
-      const reduzirItensLeves = this.getBooleanField(
-        inventario,
-        'reduzirItensLeves',
-      );
-      const reduzirCategoriaEm = this.getNumberField(itens, 'reduzCategoriaEm');
-      const excetoTipos = this.getStringArrayField(itens, 'excetoTipos');
-      const creditoCategoriaBonus = this.getNumberField(
-        economia,
-        'creditoCategoriaBonus',
-      );
       const sanMultiplicador = this.getNumberField(
         sanidade,
         'multiplicadorInicial',
@@ -2117,42 +2081,18 @@ export class PersonagemBaseService {
       if (sanMultiplicador !== null && sanMultiplicador > 0) {
         mods.sanMultiplicador *= sanMultiplicador;
       }
-
-      if (espacosExtra !== null) {
-        mods.espacosInventarioExtra += espacosExtra;
-      }
-
-      if (somarIntelecto === true) {
-        mods.inventarioSomarIntelecto = true;
-      }
-
-      if (reduzirItensLeves === true) {
-        mods.inventarioReduzirItensLeves = true;
-      }
-
-      if (typeof reduzirCategoriaEm === 'number' && reduzirCategoriaEm > 0) {
-        mods.inventarioReduzirCategoriaEm = Math.max(
-          mods.inventarioReduzirCategoriaEm,
-          reduzirCategoriaEm,
-        );
-      }
-
-      if (excetoTipos && excetoTipos.length > 0) {
-        mods.inventarioReduzirCategoriaExcetoTipos = Array.from(
-          new Set([
-            ...mods.inventarioReduzirCategoriaExcetoTipos,
-            ...excetoTipos,
-          ]),
-        );
-      }
-
-      if (
-        typeof creditoCategoriaBonus === 'number' &&
-        creditoCategoriaBonus > 0
-      ) {
-        mods.creditoCategoriaBonus += creditoCategoriaBonus;
-      }
     }
+
+    const inventario = resolverModificadoresInventario(
+      habilidades.map((habilidade) => habilidade.habilidade.mecanicasEspeciais),
+    );
+    mods.espacosInventarioExtra = inventario.espacosExtraHabilidades;
+    mods.inventarioSomarIntelecto = inventario.somarIntelecto;
+    mods.inventarioReduzirItensLeves = inventario.reduzirItensLeves;
+    mods.inventarioReduzirCategoriaEm = inventario.reduzirCategoriaEm;
+    mods.inventarioReduzirCategoriaExcetoTipos =
+      inventario.reduzirCategoriaExcetoTipos;
+    mods.creditoCategoriaBonus = inventario.creditoCategoriaBonus;
 
     return mods;
   }
@@ -2524,13 +2464,15 @@ export class PersonagemBaseService {
       dtoPreview.nivel,
     );
     const { itensValidados, errosItens, previewInventario } =
-      await this.validarItensInventarioNoPreview(
-        dtoPreview,
-        inventarioMods.inventarioSomarIntelecto,
-        inventarioMods.inventarioReduzirItensLeves,
-        inventarioMods.inventarioReduzirCategoriaEm,
-        inventarioMods.inventarioReduzirCategoriaExcetoTipos,
-      );
+      await this.validarItensInventarioNoPreview(dtoPreview, {
+        somarIntelecto: inventarioMods.inventarioSomarIntelecto,
+        espacosExtraHabilidades: inventarioMods.espacosInventarioExtra,
+        reduzirItensLeves: inventarioMods.inventarioReduzirItensLeves,
+        reduzirCategoriaEm: inventarioMods.inventarioReduzirCategoriaEm,
+        reduzirCategoriaExcetoTipos:
+          inventarioMods.inventarioReduzirCategoriaExcetoTipos,
+        creditoCategoriaBonus: inventarioMods.creditoCategoriaBonus,
+      });
 
     const previewInventarioItens = previewInventario?.itens ?? [];
     const statsEquipadosPreview = previewInventario?.statsEquipados ?? null;
@@ -2603,12 +2545,15 @@ export class PersonagemBaseService {
       equipamentoId: item.equipamentoId,
       equipamento: {
         id: item.equipamento.id,
+        codigo: item.equipamento.codigo,
         nome: item.equipamento.nome,
         tipo: item.equipamento.tipo,
+        categoria: item.equipamento.categoria,
         espacos: item.equipamento.espacos,
         descricao:
           item.equipamento.descricao ?? item.equipamento.efeito ?? null,
       },
+      indiceEntrada: item.indiceEntrada,
       quantidade: item.quantidade,
       equipado: item.equipado,
       modificacoesIds: Array.isArray(item.modificacoes)
@@ -2637,6 +2582,9 @@ export class PersonagemBaseService {
           restantes:
             previewInventario.espacosTotal - previewInventario.espacosOcupados,
           sobrecarregado: previewInventario.sobrecarregado,
+          extraHabilidades: previewInventario.capacidade.extraHabilidades,
+          extraItens: previewInventario.capacidade.extraItens,
+          formula: previewInventario.capacidade.formula,
           limitesPorCategoria:
             previewInventario.grauXama?.limitesPorCategoria ?? {},
           itensPorCategoria: previewInventario.itensPorCategoria ?? {},
@@ -2763,7 +2711,6 @@ export class PersonagemBaseService {
       await this.persistirInventarioSeInformado(
         personagemCriado.id,
         itensInventarioPreparados,
-        estado.espacosInventario.extra,
         tx,
       );
 
@@ -3244,9 +3191,11 @@ export class PersonagemBaseService {
       await this.persistirInventarioSeInformado(
         id,
         itensInventarioPreparados,
-        estado.espacosInventario.extra,
         tx,
       );
+      if (itensInventarioPreparados === undefined) {
+        await this.inventarioService.recalcularEstadoInventarioBase(id, tx);
+      }
 
       const tecnicaInataAnteriorId = existe.tecnicaInataId ?? null;
       const tecnicaInataNovaId = estado.dtoNormalizado.tecnicaInataId ?? null;

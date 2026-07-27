@@ -66,9 +66,9 @@ import {
 } from '../regras-criacao/regras-derivados';
 
 import {
-  calcularAtributoBaseInventario,
-  calcularEspacosInventarioBase,
-} from 'src/inventario/utils/inventario-capacidade';
+  calcularCapacidadeInventario,
+  resolverModificadoresInventario,
+} from 'src/inventario/utils/inventario-calculo';
 
 import {
   EngineParams,
@@ -144,26 +144,6 @@ function getNumberField(
   if (!value) return null;
   const current = value[key];
   return typeof current === 'number' ? current : null;
-}
-
-function getBooleanField(
-  value: Record<string, unknown> | null | undefined,
-  key: string,
-): boolean | null {
-  if (!value) return null;
-  const current = value[key];
-  return typeof current === 'boolean' ? current : null;
-}
-
-function getStringArrayField(
-  value: Record<string, unknown> | null | undefined,
-  key: string,
-): string[] | null {
-  if (!value) return null;
-  const current = value[key];
-  if (!Array.isArray(current)) return null;
-  const valid = current.filter((item) => typeof item === 'string');
-  return valid.length > 0 ? valid : [];
 }
 
 // ✅ REFATORADO: Usar exceção customizada
@@ -279,9 +259,6 @@ function calcularModificadoresDerivadosPorHabilidadesLocal(
       : null;
     const recursos = getNestedRecord(mecanicas, 'recursos');
     const defesa = getNestedRecord(mecanicas, 'defesa');
-    const inventario = getNestedRecord(mecanicas, 'inventario');
-    const itens = getNestedRecord(mecanicas, 'itens');
-    const economia = getNestedRecord(mecanicas, 'economia');
     const sanidade = getNestedRecord(mecanicas, 'sanidade');
     const pvPorNivel = getNumberField(mecanicas, 'pvPorNivel');
     const pvExtra = getNumberField(mecanicas, 'pvExtra');
@@ -293,15 +270,6 @@ function calcularModificadoresDerivadosPorHabilidadesLocal(
       'limitePePorTurnoBonus',
     );
     const defesaBonus = getNumberField(defesa, 'bonus');
-    const espacosExtra = getNumberField(inventario, 'espacosExtra');
-    const somarIntelecto = getBooleanField(inventario, 'somarIntelecto');
-    const reduzirItensLeves = getBooleanField(inventario, 'reduzirItensLeves');
-    const reduzirCategoriaEm = getNumberField(itens, 'reduzCategoriaEm');
-    const excetoTipos = getStringArrayField(itens, 'excetoTipos');
-    const creditoCategoriaBonus = getNumberField(
-      economia,
-      'creditoCategoriaBonus',
-    );
     const sanMultiplicador = getNumberField(sanidade, 'multiplicadorInicial');
 
     if (pvPorNivel !== null) {
@@ -336,42 +304,18 @@ function calcularModificadoresDerivadosPorHabilidadesLocal(
     if (sanMultiplicador !== null && sanMultiplicador > 0) {
       mods.sanMultiplicador *= sanMultiplicador;
     }
-
-    if (espacosExtra !== null) {
-      mods.espacosInventarioExtra += espacosExtra;
-    }
-
-    if (somarIntelecto === true) {
-      mods.inventarioSomarIntelecto = true;
-    }
-
-    if (reduzirItensLeves === true) {
-      mods.inventarioReduzirItensLeves = true;
-    }
-
-    if (typeof reduzirCategoriaEm === 'number' && reduzirCategoriaEm > 0) {
-      mods.inventarioReduzirCategoriaEm = Math.max(
-        mods.inventarioReduzirCategoriaEm,
-        reduzirCategoriaEm,
-      );
-    }
-
-    if (excetoTipos && excetoTipos.length > 0) {
-      mods.inventarioReduzirCategoriaExcetoTipos = Array.from(
-        new Set([
-          ...mods.inventarioReduzirCategoriaExcetoTipos,
-          ...excetoTipos,
-        ]),
-      );
-    }
-
-    if (
-      typeof creditoCategoriaBonus === 'number' &&
-      creditoCategoriaBonus > 0
-    ) {
-      mods.creditoCategoriaBonus += creditoCategoriaBonus;
-    }
   }
+
+  const inventario = resolverModificadoresInventario(
+    habilidades.map((habilidade) => habilidade.habilidade.mecanicasEspeciais),
+  );
+  mods.espacosInventarioExtra = inventario.espacosExtraHabilidades;
+  mods.inventarioSomarIntelecto = inventario.somarIntelecto;
+  mods.inventarioReduzirItensLeves = inventario.reduzirItensLeves;
+  mods.inventarioReduzirCategoriaEm = inventario.reduzirCategoriaEm;
+  mods.inventarioReduzirCategoriaExcetoTipos =
+    inventario.reduzirCategoriaExcetoTipos;
+  mods.creditoCategoriaBonus = inventario.creditoCategoriaBonus;
 
   return mods;
 }
@@ -813,16 +757,14 @@ export async function calcularEstadoFinalPersonagemBase(
   derivadosFinais.esquiva = esquiva;
 
   // Calcular espaços de inventário
-  const atributoInventarioBase = calcularAtributoBaseInventario({
+  const capacidadeInventario = calcularCapacidadeInventario({
     forca: dtoNormalizado.forca,
     intelecto: dtoNormalizado.intelecto,
-    somarIntelecto: mods.inventarioSomarIntelecto,
+    modificadores: {
+      somarIntelecto: mods.inventarioSomarIntelecto,
+      espacosExtraHabilidades: mods.espacosInventarioExtra,
+    },
   });
-  const espacosInventarioBase = calcularEspacosInventarioBase(
-    atributoInventarioBase,
-  );
-  const espacosInventarioExtra = mods.espacosInventarioExtra;
-  const espacosInventarioTotal = espacosInventarioBase + espacosInventarioExtra;
 
   // Helpers p/ preview: bônus por habilidade
   const bonusHabilidades = habilidades.flatMap((h) =>
@@ -868,9 +810,9 @@ export async function calcularEstadoFinalPersonagemBase(
     pvBarrasTotal,
 
     espacosInventario: {
-      base: espacosInventarioBase,
-      extra: espacosInventarioExtra,
-      total: espacosInventarioTotal,
+      base: capacidadeInventario.base,
+      extra: capacidadeInventario.extra,
+      total: capacidadeInventario.total,
     },
 
     resistenciasFinais,
