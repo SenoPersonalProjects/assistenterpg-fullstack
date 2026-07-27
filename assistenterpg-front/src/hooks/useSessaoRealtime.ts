@@ -26,7 +26,9 @@ type UseSessaoRealtimeParams = {
   usuarioId: number | null | undefined;
   campanhaId: number;
   sessaoId: number;
-  sincronizarTempoReal: () => void | Promise<void>;
+  sincronizarTempoReal: (
+    evento?: EventoSessaoAtualizada,
+  ) => void | Promise<void>;
 };
 
 type UseSessaoRealtimeReturn = {
@@ -230,7 +232,7 @@ export function useSessaoRealtime({
     const handleSessaoAtualizada = (evento: EventoSessaoAtualizada) => {
       if (!evento) return;
       if (evento.campanhaId !== campanhaId || evento.sessaoId !== sessaoId) return;
-      void sincronizarTempoReal();
+      void sincronizarTempoReal(evento);
     };
 
     socket.on('connect', handleConnect);

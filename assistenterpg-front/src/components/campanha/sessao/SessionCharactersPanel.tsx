@@ -39,8 +39,7 @@ type SessionCharactersPanelProps = {
     campo: CampoAjusteRecurso,
     valor: string,
   ) => void;
-  campoRecursoPendente: `${number}:${CampoAjusteRecurso}` | null;
-  salvandoCardId: number | null;
+  camposRecursosPendentes: ReadonlySet<string>;
   sessaoEncerrada: boolean;
   podeControlarSessao: boolean;
   removendoPersonagemSessaoId: number | null;
@@ -160,8 +159,7 @@ export function SessionCharactersPanel({
   onAlternarExpandido,
   obterAjustesRecursosCard,
   onAtualizarAjusteRecursoCard,
-  campoRecursoPendente,
-  salvandoCardId,
+  camposRecursosPendentes,
   sessaoEncerrada,
   podeControlarSessao,
   removendoPersonagemSessaoId,
@@ -246,10 +244,14 @@ export function SessionCharactersPanel({
           const cardRecursosExpandido = Boolean(
             cardsRecursosExpandidos[card.personagemSessaoId],
           );
-          const campoRecursoPendenteCard =
-            campoRecursoPendente?.startsWith(`${card.personagemCampanhaId}:`)
-              ? (campoRecursoPendente.split(':')[1] as CampoAjusteRecurso)
-              : null;
+          const camposRecursosPendentesCard = new Set<CampoAjusteRecurso>(
+            (['pv', 'pe', 'ea', 'san'] as CampoAjusteRecurso[]).filter(
+              (campo) =>
+                camposRecursosPendentes.has(
+                  `${card.personagemCampanhaId}:${campo}`,
+                ),
+            ),
+          );
           const iniciativaValor = iniciativaPorPersonagemSessao.get(
             card.personagemSessaoId,
           );
@@ -295,9 +297,8 @@ export function SessionCharactersPanel({
                 onToggleTecnicasNaoInatas(card.personagemSessaoId, aberto)
               }
               ajustesRecursos={ajustesRecursos}
-              campoRecursoPendenteCard={campoRecursoPendenteCard}
+              camposRecursosPendentesCard={camposRecursosPendentesCard}
               sessaoEncerrada={sessaoEncerrada}
-              salvandoCardId={salvandoCardId}
               removendo={removendoPersonagemSessaoId === card.personagemSessaoId}
               acaoHabilidadePendente={acaoHabilidadePendente}
               onAlternarExpandido={() => onAlternarExpandido(card.personagemSessaoId)}

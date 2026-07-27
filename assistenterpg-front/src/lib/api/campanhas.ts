@@ -39,6 +39,8 @@ import type {
   EstadoEntidadeVinculadaPersonagem,
   InvocarEntidadeVinculadaSessaoPayload,
   SessaoAgendadaResumo,
+  AtualizacaoInspiracaoSessaoCampanha,
+  AtualizacaoRecursosSessaoCampanha,
 } from '@/lib/types';
 
 export type AtualizarOrdemIniciativaSessaoCampanhaPayload = {
@@ -704,7 +706,7 @@ export async function apiAjustarInspiracaoSessaoCampanha(
   sessaoId: number,
   personagemCampanhaId: number,
   payload: { delta: number; clientRequestId?: string },
-): Promise<SessaoCampanhaDetalhe> {
+): Promise<AtualizacaoInspiracaoSessaoCampanha> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/inspiracao/${personagemCampanhaId}/ajustar`,
     payload,
@@ -721,7 +723,7 @@ export async function apiGastarInspiracaoSessaoCampanha(
     efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO';
     clientRequestId?: string;
   },
-): Promise<SessaoCampanhaDetalhe> {
+): Promise<AtualizacaoInspiracaoSessaoCampanha> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/inspiracao/${personagemCampanhaId}/gastar`,
     payload,
@@ -830,6 +832,7 @@ export async function apiAtualizarRecursosPersonagemSessaoCampanha(
   sessaoId: number,
   personagemSessaoId: number,
   payload: Partial<{
+    clientRequestId: string;
     pvAtual: number;
     peAtual: number;
     eaAtual: number;
@@ -839,7 +842,7 @@ export async function apiAtualizarRecursosPersonagemSessaoCampanha(
     eaAtualEsperado: number;
     sanAtualEsperado: number;
   }>,
-): Promise<SessaoCampanhaDetalhe> {
+): Promise<AtualizacaoRecursosSessaoCampanha> {
   const { data } = await apiClient.patch(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/personagens/${personagemSessaoId}/recursos`,
     payload,

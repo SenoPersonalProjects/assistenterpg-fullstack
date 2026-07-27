@@ -43,7 +43,7 @@ type SessionCharacterResourceCardProps = {
     modo: 'ATUAL' | 'OUTRO';
     nucleo?: NucleoAmaldicoadoCodigo;
   }) => void;
-  acaoPendenteCampo?: LinhaRecurso['key'] | null;
+  acoesPendentesCampos?: ReadonlySet<LinhaRecurso['key']>;
   desabilitado?: boolean;
   className?: string;
 };
@@ -85,7 +85,7 @@ export function SessionCharacterResourceCard({
   onAplicarAjusteRapido,
   onSelecionarNucleo,
   onSacrificarNucleo,
-  acaoPendenteCampo = null,
+  acoesPendentesCampos = new Set(),
   desabilitado = false,
   className = '',
 }: SessionCharacterResourceCardProps) {
@@ -224,7 +224,7 @@ export function SessionCharacterResourceCard({
           <div
             key={linha.key}
             className={`session-resource-row${
-              acaoPendenteCampo === linha.key ? ' session-resource-row--pending' : ''
+              acoesPendentesCampos.has(linha.key) ? ' session-resource-row--pending' : ''
             }`}
           >
             <div className="session-resource-row__meta">
@@ -293,7 +293,7 @@ export function SessionCharacterResourceCard({
                     size="xs"
                     variant="secondary"
                     onClick={() => onAplicarAjusteRapido?.(linha.key, -5)}
-                    disabled={desabilitado || acaoPendenteCampo === linha.key}
+                    disabled={desabilitado || acoesPendentesCampos.has(linha.key)}
                   >
                     -5
                   </Button>
@@ -301,7 +301,7 @@ export function SessionCharacterResourceCard({
                     size="xs"
                     variant="secondary"
                     onClick={() => onAplicarAjusteRapido?.(linha.key, -1)}
-                    disabled={desabilitado || acaoPendenteCampo === linha.key}
+                    disabled={desabilitado || acoesPendentesCampos.has(linha.key)}
                   >
                     -1
                   </Button>
@@ -309,7 +309,7 @@ export function SessionCharacterResourceCard({
                     size="xs"
                     variant="secondary"
                     onClick={() => onAplicarAjusteRapido?.(linha.key, 1)}
-                    disabled={desabilitado || acaoPendenteCampo === linha.key}
+                    disabled={desabilitado || acoesPendentesCampos.has(linha.key)}
                   >
                     +1
                   </Button>
@@ -317,7 +317,7 @@ export function SessionCharacterResourceCard({
                     size="xs"
                     variant="secondary"
                     onClick={() => onAplicarAjusteRapido?.(linha.key, 5)}
-                    disabled={desabilitado || acaoPendenteCampo === linha.key}
+                    disabled={desabilitado || acoesPendentesCampos.has(linha.key)}
                   >
                     +5
                   </Button>
@@ -332,15 +332,15 @@ export function SessionCharacterResourceCard({
                     }
                     className="session-resource-actions__input"
                     placeholder="+3 / -2"
-                    disabled={desabilitado || acaoPendenteCampo === linha.key}
+                    disabled={desabilitado || acoesPendentesCampos.has(linha.key)}
                   />
                   <Button
                     size="xs"
                     variant="ghost"
                     onClick={() => onAplicarAjustePersonalizado?.(linha.key)}
-                    disabled={desabilitado || acaoPendenteCampo === linha.key}
+                    disabled={desabilitado || acoesPendentesCampos.has(linha.key)}
                   >
-                    {acaoPendenteCampo === linha.key ? 'Aplicando...' : 'Aplicar'}
+                    {acoesPendentesCampos.has(linha.key) ? 'Aplicando...' : 'Aplicar'}
                   </Button>
                 </div>
               </div>

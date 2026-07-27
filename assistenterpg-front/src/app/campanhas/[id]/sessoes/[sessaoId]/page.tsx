@@ -65,6 +65,8 @@ import type {
   TipoCenaSessaoCampanha,
   RegraOpcionalSessaoChave,
   AlvoEncontroSocialSessao,
+  AtualizacaoIncrementalSessaoCampanha,
+  AtualizacaoInspiracaoSessaoCampanha,
   UserErrorState,
 } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
@@ -124,6 +126,11 @@ import {
   parseInteiroComSinal,
 } from '@/lib/campanha/sessao-utils';
 import { formatarCustos } from '@/lib/campanha/sessao-habilidades';
+import {
+  aplicarAtualizacaoIncrementalSessao,
+  chavesOrdenacaoAtualizacaoSessao,
+} from '@/lib/campanha/sessao-atualizacoes';
+import type { EventoSessaoAtualizada } from '@/lib/realtime/sessao-socket';
 import { useSessaoLayout } from '@/hooks/useSessaoLayout';
 import { useSessaoRealtime } from '@/hooks/useSessaoRealtime';
 import { useSessaoCena } from '@/hooks/useSessaoCena';
@@ -482,8 +489,12 @@ export default function SessaoCampanhaPage() {
   const shellRef = useRef<HTMLElement | null>(null);
   const operationalBarRef = useRef<HTMLElement | null>(null);
   const chatRef = useRef<MensagemChatSessao[]>([]);
+  const detalheRef = useRef<SessaoCampanhaDetalhe | null>(null);
   const fimChatRef = useRef<HTMLDivElement | null>(null);
   const sincronizandoTempoRealRef = useRef(false);
+  const abaPainelDireitoAtivaRef = useRef('chat');
+  const mutacoesLocaisRef = useRef(new Set<string>());
+  const ultimoEventoIncrementalRef = useRef(new Map<string, number>());
   const rolagensPericiaEmAndamentoRef = useRef(new Set<string>());
 
   const regrasOpcionais = detalhe?.regrasOpcionais;
@@ -559,6 +570,10 @@ export default function SessaoCampanhaPage() {
   useEffect(() => {
     chatRef.current = chat;
   }, [chat]);
+
+  useEffect(() => {
+    detalheRef.current = detalhe;
+  }, [detalhe]);
 
   useEffect(() => {
     const shell = shellRef.current;
@@ -727,8 +742,79 @@ export default function SessaoCampanhaPage() {
     });
   }, []);
 
-  const sincronizarTempoReal = useCallback(async () => {
+  const registrarMutacaoLocal = useCallback((mutacaoId: string) => {
+    const mutacoes = mutacoesLocaisRef.current;
+    mutacoes.add(mutacaoId);
+    if (mutacoes.size > 200) {
+      const maisAntiga = mutacoes.values().next().value as string | undefined;
+      if (maisAntiga) mutacoes.delete(maisAntiga);
+    }
+  }, []);
+
+  const aplicarAtualizacaoAutoritativa = useCallback(
+    (atualizacao: AtualizacaoIncrementalSessaoCampanha): boolean => {
+      if (
+        atualizacao.campanhaId !== campanhaId ||
+        atualizacao.sessaoId !== sessaoId
+      ) {
+        return false;
+      }
+
+      const chaves = chavesOrdenacaoAtualizacaoSessao(atualizacao);
+      if (atualizacao.eventoId !== null && chaves.length > 0) {
+        const obsoleta = chaves.every(
+          (chave) =>
+            (ultimoEventoIncrementalRef.current.get(chave) ?? 0) >=
+            atualizacao.eventoId!,
+        );
+        if (obsoleta) return false;
+        for (const chave of chaves) {
+          const anterior =
+            ultimoEventoIncrementalRef.current.get(chave) ?? 0;
+          if (atualizacao.eventoId > anterior) {
+            ultimoEventoIncrementalRef.current.set(
+              chave,
+              atualizacao.eventoId,
+            );
+          }
+        }
+      }
+
+      setDetalhe((atual) => {
+        if (!atual) return atual;
+        const proximo = aplicarAtualizacaoIncrementalSessao(
+          atual,
+          atualizacao,
+        );
+        detalheRef.current = proximo;
+        return proximo;
+      });
+      return true;
+    },
+    [campanhaId, sessaoId],
+  );
+
+  const sincronizarTempoReal = useCallback(async (
+    evento?: EventoSessaoAtualizada,
+  ) => {
     if (!idsValidos || !usuario || sincronizandoTempoRealRef.current) return;
+
+    if (evento?.atualizacao) {
+      if (mutacoesLocaisRef.current.has(evento.atualizacao.mutacaoId)) return;
+      aplicarAtualizacaoAutoritativa(evento.atualizacao);
+      if (
+        detalheRef.current?.permissoes.ehMestre &&
+        abaPainelDireitoAtivaRef.current === 'eventos'
+      ) {
+        void apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
+          limit: 80,
+          incluirChat: false,
+        })
+          .then(setEventosSessao)
+          .catch(() => undefined);
+      }
+      return;
+    }
 
     sincronizandoTempoRealRef.current = true;
     try {
@@ -739,23 +825,34 @@ export default function SessaoCampanhaPage() {
         apiGetSessaoCampanha(campanhaId, sessaoId),
         apiListarChatSessaoCampanha(campanhaId, sessaoId, afterId),
       ]);
-      const eventos = detalheAtual.permissoes.ehMestre
+      const eventos =
+        detalheAtual.permissoes.ehMestre &&
+        abaPainelDireitoAtivaRef.current === 'eventos'
         ? await apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
             limit: 80,
             incluirChat: false,
           })
-        : [];
+        : null;
 
       setDetalhe(detalheAtual);
+      detalheRef.current = detalheAtual;
       sincronizarEstadosDerivados(detalheAtual);
       anexarMensagensNoChat(mensagensNovas);
-      setEventosSessao(eventos);
+      if (eventos) setEventosSessao(eventos);
     } catch {
       // sincronizacao silenciosa de fallback/realtime
     } finally {
       sincronizandoTempoRealRef.current = false;
     }
-  }, [anexarMensagensNoChat, campanhaId, idsValidos, sessaoId, sincronizarEstadosDerivados, usuario]);
+  }, [
+    anexarMensagensNoChat,
+    aplicarAtualizacaoAutoritativa,
+    campanhaId,
+    idsValidos,
+    sessaoId,
+    sincronizarEstadosDerivados,
+    usuario,
+  ]);
 
   const carregarInicial = useCallback(async () => {
     if (!idsValidos || !usuario) return;
@@ -767,13 +864,16 @@ export default function SessaoCampanhaPage() {
         apiGetSessaoCampanha(campanhaId, sessaoId),
         apiListarChatSessaoCampanha(campanhaId, sessaoId),
       ]);
-      const eventos = detalheSessao.permissoes.ehMestre
+      const eventos =
+        detalheSessao.permissoes.ehMestre &&
+        abaPainelDireitoAtivaRef.current === 'eventos'
         ? await apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
             limit: 80,
             incluirChat: false,
           })
         : [];
       setDetalhe(detalheSessao);
+      detalheRef.current = detalheSessao;
       sincronizarEstadosDerivados(detalheSessao);
       setChat(chatInicial);
       setEventosSessao(eventos);
@@ -962,6 +1062,32 @@ export default function SessaoCampanhaPage() {
   });
 
   useEffect(() => {
+    abaPainelDireitoAtivaRef.current = abaPainelDireitoAtiva;
+  }, [abaPainelDireitoAtiva]);
+
+  useEffect(() => {
+    if (
+      !idsValidos ||
+      !podeControlarSessao ||
+      abaPainelDireitoAtiva !== 'eventos'
+    ) {
+      return;
+    }
+    void apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
+      limit: 80,
+      incluirChat: false,
+    })
+      .then(setEventosSessao)
+      .catch(() => undefined);
+  }, [
+    abaPainelDireitoAtiva,
+    campanhaId,
+    idsValidos,
+    podeControlarSessao,
+    sessaoId,
+  ]);
+
+  useEffect(() => {
     if (!podeControlarSessao && abaPainelDireitoAtiva === 'eventos') {
       setAbaPainelDireitoAtiva('chat');
     }
@@ -1124,15 +1250,21 @@ export default function SessaoCampanhaPage() {
       cooldownMs: COOLDOWN_USO_HABILIDADE_MS,
     });
 
-  const { salvandoCardId, campoRecursoPendente, handleAplicarDeltaRecursoCard, handleAplicarAjustePersonalizadoRecursoCard } =
+  const {
+    camposRecursosPendentes,
+    handleAplicarDeltaRecursoCard,
+    handleAplicarAjustePersonalizadoRecursoCard,
+  } =
     useSessaoRecursos({
       campanhaId,
       sessaoId,
       sessaoEncerrada,
-      setDetalhe: (atualizado) => setDetalhe(atualizado),
-      sincronizarEstadosDerivados,
+      setDetalhe,
       setErro: setErroCards,
       obterAjustesRecursosCard,
+      registrarMutacaoLocal,
+      aplicarAtualizacaoAutoritativa,
+      sincronizarCompleto: sincronizarTempoReal,
     });
 
   const resetarFormularioNpcSimples = useCallback(() => {
@@ -1400,24 +1532,60 @@ export default function SessaoCampanhaPage() {
 
   const handleAjustarInspiracao = useCallback(
     async (personagemCampanhaId: number, delta: number) => {
+      const anterior =
+        detalheRef.current?.regrasOpcionais?.INSPIRACAO.estado
+          .pontosPorPersonagem[String(personagemCampanhaId)] ?? 0;
+      const mutacaoId = criarClientRequestIdRolagem();
+      const otimista: AtualizacaoInspiracaoSessaoCampanha = {
+        tipo: 'INSPIRACAO_AJUSTADA',
+        mutacaoId,
+        eventoId: null,
+        campanhaId,
+        sessaoId,
+        personagemCampanhaId,
+        pontosInspiracao: Math.max(0, Math.min(3, anterior + delta)),
+        em: new Date().toISOString(),
+      };
+      registrarMutacaoLocal(mutacaoId);
       setAtualizandoRegraOpcional(`INSPIRACAO:${personagemCampanhaId}`);
       setErroRegrasOpcionais(null);
+      setDetalhe((atual) => {
+        if (!atual) return atual;
+        const proximo = aplicarAtualizacaoIncrementalSessao(atual, otimista);
+        detalheRef.current = proximo;
+        return proximo;
+      });
       try {
-        const atualizado = await apiAjustarInspiracaoSessaoCampanha(
+        const atualizacao = await apiAjustarInspiracaoSessaoCampanha(
           campanhaId,
           sessaoId,
           personagemCampanhaId,
-          { delta, clientRequestId: criarClientRequestIdRolagem() },
+          { delta, clientRequestId: mutacaoId },
         );
-        setDetalhe(atualizado);
-        sincronizarEstadosDerivados(atualizado);
+        aplicarAtualizacaoAutoritativa(atualizacao);
       } catch (error) {
+        setDetalhe((atual) => {
+          if (!atual) return atual;
+          const restaurado = aplicarAtualizacaoIncrementalSessao(atual, {
+            ...otimista,
+            pontosInspiracao: anterior,
+          });
+          detalheRef.current = restaurado;
+          return restaurado;
+        });
         setErroRegrasOpcionais(criarErroUsuario(error));
+        await sincronizarTempoReal();
       } finally {
         setAtualizandoRegraOpcional(null);
       }
     },
-    [campanhaId, sessaoId, sincronizarEstadosDerivados],
+    [
+      aplicarAtualizacaoAutoritativa,
+      campanhaId,
+      registrarMutacaoLocal,
+      sessaoId,
+      sincronizarTempoReal,
+    ],
   );
 
   const handleGastarInspiracao = useCallback(
@@ -1425,25 +1593,62 @@ export default function SessaoCampanhaPage() {
       personagemCampanhaId: number,
       gasto: { custo: 1 | 2 | 3; efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO' },
     ) => {
+      const anterior =
+        detalheRef.current?.regrasOpcionais?.INSPIRACAO.estado
+          .pontosPorPersonagem[String(personagemCampanhaId)] ?? 0;
+      const mutacaoId = criarClientRequestIdRolagem();
+      const otimista: AtualizacaoInspiracaoSessaoCampanha = {
+        tipo: 'INSPIRACAO_GASTA',
+        mutacaoId,
+        eventoId: null,
+        campanhaId,
+        sessaoId,
+        personagemCampanhaId,
+        pontosInspiracao: Math.max(0, anterior - gasto.custo),
+        em: new Date().toISOString(),
+      };
+      registrarMutacaoLocal(mutacaoId);
       setAtualizandoRegraOpcional(`INSPIRACAO:${personagemCampanhaId}`);
       setErroRegrasOpcionais(null);
+      setDetalhe((atual) => {
+        if (!atual) return atual;
+        const proximo = aplicarAtualizacaoIncrementalSessao(atual, otimista);
+        detalheRef.current = proximo;
+        return proximo;
+      });
       try {
-        const atualizado = await apiGastarInspiracaoSessaoCampanha(
+        const atualizacao = await apiGastarInspiracaoSessaoCampanha(
           campanhaId,
           sessaoId,
           personagemCampanhaId,
-          { ...gasto, clientRequestId: criarClientRequestIdRolagem() },
+          { ...gasto, clientRequestId: mutacaoId },
         );
-        setDetalhe(atualizado);
-        sincronizarEstadosDerivados(atualizado);
+        aplicarAtualizacaoAutoritativa(atualizacao);
         showToast('Ponto de inspiração gasto.', 'success');
       } catch (error) {
+        setDetalhe((atual) => {
+          if (!atual) return atual;
+          const restaurado = aplicarAtualizacaoIncrementalSessao(atual, {
+            ...otimista,
+            pontosInspiracao: anterior,
+          });
+          detalheRef.current = restaurado;
+          return restaurado;
+        });
         setErroRegrasOpcionais(criarErroUsuario(error));
+        await sincronizarTempoReal();
       } finally {
         setAtualizandoRegraOpcional(null);
       }
     },
-    [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
+    [
+      aplicarAtualizacaoAutoritativa,
+      campanhaId,
+      registrarMutacaoLocal,
+      sessaoId,
+      showToast,
+      sincronizarTempoReal,
+    ],
   );
 
   const handleInvocarVinculado = useCallback(
@@ -3119,10 +3324,15 @@ export default function SessaoCampanhaPage() {
   const ajustesMeuCard = meuCard
     ? obterAjustesRecursosCard(meuCard.personagemCampanhaId)
     : AJUSTE_RECURSO_PADRAO;
-  const campoRecursoPendenteMeuCard =
-    meuCard && campoRecursoPendente?.startsWith(`${meuCard.personagemCampanhaId}:`)
-      ? (campoRecursoPendente.split(':')[1] as CampoAjusteRecurso)
-      : null;
+  const camposRecursosPendentesMeuCard = new Set<CampoAjusteRecurso>(
+    meuCard
+      ? (['pv', 'pe', 'ea', 'san'] as CampoAjusteRecurso[]).filter((campo) =>
+          camposRecursosPendentes.has(
+            `${meuCard.personagemCampanhaId}:${campo}`,
+          ),
+        )
+      : [],
+  );
   const cardRecursosExpandidoMeuCard = meuCard
     ? Boolean(cardsRecursosExpandidos[meuCard.personagemSessaoId])
     : false;
@@ -3322,8 +3532,7 @@ export default function SessaoCampanhaPage() {
       onAlternarExpandido={alternarCardExpandido}
       obterAjustesRecursosCard={obterAjustesRecursosCard}
       onAtualizarAjusteRecursoCard={atualizarAjusteRecursoCard}
-      campoRecursoPendente={campoRecursoPendente}
-      salvandoCardId={salvandoCardId}
+      camposRecursosPendentes={camposRecursosPendentes}
       sessaoEncerrada={sessaoEncerrada}
       podeControlarSessao={podeControlarSessao}
       removendoPersonagemSessaoId={removendoPersonagemSessaoId}
@@ -3736,8 +3945,7 @@ export default function SessaoCampanhaPage() {
                   tecnicasNaoInatasAbertas={tecnicasNaoInatasAbertasMeuCard}
                   sessaoEncerrada={sessaoEncerrada}
                   ajustesRecursos={ajustesMeuCard}
-                  campoRecursoPendente={campoRecursoPendenteMeuCard}
-                  salvandoCardId={salvandoCardId}
+                  camposRecursosPendentesCard={camposRecursosPendentesMeuCard}
                   podeAdicionar={!sessaoEncerrada}
                   onAbrirAdicionar={() => setModalAdicionarPersonagemAberto(true)}
                   onAlternarExpandido={() => {

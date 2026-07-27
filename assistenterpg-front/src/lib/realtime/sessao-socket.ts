@@ -1,5 +1,6 @@
 import { io, type Socket } from 'socket.io-client';
 import { API_BASE_URL, refreshAuthSession } from '@/lib/api/axios-client';
+import type { AtualizacaoIncrementalSessaoCampanha } from '@/lib/types';
 
 export type EventoSessaoAtualizadaTipo =
   | 'CHAT_NOVA'
@@ -32,6 +33,7 @@ export type EventoSessaoAtualizada = {
   sessaoId: number;
   tipo: EventoSessaoAtualizadaTipo;
   em: string;
+  atualizacao?: AtualizacaoIncrementalSessaoCampanha;
 };
 
 export type EventoSessaoPresenca = {

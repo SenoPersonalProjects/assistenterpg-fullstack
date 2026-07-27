@@ -53,9 +53,8 @@ type CharacterSessionCardProps = {
   tecnicasNaoInatasAbertas: boolean;
   onToggleTecnicasNaoInatas: (aberto: boolean) => void;
   ajustesRecursos: Record<CampoAjusteRecursoCard, string>;
-  campoRecursoPendenteCard: CampoAjusteRecursoCard | null;
+  camposRecursosPendentesCard: ReadonlySet<CampoAjusteRecursoCard>;
   sessaoEncerrada: boolean;
-  salvandoCardId: number | null;
   removendo: boolean;
   acaoHabilidadePendente: string | null;
   onAlternarExpandido: () => void;
@@ -174,9 +173,8 @@ export function CharacterSessionCard({
   tecnicasNaoInatasAbertas,
   onToggleTecnicasNaoInatas,
   ajustesRecursos,
-  campoRecursoPendenteCard,
+  camposRecursosPendentesCard,
   sessaoEncerrada,
-  salvandoCardId,
   removendo,
   acaoHabilidadePendente,
   onAlternarExpandido,
@@ -227,10 +225,7 @@ export function CharacterSessionCard({
       ? acaoHabilidadePendente
       : null;
   const mensagensStatus: string[] = [];
-  if (
-    campoRecursoPendenteCard ||
-    salvandoCardId === card.personagemCampanhaId
-  ) {
+  if (camposRecursosPendentesCard.size > 0) {
     mensagensStatus.push('Atualizando recurso...');
   }
   if (acaoHabilidadeCard) {
@@ -290,10 +285,8 @@ export function CharacterSessionCard({
           onAtualizarAjustePersonalizado={onAtualizarAjusteRecursoPersonalizado}
           onAplicarAjusteRapido={onAplicarDeltaRecurso}
           onAplicarAjustePersonalizado={onAplicarAjustePersonalizado}
-          acaoPendenteCampo={campoRecursoPendenteCard}
-          desabilitado={
-            sessaoEncerrada || salvandoCardId === card.personagemCampanhaId
-          }
+          acoesPendentesCampos={camposRecursosPendentesCard}
+          desabilitado={sessaoEncerrada}
           recursos={{
             pvAtual: recursos.pvAtual,
             pvMax: recursos.pvMax,

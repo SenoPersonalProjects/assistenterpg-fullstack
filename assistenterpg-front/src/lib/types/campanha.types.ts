@@ -583,6 +583,40 @@ export type CondicaoAtivaSessaoCampanha = {
   turnoAplicacao: number;
 };
 
+export type CampoRecursoSessaoCampanha =
+  | 'pvAtual'
+  | 'peAtual'
+  | 'eaAtual'
+  | 'sanAtual';
+
+export type AtualizacaoRecursosSessaoCampanha = {
+  tipo: 'RECURSO_AJUSTADO';
+  mutacaoId: string;
+  eventoId: number | null;
+  campanhaId: number;
+  sessaoId: number;
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+  valores: Partial<Record<CampoRecursoSessaoCampanha, number>>;
+  condicoesAtivas?: CondicaoAtivaSessaoCampanha[];
+  em: string;
+};
+
+export type AtualizacaoInspiracaoSessaoCampanha = {
+  tipo: 'INSPIRACAO_AJUSTADA' | 'INSPIRACAO_GASTA';
+  mutacaoId: string;
+  eventoId: number | null;
+  campanhaId: number;
+  sessaoId: number;
+  personagemCampanhaId: number;
+  pontosInspiracao: number;
+  em: string;
+};
+
+export type AtualizacaoIncrementalSessaoCampanha =
+  | AtualizacaoRecursosSessaoCampanha
+  | AtualizacaoInspiracaoSessaoCampanha;
+
 export type AdicionarNpcSessaoCampanhaPayload = {
   npcAmeacaId: number;
   nomeExibicao?: string;

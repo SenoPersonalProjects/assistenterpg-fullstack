@@ -40,8 +40,7 @@ type SessionPlayerSummaryPanelProps = {
   tecnicasNaoInatasAbertas: boolean;
   sessaoEncerrada: boolean;
   ajustesRecursos: AjustesRecursos;
-  campoRecursoPendente: CampoAjusteRecurso | null;
-  salvandoCardId: number | null;
+  camposRecursosPendentesCard: ReadonlySet<CampoAjusteRecurso>;
   podeAdicionar: boolean;
   onAbrirAdicionar: () => void;
   onAlternarExpandido: () => void;
@@ -154,8 +153,7 @@ export function SessionPlayerSummaryPanel({
   tecnicasNaoInatasAbertas,
   sessaoEncerrada,
   ajustesRecursos,
-  campoRecursoPendente,
-  salvandoCardId,
+  camposRecursosPendentesCard,
   podeAdicionar,
   onAbrirAdicionar,
   onAlternarExpandido,
@@ -247,8 +245,8 @@ export function SessionPlayerSummaryPanel({
             onSacrificarNucleo={(payload) =>
               onSacrificarNucleo(card.personagemCampanhaId, payload)
             }
-            acaoPendenteCampo={campoRecursoPendente}
-            desabilitado={sessaoEncerrada || salvandoCardId === card.personagemCampanhaId}
+            acoesPendentesCampos={camposRecursosPendentesCard}
+            desabilitado={sessaoEncerrada}
           />
 
           <div className="flex flex-wrap items-center gap-2">
