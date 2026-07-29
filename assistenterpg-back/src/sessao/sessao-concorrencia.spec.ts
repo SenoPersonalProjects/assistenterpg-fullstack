@@ -79,7 +79,7 @@ describe('sessao-concorrencia', () => {
       'item de inventario',
       bloquearItemInventarioCampanhaTx,
       [7, 45],
-      'FROM InventarioItemCampanha',
+      'FROM `inventario_item_campanha`',
       [45, 7],
     ],
     [

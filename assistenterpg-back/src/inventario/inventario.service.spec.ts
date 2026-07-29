@@ -12,6 +12,8 @@ import {
 } from '@prisma/client';
 
 type PrismaMock = {
+  $executeRaw: jest.Mock;
+  executarTransacao: jest.Mock;
   inventarioItemBase: {
     findUnique: jest.Mock;
     update: jest.Mock;
@@ -48,6 +50,8 @@ describe('InventarioService', () => {
 
   beforeEach(() => {
     prisma = {
+      $executeRaw: jest.fn(),
+      executarTransacao: jest.fn(),
       inventarioItemBase: {
         findUnique: jest.fn(),
         update: jest.fn(),
@@ -77,6 +81,12 @@ describe('InventarioService', () => {
         findFirst: jest.fn().mockResolvedValue(null),
       },
     };
+    prisma.executarTransacao.mockImplementation(
+      (
+        _contexto: string,
+        operacao: (tx: Prisma.TransactionClient) => Promise<unknown>,
+      ) => operacao(prisma as unknown as Prisma.TransactionClient),
+    );
 
     service = new InventarioService(
       prisma as unknown as PrismaService,
@@ -87,6 +97,148 @@ describe('InventarioService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it.each([
+    [
+      'adicao',
+      'inventario.adicionar',
+      () =>
+        service.adicionarItem(12, {
+          personagemBaseId: 77,
+          equipamentoId: 5,
+          quantidade: 1,
+          equipado: false,
+        }),
+    ],
+    [
+      'atualizacao',
+      'inventario.atualizar',
+      () => service.atualizarItem(12, 5, { quantidade: 2 }),
+    ],
+    ['remocao', 'inventario.remover', () => service.removerItem(12, 5)],
+    [
+      'aplicacao de modificacao',
+      'inventario.aplicar_modificacao',
+      () => service.aplicarModificacao(12, 5, { modificacaoId: 9 }),
+    ],
+    [
+      'remocao de modificacao',
+      'inventario.remover_modificacao',
+      () => service.removerModificacao(12, 5, { modificacaoId: 9 }),
+    ],
+  ])('executa %s em transacao instrumentada', async (_nome, contexto, acao) => {
+    prisma.inventarioItemBase.findUnique.mockResolvedValue(null);
+    prisma.personagemBase.findFirst.mockResolvedValue(null);
+
+    await expect(acao()).rejects.toBeDefined();
+
+    expect(prisma.executarTransacao).toHaveBeenCalledWith(
+      contexto,
+      expect.any(Function),
+    );
+  });
+
+  it('usa a tabela fisica mapeada ao atualizar o cache em lote', async () => {
+    prisma.$executeRaw.mockResolvedValue(1);
+    const serviceInterno = service as unknown as {
+      atualizarCacheItensInventario: (
+        itens: unknown[],
+        cliente: Prisma.TransactionClient,
+      ) => Promise<void>;
+    };
+
+    await serviceInterno.atualizarCacheItensInventario(
+      [
+        {
+          id: 10,
+          quantidade: 1,
+          categoriaCalculada: CategoriaEquipamento.CATEGORIA_1,
+          reduzirItensLeves: false,
+          equipamento: { espacos: 2 },
+          modificacoes: [],
+        },
+      ],
+      prisma as unknown as Prisma.TransactionClient,
+    );
+
+    const consulta = prisma.$executeRaw.mock.calls[0][0] as Prisma.Sql;
+    expect(consulta.sql).toContain('UPDATE `inventario_item_base`');
+    expect(consulta.sql).not.toContain('UPDATE InventarioItemBase');
+  });
+
+  it('encaminha escritas e recalculo pelo mesmo tx quando o recalculo falha', async () => {
+    const falhaRecalculo = new Error('falha no recalculo');
+    const tx = {
+      inventarioItemBase: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 5,
+          personagemBaseId: 77,
+          personagemBase: { id: 77 },
+        }),
+        delete: jest.fn().mockResolvedValue({ id: 5 }),
+      },
+      inventarioItemBaseModificacao: {
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      personagemBase: {
+        findFirst: jest.fn().mockResolvedValue({ id: 77 }),
+      },
+    };
+    prisma.executarTransacao.mockImplementation(
+      (
+        _contexto: string,
+        operacao: (cliente: Prisma.TransactionClient) => Promise<unknown>,
+      ) => operacao(tx as unknown as Prisma.TransactionClient),
+    );
+    const serviceInterno = service as unknown as {
+      atualizarEstadoInventario: (
+        personagemBaseId: number,
+        cliente: Prisma.TransactionClient,
+      ) => Promise<void>;
+    };
+    const recalcular = jest
+      .spyOn(serviceInterno, 'atualizarEstadoInventario')
+      .mockRejectedValue(falhaRecalculo);
+
+    await expect(service.removerItem(12, 5)).rejects.toBe(falhaRecalculo);
+
+    expect(tx.inventarioItemBaseModificacao.deleteMany).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(tx.inventarioItemBase.delete).toHaveBeenCalledTimes(1);
+    expect(recalcular).toHaveBeenCalledWith(
+      77,
+      tx as unknown as Prisma.TransactionClient,
+    );
+    expect(prisma.inventarioItemBase.delete).not.toHaveBeenCalled();
+  });
+
+  it('reutiliza tx recebido sem abrir transacao aninhada', async () => {
+    const tx = {
+      equipamentoCatalogo: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+    };
+
+    await expect(
+      service.adicionarItem(
+        12,
+        {
+          personagemBaseId: 77,
+          equipamentoId: 5,
+          quantidade: 1,
+          equipado: false,
+        },
+        {
+          tx: tx as unknown as Prisma.TransactionClient,
+          skipOwnershipCheck: true,
+        },
+      ),
+    ).rejects.toBeDefined();
+
+    expect(tx.equipamentoCatalogo.findUnique).toHaveBeenCalledTimes(1);
+    expect(prisma.executarTransacao).not.toHaveBeenCalled();
   });
 
   it('usa mecanicas persistidas no preview identificado e ignora flags forjadas', async () => {
