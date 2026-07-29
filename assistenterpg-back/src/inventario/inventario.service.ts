@@ -852,7 +852,7 @@ export class InventarioService {
 
     await prisma.$executeRaw(
       Prisma.sql`
-        UPDATE InventarioItemBase
+        UPDATE \`inventario_item_base\`
         SET
           categoriaCalculada = CASE id ${Prisma.join(categorias, ' ')} END,
           espacosCalculados = CASE id ${Prisma.join(espacos, ' ')} END
@@ -1244,10 +1244,12 @@ export class InventarioService {
   async previewAdicionarItem(
     donoId: number,
     dto: PreviewItemDto,
+    prisma?: PrismaLike,
   ): Promise<PreviewAdicionarItemResponse> {
-    await this.validarPropriedade(dto.personagemBaseId, donoId);
+    const db = prisma || this.prisma;
+    await this.validarPropriedade(dto.personagemBaseId, donoId, db);
 
-    const equipamento = await this.prisma.equipamentoCatalogo.findUnique({
+    const equipamento = await db.equipamentoCatalogo.findUnique({
       where: { id: dto.equipamentoId },
       include: {
         danos: true,
@@ -1261,14 +1263,15 @@ export class InventarioService {
 
     const itensAtuais = await this.carregarItensInventario(
       dto.personagemBaseId,
+      db,
     );
     const { espacosBase, espacosExtra, prestigioBase } =
       await this.calcularEspacosPersonagem(
         dto.personagemBaseId,
-        undefined,
+        db,
         itensAtuais,
       );
-    const limitesGrauXama = await this.buscarLimitesGrauXama(prestigioBase);
+    const limitesGrauXama = await this.buscarLimitesGrauXama(prestigioBase, db);
 
     const previewCompleto = this.engine.previewAdicionarItem(
       itensAtuais,
@@ -1584,6 +1587,16 @@ export class InventarioService {
 
   // ==================== CRUD DE ITENS ====================
 
+  private executarMutacaoInventario<T>(
+    contexto: string,
+    operacao: (tx: Prisma.TransactionClient) => Promise<T>,
+    tx?: Prisma.TransactionClient,
+  ): Promise<T> {
+    return tx
+      ? operacao(tx)
+      : this.prisma.executarTransacao(contexto, operacao);
+  }
+
   /**
    * ✅ Adiciona item com validação completa GRAU XAMÃ + ESPAÇO + 2X LIMITE + VESTIR
    */
@@ -1596,169 +1609,180 @@ export class InventarioService {
     },
   ) {
     try {
-      const db = options?.tx || this.prisma;
+      return await this.executarMutacaoInventario(
+        'inventario.adicionar',
+        async (db) => {
+          // ✅ VALIDAR OWNERSHIP apenas se não for durante criação
+          if (!options?.skipOwnershipCheck) {
+            await this.validarPropriedade(dto.personagemBaseId, donoId, db);
 
-      // ✅ VALIDAR OWNERSHIP apenas se não for durante criação
-      if (!options?.skipOwnershipCheck) {
-        await this.validarPropriedade(dto.personagemBaseId, donoId, db);
-
-        // ✅ Preview para validar GRAU XAMÃ + ESPAÇO (apenas quando não é criação)
-        const preview = await this.previewAdicionarItem(donoId, {
-          personagemBaseId: dto.personagemBaseId,
-          equipamentoId: dto.equipamentoId,
-          quantidade: dto.quantidade,
-          modificacoes: dto.modificacoes,
-        });
-
-        // Validar GRAU XAMÃ
-        if (!preview.grauXama.valido && !dto.ignorarLimitesGrauXama) {
-          throw new InventarioGrauXamaExcedidoException(
-            preview.grauXama.grauAtual,
-            preview.grauXama.erros,
-          );
-        }
-      }
-
-      // 2. Validar equipamento existe
-      const equipamento = await db.equipamentoCatalogo.findUnique({
-        where: { id: dto.equipamentoId },
-        include: {
-          danos: true,
-          reducesDano: true,
-        },
-      });
-
-      if (!equipamento) {
-        throw new InventarioEquipamentoNaoEncontradoException(
-          dto.equipamentoId,
-        );
-      }
-      // 3. Validar modificações (se houver)
-      let modificacoesValidas: ModificacaoCalculoEntity[] = [];
-      if (dto.modificacoes && dto.modificacoes.length > 0) {
-        modificacoesValidas = await db.modificacaoEquipamento.findMany({
-          where: { id: { in: dto.modificacoes } },
-          select: modificacaoCalculoSelect,
-        });
-
-        if (modificacoesValidas.length !== dto.modificacoes.length) {
-          const idsEncontrados = modificacoesValidas.map((m) => m.id);
-          const idsInvalidos = dto.modificacoes.filter(
-            (id) => !idsEncontrados.includes(id),
-          );
-          throw new InventarioModificacaoInvalidaException(idsInvalidos);
-        }
-
-        for (const modId of dto.modificacoes) {
-          const compativel = await db.equipamentoModificacaoAplicavel.findFirst(
-            {
-              where: {
+            // ✅ Preview para validar GRAU XAMÃ + ESPAÇO (apenas quando não é criação)
+            const preview = await this.previewAdicionarItem(
+              donoId,
+              {
+                personagemBaseId: dto.personagemBaseId,
                 equipamentoId: dto.equipamentoId,
-                modificacaoId: modId,
+                quantidade: dto.quantidade,
+                modificacoes: dto.modificacoes,
               },
-            },
-          );
+              db,
+            );
 
-          if (!compativel) {
-            throw new InventarioModificacaoIncompativelException(
-              modId,
+            // Validar GRAU XAMÃ
+            if (!preview.grauXama.valido && !dto.ignorarLimitesGrauXama) {
+              throw new InventarioGrauXamaExcedidoException(
+                preview.grauXama.grauAtual,
+                preview.grauXama.erros,
+              );
+            }
+          }
+
+          // 2. Validar equipamento existe
+          const equipamento = await db.equipamentoCatalogo.findUnique({
+            where: { id: dto.equipamentoId },
+            include: {
+              danos: true,
+              reducesDano: true,
+            },
+          });
+
+          if (!equipamento) {
+            throw new InventarioEquipamentoNaoEncontradoException(
               dto.equipamentoId,
             );
           }
-        }
-      }
-      const estadoNormalizado = await this.validarEstadoItemPersonalizado(
-        db,
-        equipamento,
-        dto.estado,
-        modificacoesValidas,
-      );
+          // 3. Validar modificações (se houver)
+          let modificacoesValidas: ModificacaoCalculoEntity[] = [];
+          if (dto.modificacoes && dto.modificacoes.length > 0) {
+            modificacoesValidas = await db.modificacaoEquipamento.findMany({
+              where: { id: { in: dto.modificacoes } },
+              select: modificacaoCalculoSelect,
+            });
 
-      // 4. Calcular categoria final baseado nas modificações
-      const totalModificacoesEfetivas = this.contarModificacoesEfetivas({
-        modificacoes: modificacoesValidas,
-        estado: estadoNormalizado,
-      });
-      const categoriaCalculada = this.engine.calcularCategoriaFinal(
-        equipamento.categoria,
-        totalModificacoesEfetivas,
-      );
+            if (modificacoesValidas.length !== dto.modificacoes.length) {
+              const idsEncontrados = modificacoesValidas.map((m) => m.id);
+              const idsInvalidos = dto.modificacoes.filter(
+                (id) => !idsEncontrados.includes(id),
+              );
+              throw new InventarioModificacaoInvalidaException(idsInvalidos);
+            }
 
-      // 5. Calcular espaços que o item vai ocupar
-      const { reduzirItensLeves } = await this.obterFlagsInventario(
-        dto.personagemBaseId,
-        db,
-      );
-      const espacosBaseItem = this.ajustarEspacosBaseItem(
-        equipamento.espacos,
-        reduzirItensLeves,
-      );
-      const incrementoMods = modificacoesValidas.reduce(
-        (total, m) => total + (m.incrementoEspacos || 0),
-        0,
-      );
-      const espacosUnitario = Math.max(0, espacosBaseItem + incrementoMods);
-      const espacosTotaisItem = espacosUnitario * (dto.quantidade || 1);
+            const compatibilidades =
+              await db.equipamentoModificacaoAplicavel.findMany({
+                where: {
+                  equipamentoId: dto.equipamentoId,
+                  modificacaoId: { in: dto.modificacoes },
+                },
+                select: { modificacaoId: true },
+              });
+            const idsCompativeis = new Set(
+              compatibilidades.map(({ modificacaoId }) => modificacaoId),
+            );
 
-      // 6. ✅ Validar limite 2x capacidade
-      await this.validarLimite2xCapacidade(
-        dto.personagemBaseId,
-        espacosTotaisItem,
-        db,
-      );
+            for (const modId of dto.modificacoes) {
+              if (!idsCompativeis.has(modId)) {
+                throw new InventarioModificacaoIncompativelException(
+                  modId,
+                  dto.equipamentoId,
+                );
+              }
+            }
+          }
+          const estadoNormalizado = await this.validarEstadoItemPersonalizado(
+            db,
+            equipamento,
+            dto.estado,
+            modificacoesValidas,
+          );
 
-      // 7. ✅ Validar sistema de vestir (se o item for equipado)
-      if (dto.equipado) {
-        await this.validarSistemaVestir(
-          dto.personagemBaseId,
-          {
-            tipo: equipamento.tipo,
-            tipoAcessorio: equipamento.tipoAcessorio,
-            quantidade: dto.quantidade || 1,
-          },
-          undefined,
-          db,
-        );
-      }
+          // 4. Calcular categoria final baseado nas modificações
+          const totalModificacoesEfetivas = this.contarModificacoesEfetivas({
+            modificacoes: modificacoesValidas,
+            estado: estadoNormalizado,
+          });
+          const categoriaCalculada = this.engine.calcularCategoriaFinal(
+            equipamento.categoria,
+            totalModificacoesEfetivas,
+          );
 
-      // 8. Criar item com categoria calculada
-      const item = await db.inventarioItemBase.create({
-        data: {
-          personagemBaseId: dto.personagemBaseId,
-          equipamentoId: dto.equipamentoId,
-          quantidade: dto.quantidade || 1,
-          equipado: dto.equipado ?? false,
-          categoriaCalculada,
-          espacosCalculados: espacosUnitario,
-          nomeCustomizado: dto.nomeCustomizado,
-          notas: dto.notas,
-          estado:
-            estadoNormalizado !== undefined
-              ? (estadoNormalizado as Prisma.InputJsonValue)
-              : undefined,
+          // 5. Calcular espaços que o item vai ocupar
+          const { reduzirItensLeves } = await this.obterFlagsInventario(
+            dto.personagemBaseId,
+            db,
+          );
+          const espacosBaseItem = this.ajustarEspacosBaseItem(
+            equipamento.espacos,
+            reduzirItensLeves,
+          );
+          const incrementoMods = modificacoesValidas.reduce(
+            (total, m) => total + (m.incrementoEspacos || 0),
+            0,
+          );
+          const espacosUnitario = Math.max(0, espacosBaseItem + incrementoMods);
+          const espacosTotaisItem = espacosUnitario * (dto.quantidade || 1);
+
+          // 6. ✅ Validar limite 2x capacidade
+          await this.validarLimite2xCapacidade(
+            dto.personagemBaseId,
+            espacosTotaisItem,
+            db,
+          );
+
+          // 7. ✅ Validar sistema de vestir (se o item for equipado)
+          if (dto.equipado) {
+            await this.validarSistemaVestir(
+              dto.personagemBaseId,
+              {
+                tipo: equipamento.tipo,
+                tipoAcessorio: equipamento.tipoAcessorio,
+                quantidade: dto.quantidade || 1,
+              },
+              undefined,
+              db,
+            );
+          }
+
+          // 8. Criar item com categoria calculada
+          const item = await db.inventarioItemBase.create({
+            data: {
+              personagemBaseId: dto.personagemBaseId,
+              equipamentoId: dto.equipamentoId,
+              quantidade: dto.quantidade || 1,
+              equipado: dto.equipado ?? false,
+              categoriaCalculada,
+              espacosCalculados: espacosUnitario,
+              nomeCustomizado: dto.nomeCustomizado,
+              notas: dto.notas,
+              estado:
+                estadoNormalizado !== undefined
+                  ? (estadoNormalizado as Prisma.InputJsonValue)
+                  : undefined,
+            },
+            include: inventarioItemComDadosInclude,
+          });
+
+          // 9. Criar relacionamentos de modificações (se houver)
+          if (modificacoesValidas.length > 0) {
+            await db.inventarioItemBaseModificacao.createMany({
+              data: modificacoesValidas.map((mod) => ({
+                itemId: item.id,
+                modificacaoId: mod.id,
+              })),
+            });
+          }
+
+          // 10. Atualizar estado do inventário (sobrecarregado, espacosExtra, defesa, RDs)
+          await this.atualizarEstadoInventario(dto.personagemBaseId, db);
+
+          const itemCalculado = await this.buscarItemInventarioCalculado(
+            dto.personagemBaseId,
+            item.id,
+            db,
+          );
+          return this.mapper.mapItem(itemCalculado);
         },
-        include: inventarioItemComDadosInclude,
-      });
-
-      // 9. Criar relacionamentos de modificações (se houver)
-      if (modificacoesValidas.length > 0) {
-        await db.inventarioItemBaseModificacao.createMany({
-          data: modificacoesValidas.map((mod) => ({
-            itemId: item.id,
-            modificacaoId: mod.id,
-          })),
-        });
-      }
-
-      // 10. Atualizar estado do inventário (sobrecarregado, espacosExtra, defesa, RDs)
-      await this.atualizarEstadoInventario(dto.personagemBaseId, db);
-
-      const itemCalculado = await this.buscarItemInventarioCalculado(
-        dto.personagemBaseId,
-        item.id,
-        db,
+        options?.tx,
       );
-      return this.mapper.mapItem(itemCalculado);
     } catch (error: unknown) {
       this.tratarErroPrisma(error);
       throw error;
@@ -1770,160 +1794,178 @@ export class InventarioService {
    */
   async atualizarItem(donoId: number, itemId: number, dto: AtualizarItemDto) {
     try {
-      const itemExiste = await this.prisma.inventarioItemBase.findUnique({
-        where: { id: itemId },
-        include: {
-          personagemBase: true,
-          equipamento: true,
-          modificacoes: {
-            include: { modificacao: true },
-          },
-        },
-      });
-
-      if (!itemExiste) {
-        throw new InventarioItemNaoEncontradoException(itemId);
-      }
-
-      await this.validarPropriedade(itemExiste.personagemBaseId, donoId);
-
-      // Se está mudando quantidade, validar espaços e limite 2x
-      if (
-        dto.quantidade !== undefined &&
-        dto.quantidade !== itemExiste.quantidade
-      ) {
-        const { reduzirItensLeves } = await this.obterFlagsInventario(
-          itemExiste.personagemBaseId,
-        );
-        const itensAtuais = await this.carregarItensInventario(
-          itemExiste.personagemBaseId,
-        );
-        const { espacosBase, espacosExtra } =
-          await this.calcularEspacosPersonagem(
-            itemExiste.personagemBaseId,
-            undefined,
-            itensAtuais,
-          );
-
-        // Remover espaços do item atual
-        const espacosSemEsteItem = itensAtuais
-          .filter((i) => i.id !== itemId)
-          .reduce((total, i) => total + this.engine.calcularEspacosItem(i), 0);
-
-        const espacosDisponiveis =
-          espacosBase + espacosExtra - espacosSemEsteItem;
-
-        // Calcular espaços do item com nova quantidade
-        const espacosBaseItem = this.ajustarEspacosBaseItem(
-          itemExiste.equipamento.espacos,
-          reduzirItensLeves,
-        );
-        const incrementoMods = itemExiste.modificacoes.reduce(
-          (total, m) => total + (m.modificacao.incrementoEspacos || 0),
-          0,
-        );
-        const espacosNovaQuantidade =
-          Math.max(0, espacosBaseItem + incrementoMods) * dto.quantidade;
-
-        // Validar limite 2x
-        const capacidadeTotal = espacosBase + espacosExtra;
-        const limiteMaximo = capacidadeTotal * 2;
-        const espacosTotaisApos = espacosSemEsteItem + espacosNovaQuantidade;
-
-        if (espacosTotaisApos > limiteMaximo) {
-          throw new InventarioCapacidadeExcedidaException({
-            espacosOcupados: espacosSemEsteItem,
-            espacosAdicionais: espacosNovaQuantidade,
-            espacosAposAdicao: espacosTotaisApos,
-            capacidadeNormal: capacidadeTotal,
-            limiteMaximo,
-            excedente: espacosTotaisApos - limiteMaximo,
+      return await this.executarMutacaoInventario(
+        'inventario.atualizar',
+        async (db) => {
+          const itemExiste = await db.inventarioItemBase.findUnique({
+            where: { id: itemId },
+            include: {
+              personagemBase: true,
+              equipamento: true,
+              modificacoes: {
+                include: { modificacao: true },
+              },
+            },
           });
-        }
 
-        if (espacosNovaQuantidade > espacosDisponiveis) {
-          throw new InventarioEspacosInsuficientesException(
-            espacosNovaQuantidade,
-            espacosDisponiveis,
+          if (!itemExiste) {
+            throw new InventarioItemNaoEncontradoException(itemId);
+          }
+
+          await this.validarPropriedade(
+            itemExiste.personagemBaseId,
+            donoId,
+            db,
           );
-        }
-      }
 
-      // ✅ Validar sistema de vestir se está equipando o item
-      if (dto.equipado === true && !itemExiste.equipado) {
-        await this.validarSistemaVestir(
-          itemExiste.personagemBaseId,
-          {
-            tipo: itemExiste.equipamento.tipo,
-            tipoAcessorio: itemExiste.equipamento.tipoAcessorio,
-            quantidade: dto.quantidade ?? itemExiste.quantidade,
-          },
-          itemId,
-        );
-      }
+          // Se está mudando quantidade, validar espaços e limite 2x
+          if (
+            dto.quantidade !== undefined &&
+            dto.quantidade !== itemExiste.quantidade
+          ) {
+            const { reduzirItensLeves } = await this.obterFlagsInventario(
+              itemExiste.personagemBaseId,
+              db,
+            );
+            const itensAtuais = await this.carregarItensInventario(
+              itemExiste.personagemBaseId,
+              db,
+            );
+            const { espacosBase, espacosExtra } =
+              await this.calcularEspacosPersonagem(
+                itemExiste.personagemBaseId,
+                db,
+                itensAtuais,
+              );
 
-      // ✅ Se está mudando quantidade de item já equipado, validar novamente
-      if (
-        itemExiste.equipado &&
-        dto.quantidade !== undefined &&
-        dto.quantidade !== itemExiste.quantidade
-      ) {
-        await this.validarSistemaVestir(
-          itemExiste.personagemBaseId,
-          {
-            tipo: itemExiste.equipamento.tipo,
-            tipoAcessorio: itemExiste.equipamento.tipoAcessorio,
-            quantidade: dto.quantidade,
-          },
-          itemId,
-        );
-      }
+            // Remover espaços do item atual
+            const espacosSemEsteItem = itensAtuais
+              .filter((i) => i.id !== itemId)
+              .reduce(
+                (total, i) => total + this.engine.calcularEspacosItem(i),
+                0,
+              );
 
-      const estadoNormalizado = await this.validarEstadoItemPersonalizado(
-        this.prisma,
-        itemExiste.equipamento,
-        dto.estado ?? itemExiste.estado,
-        itemExiste.modificacoes.map((mod) => mod.modificacao),
-      );
-      const deveAtualizarEstado =
-        dto.estado !== undefined ||
-        equipamentoUsaPericiaPersonalizada(itemExiste.equipamento) ||
-        itemExiste.modificacoes.some(
-          (mod) => mod.modificacao.codigo === CODIGO_MOD_FUNCAO_ADICIONAL,
-        );
-      const totalModificacoesEfetivas = this.contarModificacoesEfetivas({
-        modificacoes: itemExiste.modificacoes.map((mod) => mod.modificacao),
-        estado: estadoNormalizado,
-      });
-      const categoriaCalculada = this.engine.calcularCategoriaFinal(
-        itemExiste.equipamento.categoria,
-        totalModificacoesEfetivas,
-      );
+            const espacosDisponiveis =
+              espacosBase + espacosExtra - espacosSemEsteItem;
 
-      // Atualizar
-      await this.prisma.inventarioItemBase.update({
-        where: { id: itemId },
-        data: {
-          quantidade: dto.quantidade,
-          equipado: dto.equipado,
-          nomeCustomizado: dto.nomeCustomizado,
-          notas: dto.notas,
-          categoriaCalculada,
-          estado: deveAtualizarEstado
-            ? (estadoNormalizado as Prisma.InputJsonValue)
-            : undefined,
+            // Calcular espaços do item com nova quantidade
+            const espacosBaseItem = this.ajustarEspacosBaseItem(
+              itemExiste.equipamento.espacos,
+              reduzirItensLeves,
+            );
+            const incrementoMods = itemExiste.modificacoes.reduce(
+              (total, m) => total + (m.modificacao.incrementoEspacos || 0),
+              0,
+            );
+            const espacosNovaQuantidade =
+              Math.max(0, espacosBaseItem + incrementoMods) * dto.quantidade;
+
+            // Validar limite 2x
+            const capacidadeTotal = espacosBase + espacosExtra;
+            const limiteMaximo = capacidadeTotal * 2;
+            const espacosTotaisApos =
+              espacosSemEsteItem + espacosNovaQuantidade;
+
+            if (espacosTotaisApos > limiteMaximo) {
+              throw new InventarioCapacidadeExcedidaException({
+                espacosOcupados: espacosSemEsteItem,
+                espacosAdicionais: espacosNovaQuantidade,
+                espacosAposAdicao: espacosTotaisApos,
+                capacidadeNormal: capacidadeTotal,
+                limiteMaximo,
+                excedente: espacosTotaisApos - limiteMaximo,
+              });
+            }
+
+            if (espacosNovaQuantidade > espacosDisponiveis) {
+              throw new InventarioEspacosInsuficientesException(
+                espacosNovaQuantidade,
+                espacosDisponiveis,
+              );
+            }
+          }
+
+          // ✅ Validar sistema de vestir se está equipando o item
+          if (dto.equipado === true && !itemExiste.equipado) {
+            await this.validarSistemaVestir(
+              itemExiste.personagemBaseId,
+              {
+                tipo: itemExiste.equipamento.tipo,
+                tipoAcessorio: itemExiste.equipamento.tipoAcessorio,
+                quantidade: dto.quantidade ?? itemExiste.quantidade,
+              },
+              itemId,
+              db,
+            );
+          }
+
+          // ✅ Se está mudando quantidade de item já equipado, validar novamente
+          if (
+            itemExiste.equipado &&
+            dto.quantidade !== undefined &&
+            dto.quantidade !== itemExiste.quantidade
+          ) {
+            await this.validarSistemaVestir(
+              itemExiste.personagemBaseId,
+              {
+                tipo: itemExiste.equipamento.tipo,
+                tipoAcessorio: itemExiste.equipamento.tipoAcessorio,
+                quantidade: dto.quantidade,
+              },
+              itemId,
+              db,
+            );
+          }
+
+          const estadoNormalizado = await this.validarEstadoItemPersonalizado(
+            db,
+            itemExiste.equipamento,
+            dto.estado ?? itemExiste.estado,
+            itemExiste.modificacoes.map((mod) => mod.modificacao),
+          );
+          const deveAtualizarEstado =
+            dto.estado !== undefined ||
+            equipamentoUsaPericiaPersonalizada(itemExiste.equipamento) ||
+            itemExiste.modificacoes.some(
+              (mod) => mod.modificacao.codigo === CODIGO_MOD_FUNCAO_ADICIONAL,
+            );
+          const totalModificacoesEfetivas = this.contarModificacoesEfetivas({
+            modificacoes: itemExiste.modificacoes.map((mod) => mod.modificacao),
+            estado: estadoNormalizado,
+          });
+          const categoriaCalculada = this.engine.calcularCategoriaFinal(
+            itemExiste.equipamento.categoria,
+            totalModificacoesEfetivas,
+          );
+
+          // Atualizar
+          await db.inventarioItemBase.update({
+            where: { id: itemId },
+            data: {
+              quantidade: dto.quantidade,
+              equipado: dto.equipado,
+              nomeCustomizado: dto.nomeCustomizado,
+              notas: dto.notas,
+              categoriaCalculada,
+              estado: deveAtualizarEstado
+                ? (estadoNormalizado as Prisma.InputJsonValue)
+                : undefined,
+            },
+            include: inventarioItemComDadosInclude,
+          });
+
+          // ✅ Atualizar estado do inventário (recalcula defesa e RDs)
+          await this.atualizarEstadoInventario(itemExiste.personagemBaseId, db);
+
+          const itemCalculado = await this.buscarItemInventarioCalculado(
+            itemExiste.personagemBaseId,
+            itemId,
+            db,
+          );
+          return this.mapper.mapItem(itemCalculado);
         },
-        include: inventarioItemComDadosInclude,
-      });
-
-      // ✅ Atualizar estado do inventário (recalcula defesa e RDs)
-      await this.atualizarEstadoInventario(itemExiste.personagemBaseId);
-
-      const itemCalculado = await this.buscarItemInventarioCalculado(
-        itemExiste.personagemBaseId,
-        itemId,
       );
-      return this.mapper.mapItem(itemCalculado);
     } catch (error: unknown) {
       this.tratarErroPrisma(error);
       throw error;
@@ -1935,31 +1977,36 @@ export class InventarioService {
    */
   async removerItem(donoId: number, itemId: number) {
     try {
-      const item = await this.prisma.inventarioItemBase.findUnique({
-        where: { id: itemId },
-        include: { personagemBase: true },
-      });
+      return await this.executarMutacaoInventario(
+        'inventario.remover',
+        async (db) => {
+          const item = await db.inventarioItemBase.findUnique({
+            where: { id: itemId },
+            include: { personagemBase: true },
+          });
 
-      if (!item) {
-        throw new InventarioItemNaoEncontradoException(itemId);
-      }
+          if (!item) {
+            throw new InventarioItemNaoEncontradoException(itemId);
+          }
 
-      await this.validarPropriedade(item.personagemBaseId, donoId);
+          await this.validarPropriedade(item.personagemBaseId, donoId, db);
 
-      // Remover modificações primeiro
-      await this.prisma.inventarioItemBaseModificacao.deleteMany({
-        where: { itemId: itemId },
-      });
+          // Remover modificações primeiro
+          await db.inventarioItemBaseModificacao.deleteMany({
+            where: { itemId: itemId },
+          });
 
-      // Remover item
-      await this.prisma.inventarioItemBase.delete({
-        where: { id: itemId },
-      });
+          // Remover item
+          await db.inventarioItemBase.delete({
+            where: { id: itemId },
+          });
 
-      // Atualizar estado
-      await this.atualizarEstadoInventario(item.personagemBaseId);
+          // Atualizar estado
+          await this.atualizarEstadoInventario(item.personagemBaseId, db);
 
-      return { sucesso: true, mensagem: 'Item removido com sucesso' };
+          return { sucesso: true, mensagem: 'Item removido com sucesso' };
+        },
+      );
     } catch (error: unknown) {
       this.tratarErroPrisma(error);
       throw error;
@@ -1977,124 +2024,132 @@ export class InventarioService {
     dto: AplicarModificacaoDto,
   ) {
     try {
-      const item = await this.prisma.inventarioItemBase.findUnique({
-        where: { id: itemId },
-        include: {
-          personagemBase: true,
-          equipamento: {
+      return await this.executarMutacaoInventario(
+        'inventario.aplicar_modificacao',
+        async (db) => {
+          const item = await db.inventarioItemBase.findUnique({
+            where: { id: itemId },
             include: {
-              danos: true,
-              reducesDano: true,
+              personagemBase: true,
+              equipamento: {
+                include: {
+                  danos: true,
+                  reducesDano: true,
+                },
+              },
+              modificacoes: {
+                include: { modificacao: true },
+              },
             },
-          },
-          modificacoes: {
-            include: { modificacao: true },
-          },
+          });
+
+          if (!item) {
+            throw new InventarioItemNaoEncontradoException(itemId);
+          }
+
+          await this.validarPropriedade(item.personagemBaseId, donoId, db);
+
+          // Validar modificação existe
+          const modificacao = await db.modificacaoEquipamento.findUnique({
+            where: { id: dto.modificacaoId },
+          });
+
+          if (!modificacao) {
+            throw new InventarioModificacaoNaoEncontradaException(
+              dto.modificacaoId,
+            );
+          }
+
+          // Validar compatibilidade
+          const compativel = await db.equipamentoModificacaoAplicavel.findFirst(
+            {
+              where: {
+                equipamentoId: item.equipamentoId,
+                modificacaoId: dto.modificacaoId,
+              },
+            },
+          );
+
+          if (!compativel) {
+            throw new InventarioModificacaoIncompativelException(
+              dto.modificacaoId,
+              item.equipamentoId,
+            );
+          }
+
+          // Validar se já tem
+          const jaTemModificacao = item.modificacoes.some(
+            (m) => m.modificacao.id === dto.modificacaoId,
+          );
+
+          if (jaTemModificacao) {
+            throw new InventarioModificacaoDuplicadaException(
+              dto.modificacaoId,
+              itemId,
+            );
+          }
+
+          // Aplicar modificação
+          await db.inventarioItemBaseModificacao.create({
+            data: {
+              itemId: itemId,
+              modificacaoId: dto.modificacaoId,
+            },
+          });
+
+          // Recalcular categoria
+          const novaQuantidadeModificacoes = this.contarModificacoesEfetivas({
+            modificacoes: [
+              ...item.modificacoes.map((m) => m.modificacao),
+              modificacao,
+            ],
+            estado: item.estado,
+          });
+          const categoriaCalculada = this.engine.calcularCategoriaFinal(
+            item.equipamento.categoria,
+            novaQuantidadeModificacoes,
+          );
+
+          // Recalcular espaços
+          const { reduzirItensLeves } = await this.obterFlagsInventario(
+            item.personagemBaseId,
+            db,
+          );
+          const espacosBaseItem = this.ajustarEspacosBaseItem(
+            item.equipamento.espacos,
+            reduzirItensLeves,
+          );
+          const incrementoModsNovo =
+            item.modificacoes.reduce(
+              (total, m) => total + (m.modificacao.incrementoEspacos || 0),
+              0,
+            ) + (modificacao.incrementoEspacos || 0);
+
+          const espacosCalculadosNovo = Math.max(
+            0,
+            espacosBaseItem + incrementoModsNovo,
+          );
+
+          // Atualizar item
+          await db.inventarioItemBase.update({
+            where: { id: itemId },
+            data: {
+              categoriaCalculada,
+              espacosCalculados: espacosCalculadosNovo,
+            },
+          });
+
+          // Atualizar estado do inventário
+          await this.atualizarEstadoInventario(item.personagemBaseId, db);
+
+          const itemCalculado = await this.buscarItemInventarioCalculado(
+            item.personagemBaseId,
+            itemId,
+            db,
+          );
+          return this.mapper.mapItem(itemCalculado);
         },
-      });
-
-      if (!item) {
-        throw new InventarioItemNaoEncontradoException(itemId);
-      }
-
-      await this.validarPropriedade(item.personagemBaseId, donoId);
-
-      // Validar modificação existe
-      const modificacao = await this.prisma.modificacaoEquipamento.findUnique({
-        where: { id: dto.modificacaoId },
-      });
-
-      if (!modificacao) {
-        throw new InventarioModificacaoNaoEncontradaException(
-          dto.modificacaoId,
-        );
-      }
-
-      // Validar compatibilidade
-      const compativel =
-        await this.prisma.equipamentoModificacaoAplicavel.findFirst({
-          where: {
-            equipamentoId: item.equipamentoId,
-            modificacaoId: dto.modificacaoId,
-          },
-        });
-
-      if (!compativel) {
-        throw new InventarioModificacaoIncompativelException(
-          dto.modificacaoId,
-          item.equipamentoId,
-        );
-      }
-
-      // Validar se já tem
-      const jaTemModificacao = item.modificacoes.some(
-        (m) => m.modificacao.id === dto.modificacaoId,
       );
-
-      if (jaTemModificacao) {
-        throw new InventarioModificacaoDuplicadaException(
-          dto.modificacaoId,
-          itemId,
-        );
-      }
-
-      // Aplicar modificação
-      await this.prisma.inventarioItemBaseModificacao.create({
-        data: {
-          itemId: itemId,
-          modificacaoId: dto.modificacaoId,
-        },
-      });
-
-      // Recalcular categoria
-      const novaQuantidadeModificacoes = this.contarModificacoesEfetivas({
-        modificacoes: [
-          ...item.modificacoes.map((m) => m.modificacao),
-          modificacao,
-        ],
-        estado: item.estado,
-      });
-      const categoriaCalculada = this.engine.calcularCategoriaFinal(
-        item.equipamento.categoria,
-        novaQuantidadeModificacoes,
-      );
-
-      // Recalcular espaços
-      const { reduzirItensLeves } = await this.obterFlagsInventario(
-        item.personagemBaseId,
-      );
-      const espacosBaseItem = this.ajustarEspacosBaseItem(
-        item.equipamento.espacos,
-        reduzirItensLeves,
-      );
-      const incrementoModsNovo =
-        item.modificacoes.reduce(
-          (total, m) => total + (m.modificacao.incrementoEspacos || 0),
-          0,
-        ) + (modificacao.incrementoEspacos || 0);
-
-      const espacosCalculadosNovo = Math.max(
-        0,
-        espacosBaseItem + incrementoModsNovo,
-      );
-
-      // Atualizar item
-      await this.prisma.inventarioItemBase.update({
-        where: { id: itemId },
-        data: {
-          categoriaCalculada,
-          espacosCalculados: espacosCalculadosNovo,
-        },
-      });
-
-      // Atualizar estado do inventário
-      await this.atualizarEstadoInventario(item.personagemBaseId);
-
-      const itemCalculado = await this.buscarItemInventarioCalculado(
-        item.personagemBaseId,
-        itemId,
-      );
-      return this.mapper.mapItem(itemCalculado);
     } catch (error: unknown) {
       this.tratarErroPrisma(error);
       throw error;
@@ -2110,110 +2165,121 @@ export class InventarioService {
     dto: RemoverModificacaoDto,
   ) {
     try {
-      const item = await this.prisma.inventarioItemBase.findUnique({
-        where: { id: itemId },
-        include: {
-          personagemBase: true,
-          equipamento: {
+      return await this.executarMutacaoInventario(
+        'inventario.remover_modificacao',
+        async (db) => {
+          const item = await db.inventarioItemBase.findUnique({
+            where: { id: itemId },
             include: {
-              danos: true,
-              reducesDano: true,
+              personagemBase: true,
+              equipamento: {
+                include: {
+                  danos: true,
+                  reducesDano: true,
+                },
+              },
+              modificacoes: {
+                include: { modificacao: true },
+              },
             },
-          },
-          modificacoes: {
-            include: { modificacao: true },
-          },
-        },
-      });
+          });
 
-      if (!item) {
-        throw new InventarioItemNaoEncontradoException(itemId);
-      }
+          if (!item) {
+            throw new InventarioItemNaoEncontradoException(itemId);
+          }
 
-      await this.validarPropriedade(item.personagemBaseId, donoId);
+          await this.validarPropriedade(item.personagemBaseId, donoId, db);
 
-      const temModificacao = item.modificacoes.some(
-        (m) => m.modificacao.id === dto.modificacaoId,
-      );
+          const temModificacao = item.modificacoes.some(
+            (m) => m.modificacao.id === dto.modificacaoId,
+          );
 
-      if (!temModificacao) {
-        throw new InventarioModificacaoNaoAplicadaException(
-          dto.modificacaoId,
-          itemId,
-        );
-      }
+          if (!temModificacao) {
+            throw new InventarioModificacaoNaoAplicadaException(
+              dto.modificacaoId,
+              itemId,
+            );
+          }
 
-      const modificacaoRemovida = item.modificacoes.find(
-        (m) => m.modificacao.id === dto.modificacaoId,
-      )?.modificacao;
-      const limparEstadoFuncaoAdicional =
-        modificacaoRemovida?.codigo === CODIGO_MOD_FUNCAO_ADICIONAL;
-      const estadoAtualizado =
-        limparEstadoFuncaoAdicional &&
-        item.estado &&
-        typeof item.estado === 'object' &&
-        !Array.isArray(item.estado)
-          ? ({
-              ...(item.estado as Record<string, unknown>),
-              funcoesAdicionaisPericias: [],
-            } as Prisma.InputJsonValue)
-          : undefined;
+          const modificacaoRemovida = item.modificacoes.find(
+            (m) => m.modificacao.id === dto.modificacaoId,
+          )?.modificacao;
+          const limparEstadoFuncaoAdicional =
+            modificacaoRemovida?.codigo === CODIGO_MOD_FUNCAO_ADICIONAL;
+          const estadoAtualizado =
+            limparEstadoFuncaoAdicional &&
+            item.estado &&
+            typeof item.estado === 'object' &&
+            !Array.isArray(item.estado)
+              ? ({
+                  ...(item.estado as Record<string, unknown>),
+                  funcoesAdicionaisPericias: [],
+                } as Prisma.InputJsonValue)
+              : undefined;
 
-      await this.prisma.inventarioItemBaseModificacao.delete({
-        where: {
-          itemId_modificacaoId: {
+          await db.inventarioItemBaseModificacao.delete({
+            where: {
+              itemId_modificacaoId: {
+                itemId,
+                modificacaoId: dto.modificacaoId,
+              },
+            },
+          });
+
+          const novaQuantidadeModificacoes = this.contarModificacoesEfetivas({
+            modificacoes: item.modificacoes
+              .filter((m) => m.modificacao.id !== dto.modificacaoId)
+              .map((m) => m.modificacao),
+            estado: limparEstadoFuncaoAdicional
+              ? estadoAtualizado
+              : item.estado,
+          });
+          const categoriaCalculada = this.engine.calcularCategoriaFinal(
+            item.equipamento.categoria,
+            novaQuantidadeModificacoes,
+          );
+
+          const { reduzirItensLeves } = await this.obterFlagsInventario(
+            item.personagemBaseId,
+            db,
+          );
+          const espacosBaseItem = this.ajustarEspacosBaseItem(
+            item.equipamento.espacos,
+            reduzirItensLeves,
+          );
+          const incrementoModsNovo = item.modificacoes
+            .filter((m) => m.modificacao.id !== dto.modificacaoId)
+            .reduce(
+              (total, m) => total + (m.modificacao.incrementoEspacos || 0),
+              0,
+            );
+
+          const espacosCalculadosNovo = Math.max(
+            0,
+            espacosBaseItem + incrementoModsNovo,
+          );
+
+          await db.inventarioItemBase.update({
+            where: { id: itemId },
+            data: {
+              categoriaCalculada,
+              espacosCalculados: espacosCalculadosNovo,
+              ...(limparEstadoFuncaoAdicional
+                ? { estado: estadoAtualizado }
+                : {}),
+            },
+          });
+
+          await this.atualizarEstadoInventario(item.personagemBaseId, db);
+
+          const itemCalculado = await this.buscarItemInventarioCalculado(
+            item.personagemBaseId,
             itemId,
-            modificacaoId: dto.modificacaoId,
-          },
+            db,
+          );
+          return this.mapper.mapItem(itemCalculado);
         },
-      });
-
-      const novaQuantidadeModificacoes = this.contarModificacoesEfetivas({
-        modificacoes: item.modificacoes
-          .filter((m) => m.modificacao.id !== dto.modificacaoId)
-          .map((m) => m.modificacao),
-        estado: limparEstadoFuncaoAdicional ? estadoAtualizado : item.estado,
-      });
-      const categoriaCalculada = this.engine.calcularCategoriaFinal(
-        item.equipamento.categoria,
-        novaQuantidadeModificacoes,
       );
-
-      const { reduzirItensLeves } = await this.obterFlagsInventario(
-        item.personagemBaseId,
-      );
-      const espacosBaseItem = this.ajustarEspacosBaseItem(
-        item.equipamento.espacos,
-        reduzirItensLeves,
-      );
-      const incrementoModsNovo = item.modificacoes
-        .filter((m) => m.modificacao.id !== dto.modificacaoId)
-        .reduce(
-          (total, m) => total + (m.modificacao.incrementoEspacos || 0),
-          0,
-        );
-
-      const espacosCalculadosNovo = Math.max(
-        0,
-        espacosBaseItem + incrementoModsNovo,
-      );
-
-      await this.prisma.inventarioItemBase.update({
-        where: { id: itemId },
-        data: {
-          categoriaCalculada,
-          espacosCalculados: espacosCalculadosNovo,
-          ...(limparEstadoFuncaoAdicional ? { estado: estadoAtualizado } : {}),
-        },
-      });
-
-      await this.atualizarEstadoInventario(item.personagemBaseId);
-
-      const itemCalculado = await this.buscarItemInventarioCalculado(
-        item.personagemBaseId,
-        itemId,
-      );
-      return this.mapper.mapItem(itemCalculado);
     } catch (error: unknown) {
       this.tratarErroPrisma(error);
       throw error;

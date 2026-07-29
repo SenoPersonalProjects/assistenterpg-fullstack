@@ -55,7 +55,7 @@ export async function bloquearItemInventarioCampanhaTx(
 ): Promise<void> {
   await tx.$queryRaw<Array<{ id: number }>>(Prisma.sql`
     SELECT item.id
-    FROM InventarioItemCampanha item
+    FROM \`inventario_item_campanha\` item
     INNER JOIN PersonagemCampanha personagem
       ON personagem.id = item.personagemCampanhaId
     WHERE item.id = ${itemInventarioCampanhaId}
