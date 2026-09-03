@@ -5707,6 +5707,38 @@ describe('SessaoService', () => {
     expect(resultado.get(77)?.get('MEDICINA')).toBe(3);
   });
 
+  it('substitui o bônus de perícia do acessório pela modificação Aprimorado', async () => {
+    (prisma as any).inventarioItemCampanha = {
+      findMany: jest.fn().mockResolvedValue([
+        {
+          personagemCampanhaId: 77,
+          quantidade: 1,
+          estado: { periciaCodigo: 'percepcao' },
+          equipamento: {
+            codigo: 'UTENSILIO_PERSONALIZADO',
+            periciaBonificada: null,
+            bonusPericia: 2,
+          },
+          modificacoes: [
+            {
+              modificacao: {
+                codigo: 'MOD_APRIMORADO',
+                efeitosMecanicos: { bonusPericia: 5 },
+              },
+            },
+          ],
+        },
+      ]),
+    };
+
+    const resultado = await (service as any).calcularBonusEquipamentoPericias(
+      [77],
+      new Map<string, string>([['percepcao', 'PERCEPCAO']]),
+    );
+
+    expect(resultado.get(77)?.get('PERCEPCAO')).toBe(5);
+  });
+
   it('deve manter Ataque Especial como PE-only e custo-only', () => {
     const versoes = (service as any).obterVersoesHabilidadeClasse(
       'ATAQUE_ESPECIAL',

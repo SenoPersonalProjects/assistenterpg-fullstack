@@ -90,6 +90,7 @@ import type {
   CondicaoAtivaSessaoResumo,
 } from './sessao-atualizacao.types';
 import {
+  CODIGO_MOD_APRIMORADO,
   CODIGO_MOD_FUNCAO_ADICIONAL,
   equipamentoUsaPericiaPersonalizada,
 } from 'src/inventario/utils/item-personalizado';
@@ -17509,8 +17510,7 @@ export class SessaoService {
       );
 
       const quantidade = Math.max(1, item.quantidade ?? 1);
-      const bonusEquipamento =
-        (item.equipamento.bonusPericia ?? 0) * quantidade;
+      let bonusEquipamentoBase = item.equipamento.bonusPericia ?? 0;
 
       let bonusModificacoes = 0;
       const bonusExtrasPorCodigo = new Map<string, number>();
@@ -17520,6 +17520,13 @@ export class SessaoService {
           continue;
         }
         const bonusPericia = (efeitos as Record<string, unknown>).bonusPericia;
+        if (
+          mod.modificacao.codigo === CODIGO_MOD_APRIMORADO &&
+          typeof bonusPericia === 'number'
+        ) {
+          bonusEquipamentoBase = bonusPericia;
+          continue;
+        }
         if (
           mod.modificacao.codigo === CODIGO_MOD_FUNCAO_ADICIONAL &&
           typeof bonusPericia === 'number'
@@ -17541,6 +17548,7 @@ export class SessaoService {
         }
       }
       bonusModificacoes *= quantidade;
+      const bonusEquipamento = bonusEquipamentoBase * quantidade;
 
       const mapaPersonagem =
         resultado.get(item.personagemCampanhaId) ?? new Map<string, number>();
