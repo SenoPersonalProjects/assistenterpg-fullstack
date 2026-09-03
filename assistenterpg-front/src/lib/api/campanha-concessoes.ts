@@ -4,7 +4,7 @@ const base = (campanhaId: number, personagemId: number) =>
   `/campanhas/${campanhaId}/personagens/${personagemId}`;
 
 export type ConcessoesCampanha = {
-  poderesGenericos: Array<{ id: number; habilidade: { id: number; nome: string; descricao: string | null } }>;
+  poderesGenericos: Array<{ id: number; config?: Record<string, unknown> | null; habilidade: { id: number; nome: string; descricao: string | null; mecanicasEspeciais?: unknown } }>;
   proficienciasConcedidas: Array<{ proficiencia: { id: number; nome: string; tipo: string; categoria: string } }>;
   habilidadesPersonalizadas: Array<{ id: number; nome: string; descricao: string }>;
 };
@@ -13,8 +13,8 @@ export async function apiGetConcessoesCampanha(campanhaId: number, personagemId:
   const { data } = await apiClient.get<ConcessoesCampanha>(`${base(campanhaId, personagemId)}/concessoes`);
   return data;
 }
-export async function apiConcederPoderGenericoCampanha(campanhaId: number, personagemId: number, habilidadeId: number) {
-  const { data } = await apiClient.post(`${base(campanhaId, personagemId)}/poderes-genericos`, { habilidadeId });
+export async function apiConcederPoderGenericoCampanha(campanhaId: number, personagemId: number, habilidadeId: number, config?: Record<string, unknown>) {
+  const { data } = await apiClient.post(`${base(campanhaId, personagemId)}/poderes-genericos`, { habilidadeId, ...(config ? { config } : {}) });
   return data;
 }
 export async function apiRemoverPoderGenericoCampanha(campanhaId: number, personagemId: number, poderId: number) {
