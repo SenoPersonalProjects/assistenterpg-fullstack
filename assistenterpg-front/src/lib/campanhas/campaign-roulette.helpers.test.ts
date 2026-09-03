@@ -16,6 +16,7 @@ import {
   itensCatalogoDisponiveisRoleta,
   lerConfigSnapshotRoleta,
   montarResumoConfigRoleta,
+  removerEstadoPorSlotRoleta,
 } from './campaign-roulette.helpers';
 
 const pool: CampanhaRoletaPool = {
@@ -97,6 +98,16 @@ const catalogo: CampanhaRoletaEstado['catalogo'] = {
 };
 
 describe('campaign roulette helpers', () => {
+  it('remove o slot sem manter uma entrada undefined', () => {
+    const estado = removerEstadoPorSlotRoleta(
+      { CLA: { id: 1 }, TECNICA: { id: 2 } },
+      'CLA',
+    );
+
+    expect(estado).toEqual({ TECNICA: { id: 2 } });
+    expect(Object.keys(estado)).not.toContain('CLA');
+  });
+
   it('preserva repeticoes e agrega nomes sem diferenciar caixa', () => {
     expect(agruparRepeticoesRoleta('Zenin; Kamo; zenin; Zenin')).toEqual([
       { nome: 'Zenin', quantidade: 3 },

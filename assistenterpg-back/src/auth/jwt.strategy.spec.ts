@@ -1,6 +1,10 @@
 import { ConfigService } from '@nestjs/config';
 import { StatusContaUsuario } from '@prisma/client';
-import { UsuarioTokenNaoEncontradoException } from 'src/common/exceptions/auth.exception';
+import {
+  TokenInvalidoException,
+  UsuarioTokenNaoEncontradoException,
+} from 'src/common/exceptions/auth.exception';
+import { UsuarioNaoEncontradoException } from 'src/common/exceptions/usuario.exception';
 import { UsuarioService } from 'src/usuario/usuario.service';
 import { AuthSessionService } from './auth-session.service';
 import { JwtStrategy } from './jwt.strategy';
@@ -35,7 +39,7 @@ describe('JwtStrategy', () => {
   it('rejeita JWT sem sid antes de consultar usuario', async () => {
     await expect(
       strategy.validate({ sub: 7, email: 'usuario@example.com' }),
-    ).rejects.toBeInstanceOf(UsuarioTokenNaoEncontradoException);
+    ).rejects.toBeInstanceOf(TokenInvalidoException);
 
     expect(authSessionService.validarSessaoAccess).not.toHaveBeenCalled();
     expect(usuarioService.buscarPorId).not.toHaveBeenCalled();
@@ -63,14 +67,24 @@ describe('JwtStrategy', () => {
     expect(authSessionService.validarSessaoAccess).toHaveBeenCalledWith(11, 7);
   });
 
-  it('rejeita sessao revogada ou conta inativa com excecao publica unica', async () => {
+  it('rejeita sessao revogada com token invalido', async () => {
     authSessionService.validarSessaoAccess.mockRejectedValue(
       new Error('sessao revogada'),
     );
 
     await expect(
       strategy.validate({ sub: 7, email: 'usuario@example.com', sid: 11 }),
-    ).rejects.toBeInstanceOf(UsuarioTokenNaoEncontradoException);
+    ).rejects.toBeInstanceOf(TokenInvalidoException);
     expect(usuarioService.buscarPorId).not.toHaveBeenCalled();
+  });
+
+  it('mantem o erro especifico somente quando o usuario do token nao existe', async () => {
+    usuarioService.buscarPorId.mockRejectedValue(
+      new UsuarioNaoEncontradoException(7),
+    );
+
+    await expect(
+      strategy.validate({ sub: 7, email: 'usuario@example.com', sid: 11 }),
+    ).rejects.toBeInstanceOf(UsuarioTokenNaoEncontradoException);
   });
 });
