@@ -575,7 +575,7 @@ export class CampanhaModificadoresService {
       return { periciaCodigo: null, tipoGrauCodigo: null, atributoCodigo, resistenciaTipoId: null, valorAntes: 0, valorDepois: dto.valor };
     }
 
-    if (dto.campo === 'RESISTENCIA') {
+    if (dto.campo === 'RESISTENCIA' || dto.campo === 'VULNERABILIDADE') {
       if (!resistenciaTipoId || periciaCodigo || tipoGrauCodigo || atributoCodigo) {
         throw new CampanhaModificadorInvalidoException('Bonus de resistencia exige resistenciaTipoId.', { campo: dto.campo, resistenciaTipoId });
       }
@@ -619,7 +619,7 @@ export class CampanhaModificadoresService {
     if (dto.campo === 'ATRIBUTO' && (!atributoCodigo || periciaCodigo || tipoGrauCodigo || resistenciaTipoId)) {
       throw new CampanhaModificadorInvalidoException('Bonus de atributo exige apenas atributoCodigo.', { campo: dto.campo });
     }
-    if (dto.campo === 'RESISTENCIA' && (!resistenciaTipoId || periciaCodigo || tipoGrauCodigo || atributoCodigo)) {
+    if ((dto.campo === 'RESISTENCIA' || dto.campo === 'VULNERABILIDADE') && (!resistenciaTipoId || periciaCodigo || tipoGrauCodigo || atributoCodigo)) {
       throw new CampanhaModificadorInvalidoException('Bonus de resistencia exige apenas resistenciaTipoId.', { campo: dto.campo });
     }
     if (dto.campo === 'BONUS_DT_FEITICOS' && (periciaCodigo || tipoGrauCodigo || atributoCodigo || resistenciaTipoId)) {

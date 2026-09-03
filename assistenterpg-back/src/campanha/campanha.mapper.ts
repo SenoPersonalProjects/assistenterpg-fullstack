@@ -8,7 +8,8 @@ import {
 import {
   calcularBonusDtFeiticosNarrativo,
   calcularBonusPorAtributoNarrativos,
-  calcularBonusPorResistenciaNarrativos,
+    calcularBonusPorResistenciaNarrativos,
+    calcularVulnerabilidadesNarrativas,
   resolverGrausAprimoramentoEfetivosCampanha,
   resolverPericiasEfetivasCampanha,
 } from './engine/campanha-modificadores-efetivos';
@@ -127,6 +128,7 @@ export const PERSONAGEM_CAMPANHA_DETALHE_SELECT =
             nome: true,
           },
         },
+        resistenciaTipo: { select: { id: true, nome: true } },
       },
     },
     resistencias: {
@@ -169,6 +171,7 @@ export class CampanhaMapper {
       );
     const bonusAtributos = calcularBonusPorAtributoNarrativos(modificadoresAtivos);
     const bonusResistencias = calcularBonusPorResistenciaNarrativos(modificadoresAtivos);
+    const vulnerabilidades = calcularVulnerabilidadesNarrativas(modificadoresAtivos);
     const atributoEfetivo = (codigo: string, valor: number | null | undefined) =>
       Math.max(0, Number(valor ?? 0) + (bonusAtributos.get(codigo) ?? 0));
 
@@ -231,7 +234,11 @@ export class CampanhaMapper {
       resistencias: (personagem.resistencias ?? []).map((resistencia) => ({
         ...resistencia,
         valorEfetivo: resistencia.valor + (bonusResistencias.get(resistencia.resistenciaTipoId) ?? 0),
+        vulneravel: (vulnerabilidades.get(resistencia.resistenciaTipoId) ?? 0) > 0,
       })),
+      vulnerabilidades: modificadoresAtivos
+        .filter((modificador) => modificador.campo === 'VULNERABILIDADE' && modificador.resistenciaTipoId)
+        .map((modificador) => ({ resistenciaTipoId: modificador.resistenciaTipoId, resistenciaTipo: modificador.resistenciaTipo })),
       bonusDtFeiticos: calcularBonusDtFeiticosNarrativo(modificadoresAtivos),
     };
   }

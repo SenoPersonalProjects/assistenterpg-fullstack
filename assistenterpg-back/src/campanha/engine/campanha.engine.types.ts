@@ -36,6 +36,7 @@ export type CampoModificadorPersonagemCampanhaNumerico = Exclude<
   | 'GRAU_APRIMORAMENTO'
   | 'ATRIBUTO'
   | 'RESISTENCIA'
+  | 'VULNERABILIDADE'
   | 'BONUS_DT_FEITICOS'
 >;
 

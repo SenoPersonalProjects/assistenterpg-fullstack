@@ -54,7 +54,12 @@ export type CampoModificadorPersonagemCampanha =
   | 'ATRIBUTO'
   | 'PERICIA_TREINAMENTO'
   | 'PERICIA_BONUS'
-  | 'GRAU_APRIMORAMENTO';
+  | 'GRAU_APRIMORAMENTO'
+  | 'RESISTENCIA'
+  | 'VULNERABILIDADE'
+  | 'BONUS_DT_FEITICOS';
+  
+  
 
 export type NucleoAmaldicoadoCodigo = 'EQUILIBRIO' | 'PODER' | 'IMPULSO';
 
@@ -68,6 +73,8 @@ export type ModificadorPersonagemCampanha = {
   periciaCodigo: string | null;
   atributoCodigo?: string | null;
   tipoGrauCodigo: string | null;
+  resistenciaTipoId?: number | null;
+  resistenciaTipo?: { id: number; nome: string } | null;
   pericia?: { codigo: string; nome: string } | null;
   tipoGrau?: { codigo: string; nome: string } | null;
   valor: number;

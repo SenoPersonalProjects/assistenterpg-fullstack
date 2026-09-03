@@ -679,6 +679,8 @@ export class CampanhaController {
 
   @Get(':id/personagens/:personagemCampanhaId/concessoes')
   listarConcessoes(@Param('id', ParseIntPipe) id: number, @Param('personagemCampanhaId', ParseIntPipe) personagemId: number, @Request() req: { user: { id: number } }) { return this.campanhaService.listarConcessoesPersonagemCampanha(id, personagemId, req.user.id); }
+  @Get(':id/personagens/:personagemCampanhaId/resistencias-tipos')
+  listarTiposResistencia(@Param('id', ParseIntPipe) id: number, @Param('personagemCampanhaId', ParseIntPipe) personagemId: number, @Request() req: { user: { id: number } }) { return this.campanhaService.listarTiposResistenciaPersonagemCampanha(id, personagemId, req.user.id); }
   @Post(':id/personagens/:personagemCampanhaId/poderes-genericos')
   concederPoder(@Param('id', ParseIntPipe) id: number, @Param('personagemCampanhaId', ParseIntPipe) personagemId: number, @Request() req: { user: { id: number } }, @Body() dto: ConcederPoderGenericoCampanhaDto) { return this.campanhaService.concederPoderGenericoCampanha(id, personagemId, req.user.id, dto); }
   @Delete(':id/personagens/:personagemCampanhaId/poderes-genericos/:poderId')

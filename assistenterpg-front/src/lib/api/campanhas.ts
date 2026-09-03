@@ -501,6 +501,7 @@ export async function apiAplicarModificadorPersonagemCampanha(
     periciaCodigo?: string;
     atributoCodigo?: string;
     tipoGrauCodigo?: string;
+    resistenciaTipoId?: number;
     valor: number;
     nome: string;
     descricao?: string;
@@ -516,6 +517,11 @@ export async function apiAplicarModificadorPersonagemCampanha(
     payload,
   );
   return data;
+}
+
+export async function apiListarTiposResistenciaPersonagemCampanha(campanhaId: number, personagemCampanhaId: number): Promise<Array<{ id: number; codigo: string; nome: string; descricao: string | null }>> {
+  const { data } = await apiClient.get(`/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/resistencias-tipos`);
+  return Array.isArray(data) ? data : [];
 }
 
 export async function apiDesfazerModificadorPersonagemCampanha(

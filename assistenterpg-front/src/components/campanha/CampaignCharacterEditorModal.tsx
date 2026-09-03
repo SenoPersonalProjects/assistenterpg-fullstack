@@ -9,6 +9,7 @@ import {
   apiGetTiposGrau,
   apiListarHistoricoPersonagemCampanha,
   apiListarModificadoresPersonagemCampanha,
+  apiListarTiposResistenciaPersonagemCampanha,
   criarErroUsuario,
 } from '@/lib/api';
 import type {
@@ -53,7 +54,7 @@ type Props = {
 };
 
 type FiltroHistoricoContexto = 'TODOS' | 'SESSAO_ATUAL' | 'CENA_ATUAL';
-type TipoFormularioModificador = 'RECURSOS' | 'ATRIBUTOS' | 'PERICIAS' | 'PERICIAS_FLAT' | 'GRAUS';
+type TipoFormularioModificador = 'RECURSOS' | 'ATRIBUTOS' | 'PERICIAS' | 'PERICIAS_FLAT' | 'GRAUS' | 'RESISTENCIAS' | 'VULNERABILIDADES';
 const ATRIBUTOS_MODIFICADOR = [
   { value: 'FORCA', label: 'Força (FOR)' },
   { value: 'AGILIDADE', label: 'Agilidade (AGI)' },
@@ -66,7 +67,7 @@ const FILTRO_HISTORICO_TIPO_TODOS = '__TODOS__';
 const CAMPOS_MODIFICADOR_NUMERICO_OPTIONS: Array<{
   value: Exclude<
     CampoModificadorPersonagemCampanha,
-    'PERICIA_TREINAMENTO' | 'PERICIA_BONUS' | 'GRAU_APRIMORAMENTO'
+    'PERICIA_TREINAMENTO' | 'PERICIA_BONUS' | 'GRAU_APRIMORAMENTO' | 'RESISTENCIA' | 'VULNERABILIDADE'
   >;
   label: string;
 }> = [
@@ -83,6 +84,7 @@ const CAMPOS_MODIFICADOR_NUMERICO_OPTIONS: Array<{
   { value: 'LIMITE_PE_EA_POR_TURNO', label: 'Limite PE/EA por turno' },
   { value: 'PRESTIGIO_GERAL', label: 'Prestígio Geral' },
   { value: 'PRESTIGIO_CLA', label: 'Prestígio Clã' },
+  { value: 'BONUS_DT_FEITICOS', label: 'Bônus DT de feitiços' },
 ];
 
 const LABEL_CAMPO_MODIFICADOR: Record<CampoModificadorPersonagemCampanha, string> =
@@ -93,6 +95,8 @@ const LABEL_CAMPO_MODIFICADOR: Record<CampoModificadorPersonagemCampanha, string
       { value: 'PERICIA_BONUS', label: 'Bônus flat de perícia' },
       { value: 'ATRIBUTO', label: 'Bônus de atributo' },
       { value: 'GRAU_APRIMORAMENTO', label: 'Grau de aprimoramento' },
+      { value: 'RESISTENCIA', label: 'Resistência / RD' },
+      { value: 'VULNERABILIDADE', label: 'Vulnerabilidade' },
     ].map((item) => [item.value, item.label]),
   ) as Record<CampoModificadorPersonagemCampanha, string>;
 
@@ -151,6 +155,8 @@ export function CampaignCharacterEditorModal({
   const [atributoModificadorCodigo, setAtributoModificadorCodigo] = useState<(typeof ATRIBUTOS_MODIFICADOR)[number]['value']>('FORCA');
   const [tipoGrauModificadorCodigo, setTipoGrauModificadorCodigo] =
     useState('');
+  const [resistenciaTipoId, setResistenciaTipoId] = useState('');
+  const [tiposResistencia, setTiposResistencia] = useState<Array<{ id: number; codigo: string; nome: string; descricao: string | null }>>([]);
   const [valorModificador, setValorModificador] = useState('');
   const [nomeModificador, setNomeModificador] = useState('');
   const [descricaoModificador, setDescricaoModificador] = useState('');
@@ -368,18 +374,21 @@ export function CampaignCharacterEditorModal({
   }, [campanhaId, filtrosModificador, personagemId]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !personagemId) return;
 
     let ativo = true;
     void (async () => {
       try {
-        const [pericias, tiposGrau] = await Promise.all([
+        const [pericias, tiposGrau, listaResistencias] = await Promise.all([
           apiGetPericias(),
           apiGetTiposGrau(),
+          apiListarTiposResistenciaPersonagemCampanha(campanhaId, personagemId),
         ]);
         if (!ativo) return;
         setPericiasCatalogo(pericias);
         setTiposGrauCatalogo(tiposGrau);
+        setTiposResistencia(listaResistencias);
+        setResistenciaTipoId((atual) => atual || String(listaResistencias[0]?.id ?? ''));
         setPericiaModificadorCodigo((atual) => atual || pericias[0]?.codigo || '');
         setTipoGrauModificadorCodigo(
           (atual) => atual || tiposGrau[0]?.codigo || '',
@@ -482,6 +491,7 @@ export function CampaignCharacterEditorModal({
     let periciaCodigo: string | undefined;
     let atributoCodigo: string | undefined;
     let tipoGrauCodigo: string | undefined;
+    let resistenciaIdEnvio: number | undefined;
 
     if (tipoFormularioModificador === 'PERICIAS' || tipoFormularioModificador === 'PERICIAS_FLAT') {
       if (!periciaModificadorCodigo) {
@@ -504,6 +514,11 @@ export function CampaignCharacterEditorModal({
       campoEnvio = 'ATRIBUTO';
       atributoCodigo = atributoModificadorCodigo;
     }
+    if (tipoFormularioModificador === 'RESISTENCIAS' || tipoFormularioModificador === 'VULNERABILIDADES') {
+      if (!resistenciaTipoId) { setErro('Selecione o tipo de dano.'); return; }
+      campoEnvio = tipoFormularioModificador === 'RESISTENCIAS' ? 'RESISTENCIA' : 'VULNERABILIDADE';
+      resistenciaIdEnvio = Number(resistenciaTipoId);
+    }
 
     setErro(null);
     setSucesso(null);
@@ -517,6 +532,7 @@ export function CampaignCharacterEditorModal({
           periciaCodigo,
           atributoCodigo,
           tipoGrauCodigo,
+          resistenciaTipoId: resistenciaIdEnvio,
           valor,
           nome: nomeModificador.trim(),
           descricao: descricaoModificador.trim() || undefined,
@@ -673,6 +689,8 @@ export function CampaignCharacterEditorModal({
                 { id: 'PERICIAS' as const, label: 'Perícias' },
                 { id: 'PERICIAS_FLAT' as const, label: 'Bônus flat' },
                 { id: 'GRAUS' as const, label: 'Graus' },
+                { id: 'RESISTENCIAS' as const, label: 'Resistências / RD' },
+                { id: 'VULNERABILIDADES' as const, label: 'Vulnerabilidades' },
               ].map((opcao) => (
                 <Button
                   key={opcao.id}
@@ -732,6 +750,9 @@ export function CampaignCharacterEditorModal({
                       : 'O valor altera graus efetivos da ficha de campanha.'
                   }
                 />
+              ) : null}
+              {tipoFormularioModificador === 'RESISTENCIAS' || tipoFormularioModificador === 'VULNERABILIDADES' ? (
+                <Select label="Tipo de dano" value={resistenciaTipoId} onChange={(e) => setResistenciaTipoId(e.target.value)} options={tiposResistencia.map((tipo) => ({ value: String(tipo.id), label: tipo.nome }))} helperText={tipoFormularioModificador === 'RESISTENCIAS' ? 'Valor flat de RD/resistência; use valores negativos para reduzir.' : 'O dano deste tipo será recebido em dobro.'} />
               ) : null}
               <Input
                 label="Valor (+/-)"

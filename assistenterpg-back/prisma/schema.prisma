@@ -369,6 +369,7 @@ enum CampoModificadorPersonagemCampanha {
   GRAU_APRIMORAMENTO
   ATRIBUTO
   RESISTENCIA
+  VULNERABILIDADE
   BONUS_DT_FEITICOS
 }
 

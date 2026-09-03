@@ -105,6 +105,7 @@ export class CampanhaService {
   }
 
   listarConcessoesPersonagemCampanha(campanhaId: number, personagemId: number, usuarioId: number) { return this.concessoesService.listar(campanhaId, personagemId, usuarioId); }
+  listarTiposResistenciaPersonagemCampanha(campanhaId: number, personagemId: number, usuarioId: number) { return this.concessoesService.listarTiposResistencia(campanhaId, personagemId, usuarioId); }
   concederPoderGenericoCampanha(campanhaId: number, personagemId: number, usuarioId: number, dto: ConcederPoderGenericoCampanhaDto) { return this.concessoesService.concederPoder(campanhaId, personagemId, usuarioId, dto); }
   removerPoderGenericoCampanha(campanhaId: number, personagemId: number, poderId: number, usuarioId: number) { return this.concessoesService.removerPoder(campanhaId, personagemId, poderId, usuarioId); }
   concederProficienciaCampanha(campanhaId: number, personagemId: number, usuarioId: number, dto: ConcederProficienciaCampanhaDto) { return this.concessoesService.concederProficiencia(campanhaId, personagemId, usuarioId, dto); }

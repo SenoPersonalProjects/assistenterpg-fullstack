@@ -36,6 +36,11 @@ export class CampanhaConcessoesService {
     return personagem;
   }
 
+  async listarTiposResistencia(campanhaId: number, personagemCampanhaId: number, usuarioId: number) {
+    await this.accessService.obterPersonagemCampanhaComPermissao(campanhaId, personagemCampanhaId, usuarioId, false);
+    return this.prisma.resistenciaTipo.findMany({ select: { id: true, codigo: true, nome: true, descricao: true }, orderBy: { nome: 'asc' } });
+  }
+
   async concederPoder(campanhaId: number, personagemCampanhaId: number, usuarioId: number, dto: ConcederPoderGenericoCampanhaDto) {
     await this.accessService.obterPersonagemCampanhaComPermissao(campanhaId, personagemCampanhaId, usuarioId, true);
     const [poder, campanha] = await Promise.all([

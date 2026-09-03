@@ -37,6 +37,18 @@ export function calcularBonusPorResistenciaNarrativos(
   return deltas;
 }
 
+export function calcularVulnerabilidadesNarrativas(
+  modificadores: ModificadorNarrativoEfetivo[] | null | undefined,
+): Map<number, number> {
+  const deltas = new Map<number, number>();
+  for (const modificador of modificadores ?? []) {
+    if (modificador.ativo === false || modificador.campo !== 'VULNERABILIDADE' || !modificador.resistenciaTipoId) continue;
+    const id = modificador.resistenciaTipoId;
+    deltas.set(id, (deltas.get(id) ?? 0) + 1);
+  }
+  return deltas;
+}
+
 export function calcularBonusDtFeiticosNarrativo(
   modificadores: ModificadorNarrativoEfetivo[] | null | undefined,
 ): number {
