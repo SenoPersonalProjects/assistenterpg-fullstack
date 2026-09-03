@@ -3809,7 +3809,7 @@ export default function SessaoCampanhaPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               type="button"
-              className="fixed bottom-4 left-4 z-40 rounded-full bg-app-primary p-3 text-white shadow-xl shadow-app-primary/25 transition-transform hover:scale-105 active:scale-95 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 lg:left-6"
+              className="fixed bottom-4 left-4 z-40 rounded-full bg-app-primary p-3 text-white shadow-xl shadow-app-primary/25 transition-transform hover:scale-105 active:scale-95 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 lg:left-[calc(var(--app-sidebar-width)+1rem)]"
               onClick={() => setColunaEsquerdaRecolhida(false)}
               title="Mostrar painel esquerdo"
               aria-label="Mostrar painel esquerdo"

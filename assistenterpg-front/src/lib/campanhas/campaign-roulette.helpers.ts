@@ -8,6 +8,7 @@ import type {
   CampanhaRoletaPool,
   CampanhaRoletaPoolItem,
   CampanhaRoletaPreset,
+  CampanhaRoletaSlot,
 } from '@/lib/api/campanha-roleta';
 
 export type RepeticaoRoleta = { nome: string; quantidade: number };
@@ -35,6 +36,15 @@ export type ResumoConfigRoleta = {
   tecnicasHereditariasCondicionais: number;
   erros: string[];
 };
+
+export function removerEstadoPorSlotRoleta<T>(
+  estado: Partial<Record<CampanhaRoletaSlot, T>>,
+  slot: CampanhaRoletaSlot,
+): Partial<Record<CampanhaRoletaSlot, T>> {
+  const proximo = { ...estado };
+  delete proximo[slot];
+  return proximo;
+}
 
 export function historicoCompativelComPresetRoleta(
   item: CampanhaRoletaHistoricoItem | undefined,

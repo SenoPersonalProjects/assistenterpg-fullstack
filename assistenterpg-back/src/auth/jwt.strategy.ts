@@ -4,7 +4,11 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Request } from 'express';
 import { StatusContaUsuario } from '@prisma/client';
-import { UsuarioTokenNaoEncontradoException } from 'src/common/exceptions/auth.exception';
+import {
+  TokenInvalidoException,
+  UsuarioTokenNaoEncontradoException,
+} from 'src/common/exceptions/auth.exception';
+import { UsuarioNaoEncontradoException } from 'src/common/exceptions/usuario.exception';
 import { UsuarioService } from '../usuario/usuario.service';
 import { AuthSessionService } from './auth-session.service';
 import {
@@ -36,31 +40,42 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: { sub: number; email: string; sid?: number }) {
+    if (!Number.isInteger(payload.sid)) {
+      throw new TokenInvalidoException('JWT sem sid');
+    }
+
     try {
-      if (!Number.isInteger(payload.sid)) {
-        throw new Error('JWT sem sid');
-      }
       await this.authSessionService.validarSessaoAccess(
         payload.sid as number,
         payload.sub,
       );
-      const usuario = await this.usuarioService.buscarPorId(payload.sub);
-      if (
-        usuario.status !== StatusContaUsuario.ATIVA ||
-        !usuario.emailVerificadoEm
-      ) {
-        throw new Error('Conta inativa');
-      }
-
-      return {
-        id: usuario.id,
-        email: usuario.email,
-        apelido: usuario.apelido,
-        role: usuario.role,
-        sid: payload.sid,
-      };
     } catch {
-      throw new UsuarioTokenNaoEncontradoException(payload.sub);
+      throw new TokenInvalidoException('Sessão inválida ou expirada');
     }
+
+    let usuario;
+    try {
+      usuario = await this.usuarioService.buscarPorId(payload.sub);
+    } catch (error) {
+      if (error instanceof UsuarioNaoEncontradoException) {
+        throw new UsuarioTokenNaoEncontradoException(payload.sub);
+      }
+      throw error;
+    }
+
+    if (
+      usuario.status !== StatusContaUsuario.ATIVA ||
+      !usuario.emailVerificadoEm
+    ) {
+      throw new TokenInvalidoException('Conta inativa');
+    }
+
+    return {
+      id: usuario.id,
+      email: usuario.email,
+      apelido: usuario.apelido,
+      role: usuario.role,
+      sid: payload.sid,
+    };
   }
 }

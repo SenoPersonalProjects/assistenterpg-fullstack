@@ -346,7 +346,7 @@ function shouldAttemptCsrfRetry(error: AxiosError<ApiErrorBody>): boolean {
   return normalizedMessage.toLowerCase().includes('csrf');
 }
 
-function isRefreshAuthFailure(error: unknown): boolean {
+export function isRefreshAuthFailure(error: unknown): boolean {
   if (!axios.isAxiosError(error)) return false;
   return (
     error.response?.status === 400 ||

@@ -5,6 +5,11 @@ import { Icon } from '@/components/ui/Icon';
 import { ThemedLogo } from '@/components/ui/ThemedLogo';
 import type { AppShellNavGroup } from './appShellNavigation';
 
+export const APP_SIDEBAR_WIDTH = {
+  expanded: '16rem',
+  collapsed: '4.5rem',
+} as const;
+
 type AppSidebarProps = {
   groups: AppShellNavGroup[];
   activeHref: string | null;

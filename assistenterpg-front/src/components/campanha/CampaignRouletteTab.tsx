@@ -25,6 +25,7 @@ import type { EventoCampanhaRoletaGiro } from '@/lib/realtime/campanha-socket';
 import {
   historicoCompativelComPresetRoleta,
   montarResumoConfigRoleta,
+  removerEstadoPorSlotRoleta,
 } from '@/lib/campanhas/campaign-roulette.helpers';
 import { CampaignRouletteConfigModal } from './CampaignRouletteConfigModal';
 import {
@@ -126,8 +127,9 @@ export function CampaignRouletteTab({
     setVisualizacoes((atuais) => {
       const resultado = { ...atuais };
       for (const [slotAtual, visualizacao] of Object.entries(atuais) as Array<
-        [CampanhaRoletaSlot, VisualizacaoRoleta]
+        [CampanhaRoletaSlot, VisualizacaoRoleta | undefined]
       >) {
+        if (!visualizacao) continue;
         if (
           sorteioAindaAtivo(visualizacao.sorteio) &&
           !proximo.sorteiosAtivos.some((item) => item.id === visualizacao.sorteio.id)
@@ -270,8 +272,8 @@ export function CampaignRouletteTab({
   }
 
   const limparVisualizacaoAtual = () => {
-    setVisualizacoes((atuais) => ({ ...atuais, [slot]: undefined }));
-    setResultadosAnunciados((atuais) => ({ ...atuais, [slot]: undefined }));
+    setVisualizacoes((atuais) => removerEstadoPorSlotRoleta(atuais, slot));
+    setResultadosAnunciados((atuais) => removerEstadoPorSlotRoleta(atuais, slot));
   };
 
   const iniciarEGirar = () =>

@@ -21,6 +21,7 @@ import {
 import {
   clearAuthClientState,
   getLastAuthRefreshAt,
+  isRefreshAuthFailure,
   markAuthSessionFresh,
   refreshAuthSession,
 } from '@/lib/api/axios-client';
@@ -76,6 +77,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const requireLogin = useCallback(() => {
+    clearAuthClientState();
+    setToken(null);
+    setUsuario(null);
+    setLoading(false);
+    router.replace('/auth/login');
+  }, [router]);
 
   useEffect(() => {
     let active = true;
@@ -144,8 +153,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       running = true;
       try {
         await refreshAuthSession();
-      } catch {
-        // Erros transitórios não derrubam a sessão; a próxima chamada à API decide.
+      } catch (error) {
+        if (isRefreshAuthFailure(error)) {
+          requireLogin();
+        }
+        // Erros transitórios não derrubam a sessão.
       } finally {
         running = false;
       }
@@ -171,7 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [usuario]);
+  }, [requireLogin, usuario]);
 
   const login = useCallback(
     async (email: string, senha: string, rememberMe = true) => {
@@ -197,14 +209,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     [router],
   );
-
-  const requireLogin = useCallback(() => {
-    clearAuthClientState();
-    setToken(null);
-    setUsuario(null);
-    setLoading(false);
-    router.replace('/auth/login');
-  }, [router]);
 
   const logout = useCallback(() => {
     void apiLogout().finally(requireLogin);

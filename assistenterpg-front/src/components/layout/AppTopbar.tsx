@@ -30,7 +30,7 @@ export function AppTopbar({
   const settingsActive = pathname === '/configuracoes';
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 w-full shrink-0 items-center justify-between gap-3 overflow-hidden border-b border-white/5 bg-app-bg/90 px-3 text-app-fg shadow-sm shadow-black/10 backdrop-blur-xl sm:px-4">
+    <header className="sticky top-0 z-40 flex h-14 w-full shrink-0 items-center justify-between gap-3 overflow-visible border-b border-white/5 bg-app-bg/90 px-3 text-app-fg shadow-sm shadow-black/10 backdrop-blur-xl sm:px-4">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <button
           type="button"

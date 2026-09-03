@@ -1,9 +1,9 @@
 'use client';
 
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type CSSProperties, type ReactNode, useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { AppSidebar } from './AppSidebar';
+import { APP_SIDEBAR_WIDTH, AppSidebar } from './AppSidebar';
 import { AppTopbar } from './AppTopbar';
 import {
   getActiveAppShellNavItem,
@@ -16,6 +16,10 @@ const SIDEBAR_STORAGE_KEY = 'assistenterpg:app-shell:sidebar-collapsed';
 
 type AppShellProps = {
   children: ReactNode;
+};
+
+type AppShellStyle = CSSProperties & {
+  '--app-sidebar-width': string;
 };
 
 export function AppShell({ children }: AppShellProps) {
@@ -81,7 +85,14 @@ export function AppShell({ children }: AppShellProps) {
   }, [mobileSidebarOpen]);
 
   return (
-    <div className="min-h-screen bg-app-bg text-app-fg lg:flex">
+    <div
+      className="min-h-screen bg-app-bg text-app-fg lg:flex"
+      style={{
+        '--app-sidebar-width': sidebarCollapsed
+          ? APP_SIDEBAR_WIDTH.collapsed
+          : APP_SIDEBAR_WIDTH.expanded,
+      } as AppShellStyle}
+    >
       <div className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:shrink-0">
         <AppSidebar
           groups={groups}
