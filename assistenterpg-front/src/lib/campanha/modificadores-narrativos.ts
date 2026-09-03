@@ -64,5 +64,9 @@ export function obterAlvoModificadorNarrativo(
     return modificador.tipoGrau?.nome ?? modificador.tipoGrauCodigo ?? null;
   }
 
+  if (modificador.campo === "ATRIBUTO") {
+    return modificador.atributoCodigo ?? null;
+  }
+
   return null;
 }

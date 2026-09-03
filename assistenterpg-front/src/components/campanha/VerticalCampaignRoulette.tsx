@@ -68,6 +68,7 @@ export function VerticalCampaignRoulette({
   const reduzirMovimento = useReducedMotion();
   const rotacao = useRef(0);
   const ultimoGiro = useRef<string | null>(null);
+  const onAnimationCompleteRef = useRef(onAnimationComplete);
   const [girando, setGirando] = useState(false);
   const [vencedor, setVencedor] = useState<string | null>(null);
   const itensVisuais = useMemo(
@@ -84,6 +85,10 @@ export function VerticalCampaignRoulette({
     130,
     (ALTURA_ITEM * Math.max(quantidade, 6)) / (2 * Math.PI) / 0.82,
   );
+
+  useEffect(() => {
+    onAnimationCompleteRef.current = onAnimationComplete;
+  }, [onAnimationComplete]);
 
   useEffect(() => {
     if (!giro || ultimoGiro.current === giro.animacaoId || quantidade === 0) return;
@@ -107,13 +112,13 @@ export function VerticalCampaignRoulette({
       if (cancelado) return;
       setVencedor(giro.resultado.chave);
       setGirando(false);
-      onAnimationComplete?.(giro.resultado);
+      onAnimationCompleteRef.current?.(giro.resultado);
     };
     void animar();
     return () => {
       cancelado = true;
     };
-  }, [controls, giro, onAnimationComplete, quantidade, reduzirMovimento]);
+  }, [controls, giro?.animacaoId, quantidade, reduzirMovimento]);
 
   if (quantidade === 0) {
     return (

@@ -51,6 +51,7 @@ export type CampoModificadorPersonagemCampanha =
   | 'LIMITE_PE_EA_POR_TURNO'
   | 'PRESTIGIO_GERAL'
   | 'PRESTIGIO_CLA'
+  | 'ATRIBUTO'
   | 'PERICIA_TREINAMENTO'
   | 'PERICIA_BONUS'
   | 'GRAU_APRIMORAMENTO';
@@ -65,6 +66,7 @@ export type ModificadorPersonagemCampanha = {
   cenaId: number | null;
   campo: CampoModificadorPersonagemCampanha;
   periciaCodigo: string | null;
+  atributoCodigo?: string | null;
   tipoGrauCodigo: string | null;
   pericia?: { codigo: string; nome: string } | null;
   tipoGrau?: { codigo: string; nome: string } | null;

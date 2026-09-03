@@ -499,6 +499,7 @@ export async function apiAplicarModificadorPersonagemCampanha(
   payload: {
     campo: CampoModificadorPersonagemCampanha;
     periciaCodigo?: string;
+    atributoCodigo?: string;
     tipoGrauCodigo?: string;
     valor: number;
     nome: string;

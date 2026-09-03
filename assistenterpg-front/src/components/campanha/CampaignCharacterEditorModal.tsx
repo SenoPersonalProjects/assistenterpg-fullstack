@@ -53,7 +53,14 @@ type Props = {
 };
 
 type FiltroHistoricoContexto = 'TODOS' | 'SESSAO_ATUAL' | 'CENA_ATUAL';
-type TipoFormularioModificador = 'RECURSOS' | 'PERICIAS' | 'PERICIAS_FLAT' | 'GRAUS';
+type TipoFormularioModificador = 'RECURSOS' | 'ATRIBUTOS' | 'PERICIAS' | 'PERICIAS_FLAT' | 'GRAUS';
+const ATRIBUTOS_MODIFICADOR = [
+  { value: 'FORCA', label: 'Força (FOR)' },
+  { value: 'AGILIDADE', label: 'Agilidade (AGI)' },
+  { value: 'VIGOR', label: 'Vigor (VIG)' },
+  { value: 'PRESENCA', label: 'Presença (PRE)' },
+  { value: 'INTELECTO', label: 'Intelecto (INT)' },
+] as const;
 const FILTRO_HISTORICO_TIPO_TODOS = '__TODOS__';
 
 const CAMPOS_MODIFICADOR_NUMERICO_OPTIONS: Array<{
@@ -84,6 +91,7 @@ const LABEL_CAMPO_MODIFICADOR: Record<CampoModificadorPersonagemCampanha, string
       ...CAMPOS_MODIFICADOR_NUMERICO_OPTIONS,
       { value: 'PERICIA_TREINAMENTO', label: 'Treinamento de perícia' },
       { value: 'PERICIA_BONUS', label: 'Bônus flat de perícia' },
+      { value: 'ATRIBUTO', label: 'Bônus de atributo' },
       { value: 'GRAU_APRIMORAMENTO', label: 'Grau de aprimoramento' },
     ].map((item) => [item.value, item.label]),
   ) as Record<CampoModificadorPersonagemCampanha, string>;
@@ -140,6 +148,7 @@ export function CampaignCharacterEditorModal({
   const [campoModificador, setCampoModificador] =
     useState<CampoModificadorPersonagemCampanha>('EA_MAX');
   const [periciaModificadorCodigo, setPericiaModificadorCodigo] = useState('');
+  const [atributoModificadorCodigo, setAtributoModificadorCodigo] = useState<(typeof ATRIBUTOS_MODIFICADOR)[number]['value']>('FORCA');
   const [tipoGrauModificadorCodigo, setTipoGrauModificadorCodigo] =
     useState('');
   const [valorModificador, setValorModificador] = useState('');
@@ -166,7 +175,7 @@ export function CampaignCharacterEditorModal({
   const [savingModificador, setSavingModificador] = useState(false);
   const [erro, setErro] = useState<UserErrorState | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
-  const [modalSelecao, setModalSelecao] = useState<'RECURSO' | 'PERICIA' | 'GRAU' | null>(null);
+  const [modalSelecao, setModalSelecao] = useState<'RECURSO' | 'ATRIBUTO' | 'PERICIA' | 'GRAU' | null>(null);
 
   const personagemId = personagem?.id ?? null;
 
@@ -471,6 +480,7 @@ export function CampaignCharacterEditorModal({
 
     let campoEnvio: CampoModificadorPersonagemCampanha = campoModificador;
     let periciaCodigo: string | undefined;
+    let atributoCodigo: string | undefined;
     let tipoGrauCodigo: string | undefined;
 
     if (tipoFormularioModificador === 'PERICIAS' || tipoFormularioModificador === 'PERICIAS_FLAT') {
@@ -490,6 +500,10 @@ export function CampaignCharacterEditorModal({
       campoEnvio = 'GRAU_APRIMORAMENTO';
       tipoGrauCodigo = tipoGrauModificadorCodigo;
     }
+    if (tipoFormularioModificador === 'ATRIBUTOS') {
+      campoEnvio = 'ATRIBUTO';
+      atributoCodigo = atributoModificadorCodigo;
+    }
 
     setErro(null);
     setSucesso(null);
@@ -501,6 +515,7 @@ export function CampaignCharacterEditorModal({
         {
           campo: campoEnvio,
           periciaCodigo,
+          atributoCodigo,
           tipoGrauCodigo,
           valor,
           nome: nomeModificador.trim(),
@@ -654,6 +669,7 @@ export function CampaignCharacterEditorModal({
             <div className="flex flex-wrap gap-2">
               {[
                 { id: 'RECURSOS' as const, label: 'Recursos' },
+                { id: 'ATRIBUTOS' as const, label: 'Atributos' },
                 { id: 'PERICIAS' as const, label: 'Perícias' },
                 { id: 'PERICIAS_FLAT' as const, label: 'Bônus flat' },
                 { id: 'GRAUS' as const, label: 'Graus' },
@@ -685,6 +701,9 @@ export function CampaignCharacterEditorModal({
                   }
                   options={CAMPOS_MODIFICADOR_NUMERICO_OPTIONS}
                 />
+              ) : null}
+              {tipoFormularioModificador === 'ATRIBUTOS' ? (
+                <Select label="Atributo" value={atributoModificadorCodigo} onChange={(event) => setAtributoModificadorCodigo(event.target.value as typeof atributoModificadorCodigo)} options={[...ATRIBUTOS_MODIFICADOR]} />
               ) : null}
               {tipoFormularioModificador === 'PERICIAS' || tipoFormularioModificador === 'PERICIAS_FLAT' ? (
                 <Select
@@ -745,19 +764,19 @@ export function CampaignCharacterEditorModal({
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" size="xs" variant="ghost" onClick={() => setModalSelecao(tipoFormularioModificador === 'RECURSOS' ? 'RECURSO' : tipoFormularioModificador === 'GRAUS' ? 'GRAU' : 'PERICIA')}>
+              <Button type="button" size="xs" variant="ghost" onClick={() => setModalSelecao(tipoFormularioModificador === 'RECURSOS' ? 'RECURSO' : tipoFormularioModificador === 'ATRIBUTOS' ? 'ATRIBUTO' : tipoFormularioModificador === 'GRAUS' ? 'GRAU' : 'PERICIA')}>
                 Abrir seletor detalhado
               </Button>
             </div>
             <Modal
               isOpen={modalSelecao !== null}
               onClose={() => setModalSelecao(null)}
-              title={modalSelecao === 'RECURSO' ? 'Selecionar recurso' : modalSelecao === 'GRAU' ? 'Selecionar grau de aprimoramento' : 'Selecionar perícia'}
+              title={modalSelecao === 'RECURSO' ? 'Selecionar recurso' : modalSelecao === 'ATRIBUTO' ? 'Selecionar atributo' : modalSelecao === 'GRAU' ? 'Selecionar grau de aprimoramento' : 'Selecionar perícia'}
               size="md"
             >
               <div className="grid gap-2">
-                {(modalSelecao === 'RECURSO' ? CAMPOS_MODIFICADOR_NUMERICO_OPTIONS : modalSelecao === 'GRAU' ? opcoesTiposGrauModificador : opcoesPericiasModificador).map((opcao) => (
-                  <button key={opcao.value} type="button" className="rounded-xl border border-app-border p-3 text-left hover:border-app-primary/60 hover:bg-app-primary/5" onClick={() => { if (modalSelecao === 'RECURSO') setCampoModificador(opcao.value as typeof campoModificador); else if (modalSelecao === 'GRAU') setTipoGrauModificadorCodigo(opcao.value); else setPericiaModificadorCodigo(opcao.value); setModalSelecao(null); }}>
+                {(modalSelecao === 'RECURSO' ? CAMPOS_MODIFICADOR_NUMERICO_OPTIONS : modalSelecao === 'ATRIBUTO' ? ATRIBUTOS_MODIFICADOR : modalSelecao === 'GRAU' ? opcoesTiposGrauModificador : opcoesPericiasModificador).map((opcao) => (
+                  <button key={opcao.value} type="button" className="rounded-xl border border-app-border p-3 text-left hover:border-app-primary/60 hover:bg-app-primary/5" onClick={() => { if (modalSelecao === 'RECURSO') setCampoModificador(opcao.value as typeof campoModificador); else if (modalSelecao === 'ATRIBUTO') setAtributoModificadorCodigo(opcao.value as typeof atributoModificadorCodigo); else if (modalSelecao === 'GRAU') setTipoGrauModificadorCodigo(opcao.value); else setPericiaModificadorCodigo(opcao.value); setModalSelecao(null); }}>
                     <p className="font-semibold text-app-fg">{opcao.label}</p>
                   </button>
                 ))}
