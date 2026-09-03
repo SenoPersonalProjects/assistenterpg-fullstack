@@ -959,6 +959,8 @@ export type OutraHabilidadeSessaoCampanha = {
   descricao: string | null;
   tipo: string;
   fonte: string;
+  mecanicasEspeciais?: unknown;
+  config?: Record<string, unknown> | null;
 };
 
 export type AprimoramentoTemporarioSessaoCampanha = {

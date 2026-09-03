@@ -1,5 +1,6 @@
 import type {
   HabilidadeTecnicaSessaoCampanha,
+  OutraHabilidadeSessaoCampanha,
   PericiaSessaoCampanha,
   VariacaoHabilidadeSessaoCampanha,
 } from '../types/campanha.types';
@@ -21,6 +22,42 @@ export type CustoExibicaoSessao = {
   custoSustentacaoEA: number | null;
   custoSustentacaoPE: number | null;
 };
+
+export function contarRituaisPrediletos(
+  outrasHabilidades: OutraHabilidadeSessaoCampanha[] | null | undefined,
+  habilidadeTecnicaId: number,
+): number {
+  return (outrasHabilidades ?? []).reduce((total, habilidade) => {
+    const mecanicas = habilidade.mecanicasEspeciais;
+    if (!mecanicas || typeof mecanicas !== 'object') return total;
+    const escolha = (mecanicas as { escolha?: unknown }).escolha;
+    if (!escolha || typeof escolha !== 'object' || (escolha as { tipo?: unknown }).tipo !== 'FEITICO_CONHECIDO') {
+      return total;
+    }
+    const reduzCusto = (mecanicas as { reduzCusto?: unknown }).reduzCusto;
+    if (!reduzCusto || typeof reduzCusto !== 'object') return total;
+    const valor = Number((reduzCusto as { valor?: unknown }).valor);
+    const modos = (reduzCusto as { modos?: unknown }).modos;
+    if (valor !== 1 || !Array.isArray(modos) || !modos.some((modo) => modo === 'EA' || modo === 'PE')) {
+      return total;
+    }
+    const config = habilidade.config;
+    const habilidadeConfigurada =
+      config && Number(config.habilidadeTecnicaId) === habilidadeTecnicaId;
+    return habilidadeConfigurada ? total + 1 : total;
+  }, 0);
+}
+
+export function aplicarDescontoRitualPredileto(
+  custoEA: number,
+  custoPE: number,
+  descontos: number,
+): { custoEA: number; custoPE: number } {
+  if (descontos <= 0) return { custoEA, custoPE };
+  if (custoEA > 0) return { custoEA: Math.max(1, custoEA - descontos), custoPE };
+  if (custoPE > 0) return { custoEA, custoPE: Math.max(1, custoPE - descontos) };
+  return { custoEA, custoPE };
+}
 
 function normalizar(valor: number | null | undefined, fallback = 0): number {
   return Number.isFinite(valor) ? Math.max(0, Math.trunc(Number(valor))) : fallback;

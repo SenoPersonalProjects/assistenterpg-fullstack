@@ -7,6 +7,7 @@ export type ConcessoesCampanha = {
   poderesGenericos: Array<{ id: number; config?: Record<string, unknown> | null; habilidade: { id: number; nome: string; descricao: string | null; mecanicasEspeciais?: unknown } }>;
   proficienciasConcedidas: Array<{ proficiencia: { id: number; nome: string; tipo: string; categoria: string } }>;
   habilidadesPersonalizadas: Array<{ id: number; nome: string; descricao: string }>;
+  opcoesRitualPredileto: { tecnicaId: number; tecnicaNome: string; habilidades: Array<{ id: number; nome: string; descricao: string; custoPE: number; custoEA: number }> } | null;
 };
 
 export async function apiGetConcessoesCampanha(campanhaId: number, personagemId: number) {

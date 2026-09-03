@@ -4363,6 +4363,68 @@ describe('SessaoService', () => {
     }
   });
 
+  it('aplica Ritual Predileto priorizando EA e nunca zera o custo', () => {
+    const habilidade = {
+      id: 321,
+      custoPE: 2,
+      custoEA: 3,
+      custoSustentacaoEA: 4,
+      custoSustentacaoPE: 2,
+      variacoes: [],
+      escalonaPorGrau: false,
+      duracao: 'Sustentada',
+    };
+    const personagem = {
+      poderesGenericos: [
+        {
+          config: { habilidadeTecnicaId: 321 },
+          habilidade: {
+            id: 1,
+            mecanicasEspeciais: {
+              escolha: { tipo: 'FEITICO_CONHECIDO' },
+              reduzCusto: { valor: 1, modos: ['PE', 'EA'] },
+            },
+          },
+        },
+      ],
+      personagemBase: { poderesGenericos: [] },
+    };
+    const desconto = (service as any).contarRituaisPrediletos(personagem, 321);
+    const custo = (service as any).resolverCustoUsoHabilidade(
+      habilidade,
+      new Map(),
+      undefined,
+      0,
+      desconto,
+    );
+    expect(desconto).toBe(1);
+    expect(custo.custoEA).toBe(2);
+    expect(custo.custoPE).toBe(2);
+    expect(custo.custoSustentacaoEA).toBe(4);
+  });
+
+  it('usa PE quando Ritual Predileto nÃ£o encontra custo de EA e preserva custo mÃ­nimo 1', () => {
+    const habilidade = {
+      id: 322,
+      custoPE: 1,
+      custoEA: 0,
+      custoSustentacaoEA: null,
+      custoSustentacaoPE: null,
+      variacoes: [],
+      escalonaPorGrau: false,
+      duracao: 'InstantÃ¢nea',
+    };
+    const custo = (service as any).resolverCustoUsoHabilidade(
+      habilidade,
+      new Map(),
+      undefined,
+      0,
+      1,
+    );
+    expect(custo.custoEA).toBe(0);
+    expect(custo.custoPE).toBe(1);
+  });
+
   it('deve considerar Aprimorado temporario para liberar tecnica nao inata', () => {
     const personagem = {
       id: 51,

@@ -9,6 +9,9 @@ import type { SessaoCampanhaDetalhe } from '@/lib/types';
 import {
   normalizarDadosDano,
   normalizarEscalonamentoDano,
+  aplicarDescontoRitualPredileto,
+  contarRituaisPrediletos,
+  formatarCustos,
   resolverCustoExibicaoSessao as resolverCustoExibicao,
   resolverTesteHabilidade,
 } from '@/lib/campanha/sessao-habilidades';
@@ -276,6 +279,15 @@ export function SessionTechniqueBlock({
         <div className="space-y-3">
           {habilidadesVisiveis.map((habilidade) => {
             const custoBase = resolverCustoExibicao(habilidade);
+            const descontosRitualPredileto = contarRituaisPrediletos(
+              card.outrasHabilidades,
+              habilidade.id,
+            );
+            const custoBaseEfetivo = aplicarDescontoRitualPredileto(
+              custoBase.custoEA,
+              custoBase.custoPE,
+              descontosRitualPredileto,
+            );
             const chaveAcumuloBase = montarChaveAcumuloHabilidade(
               card.personagemSessaoId,
               habilidade.id,
@@ -296,6 +308,11 @@ export function SessionTechniqueBlock({
               custoBase.custoEA + custoBase.escalonamentoCustoEA * acumulosBaseExtras;
             const custoBaseTotalPE =
               custoBase.custoPE + custoBase.escalonamentoCustoPE * acumulosBaseExtras;
+            const custoBaseTotalEfetivo = aplicarDescontoRitualPredileto(
+              custoBaseTotalEA,
+              custoBaseTotalPE,
+              descontosRitualPredileto,
+            );
             const chaveBase = montarChaveUsoHabilidade(
               card.personagemSessaoId,
               habilidade.id,
@@ -370,8 +387,8 @@ export function SessionTechniqueBlock({
                       </p>
                       <div className="flex flex-wrap items-center gap-1.5">
                         {renderCustoBadges({
-                          custoEA: custoBase.custoEA,
-                          custoPE: custoBase.custoPE,
+                          custoEA: custoBaseEfetivo.custoEA,
+                          custoPE: custoBaseEfetivo.custoPE,
                           color: 'blue',
                           variant: 'soft',
                         })}
@@ -384,6 +401,13 @@ export function SessionTechniqueBlock({
                               variant: 'outline',
                             })
                           : null}
+                        {descontosRitualPredileto > 0 &&
+                        (custoBase.custoEA > 0 || custoBase.custoPE > 0) ? (
+                          <span className="text-[10px] text-app-muted">
+                            Ritual Predileto: {formatarCustos(custoBase.custoEA, custoBase.custoPE)} →{' '}
+                            {formatarCustos(custoBaseEfetivo.custoEA, custoBaseEfetivo.custoPE)}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -485,8 +509,8 @@ export function SessionTechniqueBlock({
                     <div className="flex flex-wrap items-center gap-1.5">
                       {renderCustoBadges({
                         prefix: 'Total',
-                        custoEA: custoBaseTotalEA,
-                        custoPE: custoBaseTotalPE,
+                        custoEA: custoBaseTotalEfetivo.custoEA,
+                        custoPE: custoBaseTotalEfetivo.custoPE,
                         color: 'orange',
                         variant: 'solid',
                       })}
@@ -521,6 +545,11 @@ export function SessionTechniqueBlock({
                           habilidade,
                           variacao,
                         );
+                        const custoVariacaoEfetivo = aplicarDescontoRitualPredileto(
+                          custoVariacao.custoEA,
+                          custoVariacao.custoPE,
+                          descontosRitualPredileto,
+                        );
                         const execucaoVariacao =
                           variacao.execucao ?? habilidade.execucao;
                         const alcanceVariacao =
@@ -551,6 +580,11 @@ export function SessionTechniqueBlock({
                         const custoVariacaoTotalPE =
                           custoVariacao.custoPE +
                           custoVariacao.escalonamentoCustoPE * acumulosVariacaoExtras;
+                        const custoVariacaoTotalEfetivo = aplicarDescontoRitualPredileto(
+                          custoVariacaoTotalEA,
+                          custoVariacaoTotalPE,
+                          descontosRitualPredileto,
+                        );
                         const testesVariacaoResolvidos = resolverTesteHabilidade(
                           habilidade.testesExigidos,
                           card.pericias ?? [],
@@ -626,8 +660,8 @@ export function SessionTechniqueBlock({
                                   </p>
                                   <div className="flex flex-wrap items-center gap-1.5">
                                     {renderCustoBadges({
-                                      custoEA: custoVariacao.custoEA,
-                                      custoPE: custoVariacao.custoPE,
+                                      custoEA: custoVariacaoEfetivo.custoEA,
+                                      custoPE: custoVariacaoEfetivo.custoPE,
                                       color: 'purple',
                                       variant: 'soft',
                                     })}
@@ -644,6 +678,13 @@ export function SessionTechniqueBlock({
                                           variant: 'outline',
                                         })
                                       : null}
+                                    {descontosRitualPredileto > 0 &&
+                                    (custoVariacao.custoEA > 0 || custoVariacao.custoPE > 0) ? (
+                                      <span className="text-[10px] text-app-muted">
+                                        Ritual Predileto: {formatarCustos(custoVariacao.custoEA, custoVariacao.custoPE)} →{' '}
+                                        {formatarCustos(custoVariacaoEfetivo.custoEA, custoVariacaoEfetivo.custoPE)}
+                                      </span>
+                                    ) : null}
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -754,8 +795,8 @@ export function SessionTechniqueBlock({
                                 <div className="flex flex-wrap items-center gap-1.5">
                                   {renderCustoBadges({
                                     prefix: 'Total',
-                                    custoEA: custoVariacaoTotalEA,
-                                    custoPE: custoVariacaoTotalPE,
+                                    custoEA: custoVariacaoTotalEfetivo.custoEA,
+                                    custoPE: custoVariacaoTotalEfetivo.custoPE,
                                     color: 'orange',
                                     variant: 'solid',
                                   })}

@@ -31,9 +31,12 @@ export class CampanhaConcessoesService {
         poderesGenericos: { include: { habilidade: { select: { id: true, nome: true, descricao: true, mecanicasEspeciais: true } } } },
         proficienciasConcedidas: { include: { proficiencia: true } },
         habilidadesPersonalizadas: true,
+        tecnicaInataPropria: { select: { id: true, nome: true, habilidades: { where: { habilitada: true }, select: { id: true, nome: true, descricao: true, custoPE: true, custoEA: true }, orderBy: { ordem: 'asc' } } } },
+        tecnicaInata: { select: { id: true, nome: true, habilidades: { where: { habilitada: true }, select: { id: true, nome: true, descricao: true, custoPE: true, custoEA: true }, orderBy: { ordem: 'asc' } } } },
       },
     });
-    return personagem;
+    const tecnica = personagem.tecnicaInataPropria ?? personagem.tecnicaInata;
+    return { ...personagem, opcoesRitualPredileto: tecnica ? { tecnicaId: tecnica.id, tecnicaNome: tecnica.nome, habilidades: tecnica.habilidades } : null };
   }
 
   async listarTiposResistencia(campanhaId: number, personagemCampanhaId: number, usuarioId: number) {
@@ -57,6 +60,15 @@ export class CampanhaConcessoesService {
       const shikigamiId = Number(dto.config?.shikigamiId);
       const vinculado = Number.isInteger(shikigamiId) && await this.prisma.personagemCampanhaEntidadeVinculada.findFirst({ where: { id: shikigamiId, personagemCampanhaId, tipo: 'SHIKIGAMI' }, select: { id: true } });
       if (!vinculado) throw new BadRequestException('Selecione um shikigami válido vinculado ao personagem.');
+    }
+    if (escolha?.tipo === 'FEITICO_CONHECIDO') {
+      const habilidadeTecnicaId = Number(dto.config?.habilidadeTecnicaId);
+      const personagem = await this.prisma.personagemCampanha.findUnique({ where: { id: personagemCampanhaId }, select: { tecnicaInataId: true, tecnicaInataPropriaId: true } });
+      const tecnicaIds = [personagem?.tecnicaInataPropriaId, personagem?.tecnicaInataId].filter((id): id is number => Number.isInteger(id));
+      const habilidade = Number.isInteger(habilidadeTecnicaId) && tecnicaIds.length > 0
+        ? await this.prisma.habilidadeTecnica.findFirst({ where: { id: habilidadeTecnicaId, habilitada: true, tecnicaId: { in: tecnicaIds } }, select: { id: true } })
+        : null;
+      if (!habilidade) throw new BadRequestException('Selecione uma habilidade vÃ¡lida da tÃ©cnica inata do personagem.');
     }
     const registro = await this.prisma.poderGenericoPersonagemCampanha.create({
       data: { personagemCampanhaId, habilidadeId: poder.id, config: dto.config as Prisma.InputJsonValue | undefined },

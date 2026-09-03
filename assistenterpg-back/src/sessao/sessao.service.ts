@@ -353,6 +353,8 @@ type HabilidadeOutrasSessaoResumo = {
   descricao: string | null;
   tipo: string;
   fonte: string;
+  mecanicasEspeciais?: Prisma.JsonValue | null;
+  config?: Prisma.JsonValue | null;
 };
 
 type AprimoramentoTemporarioSessaoResumo = {
@@ -630,6 +632,9 @@ type CustoHabilidadeResolvido = {
   variacaoHabilidadeId: number | null;
   custoEA: number;
   custoPE: number;
+  custoEAOriginal: number;
+  custoPEOriginal: number;
+  descontoRitualPredileto: number;
   duracao: string | null;
   isSustentada: boolean;
   custoSustentacaoEA: number | null;
@@ -761,7 +766,10 @@ type PersonagemCampanhaTecnicasSessaoRaw = {
   trilha?: EntidadeCatalogoSessaoRaw | null;
   caminho?: EntidadeCatalogoSessaoRaw | null;
   habilidadesCampanha?: Array<{ habilidade: HabilidadeSessaoRaw }>;
-  poderesGenericos?: Array<{ habilidade: HabilidadeSessaoRaw }>;
+  poderesGenericos?: Array<{
+    habilidade: HabilidadeSessaoRaw;
+    config?: Prisma.JsonValue | null;
+  }>;
   personagemBase?: {
     id?: number;
     nivel?: number;
@@ -774,7 +782,10 @@ type PersonagemCampanhaTecnicasSessaoRaw = {
     trilha?: EntidadeCatalogoSessaoRaw | null;
     caminho?: EntidadeCatalogoSessaoRaw | null;
     habilidadesBase?: Array<{ habilidade: HabilidadeSessaoRaw }>;
-    poderesGenericos?: Array<{ habilidade: HabilidadeSessaoRaw }>;
+    poderesGenericos?: Array<{
+      habilidade: HabilidadeSessaoRaw;
+      config?: Prisma.JsonValue | null;
+    }>;
     tecnicasAprendidas?: RelacaoTecnicaSessaoRaw[];
     grausAprimoramento?: GrauSessaoRaw[];
   } | null;
@@ -1161,6 +1172,7 @@ export class SessaoService {
                 },
                 poderesGenericos: {
                   select: {
+                    config: true,
                     habilidade: {
                       select: {
                         id: true,
@@ -1354,6 +1366,7 @@ export class SessaoService {
                     },
                     poderesGenericos: {
                       select: {
+                        config: true,
                         habilidade: {
                           select: {
                             id: true,
@@ -7892,6 +7905,10 @@ export class SessaoService {
             grausMapEfetivo,
             dto.variacaoHabilidadeId,
             dto.acumulos ?? 0,
+            this.contarRituaisPrediletos(
+              personagemSessao.personagemCampanha,
+              habilidade.id,
+            ),
           );
 
           if (custo.isSustentada) {
@@ -10480,6 +10497,7 @@ export class SessaoService {
     const candidatos: Array<{
       habilidade: HabilidadeSessaoRaw;
       fonte: string;
+      config?: Prisma.JsonValue | null;
     }> = [];
     const classe =
       personagemCampanha.classe ?? personagemCampanha.personagemBase?.classe;
@@ -10544,6 +10562,7 @@ export class SessaoService {
     const candidatos: Array<{
       habilidade: HabilidadeSessaoRaw;
       fonte: string;
+      config?: Prisma.JsonValue | null;
     }> = [];
 
     for (const vinculo of [
@@ -10553,6 +10572,10 @@ export class SessaoService {
       candidatos.push({
         habilidade: vinculo.habilidade,
         fonte: vinculo.habilidade.origem ?? 'Ficha',
+        config:
+          'config' in vinculo
+            ? (vinculo.config as Prisma.JsonValue | null)
+            : null,
       });
     }
 
@@ -10563,6 +10586,7 @@ export class SessaoService {
       candidatos.push({
         habilidade: vinculo.habilidade,
         fonte: vinculo.habilidade.origem ?? 'Poder',
+        config: vinculo.config,
       });
     }
 
@@ -10577,6 +10601,8 @@ export class SessaoService {
         descricao: candidato.habilidade.descricao,
         tipo: candidato.habilidade.tipo,
         fonte: candidato.fonte,
+        mecanicasEspeciais: candidato.habilidade.mecanicasEspeciais,
+        config: candidato.config ?? null,
       });
     }
 
@@ -14591,11 +14617,46 @@ export class SessaoService {
     return null;
   }
 
+  private contarRituaisPrediletos(
+    personagem: PersonagemCampanhaTecnicasSessaoRaw,
+    habilidadeTecnicaId: number,
+  ): number {
+    const poderes = [
+      ...(personagem.personagemBase?.poderesGenericos ?? []),
+      ...(personagem.poderesGenericos ?? []),
+    ];
+    return poderes.reduce((total, poder) => {
+      const mecanicas = this.extrairRegistro(
+        poder.habilidade.mecanicasEspeciais as Prisma.JsonValue | null,
+      );
+      const escolha = this.extrairRegistro(
+        mecanicas.escolha as Prisma.JsonValue | null,
+      );
+      const config = this.extrairRegistro(poder.config ?? null);
+      if (escolha.tipo !== 'FEITICO_CONHECIDO') return total;
+      const reduzCusto = this.extrairRegistro(
+        mecanicas.reduzCusto as Prisma.JsonValue | null,
+      );
+      if (reduzCusto.valor !== 1) return total;
+      const modos = reduzCusto.modos;
+      if (
+        !Array.isArray(modos) ||
+        !modos.some((modo) => modo === 'EA' || modo === 'PE')
+      ) {
+        return total;
+      }
+      return Number(config.habilidadeTecnicaId) === habilidadeTecnicaId
+        ? total + 1
+        : total;
+    }, 0);
+  }
+
   private resolverCustoUsoHabilidade(
     habilidade: HabilidadeTecnicaSessaoResumo,
     grausMap: Map<string, number>,
     variacaoHabilidadeId?: number,
     acumulosSolicitados = 0,
+    descontosRitualPredileto = 0,
   ): CustoHabilidadeResolvido {
     const variacaoSelecionada =
       typeof variacaoHabilidadeId === 'number'
@@ -14744,6 +14805,15 @@ export class SessaoService {
       }
     }
 
+    const custoEAOriginal = this.normalizarCustoPositivo(custoEA, 0);
+    const custoPEOriginal = this.normalizarCustoPositivo(custoPE, 0);
+    if (descontosRitualPredileto > 0) {
+      if (custoEA > 0)
+        custoEA = Math.max(1, custoEA - descontosRitualPredileto);
+      else if (custoPE > 0)
+        custoPE = Math.max(1, custoPE - descontosRitualPredileto);
+    }
+
     const isUsoBaseSemEscalonamento =
       variacaoSelecionada === null && acumulosExtras === 0;
 
@@ -14795,6 +14865,9 @@ export class SessaoService {
       variacaoHabilidadeId: variacaoSelecionada?.id ?? null,
       custoEA: this.normalizarCustoPositivo(custoEA, 0),
       custoPE: this.normalizarCustoPositivo(custoPE, 0),
+      custoEAOriginal,
+      custoPEOriginal,
+      descontoRitualPredileto: descontosRitualPredileto,
       duracao: duracao ?? null,
       isSustentada,
       custoSustentacaoEA: custoSustentacaoEANormalizado,
