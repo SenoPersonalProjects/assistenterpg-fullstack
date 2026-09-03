@@ -52,6 +52,7 @@ export type CampoModificadorPersonagemCampanha =
   | 'PRESTIGIO_GERAL'
   | 'PRESTIGIO_CLA'
   | 'PERICIA_TREINAMENTO'
+  | 'PERICIA_BONUS'
   | 'GRAU_APRIMORAMENTO';
 
 export type NucleoAmaldicoadoCodigo = 'EQUILIBRIO' | 'PODER' | 'IMPULSO';

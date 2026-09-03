@@ -29,6 +29,7 @@ import type {
   UserErrorState,
 } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -322,6 +323,7 @@ export function CharacterLinkedEntitiesPanel({
   const [templates, setTemplates] = useState<TemplateEntidadeVinculada[]>([]);
   const [maldicoes, setMaldicoes] = useState<NpcAmeacaResumo[]>([]);
   const [form, setForm] = useState<FormState>(() => criarFormInicial());
+  const [formAberto, setFormAberto] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [erro, setErro] = useState<UserErrorState | null>(null);
@@ -420,6 +422,7 @@ export function CharacterLinkedEntitiesPanel({
       tipo,
       tecnicaOrigemId: config ? String(config.tecnicaId) : '',
     });
+    setFormAberto(true);
   };
 
   const trocarTipo = (tipo: TipoEntidadeVinculadaPersonagem) => {
@@ -496,6 +499,7 @@ export function CharacterLinkedEntitiesPanel({
         );
       }
       setForm(criarFormInicial());
+      setFormAberto(false);
       await carregar();
       onAtualizado?.();
     } catch (error) {
@@ -705,7 +709,7 @@ export function CharacterLinkedEntitiesPanel({
                           type="button"
                           size="xs"
                           variant="ghost"
-                          onClick={() => setForm(preencherForm(entidade))}
+                          onClick={() => { setForm(preencherForm(entidade)); setFormAberto(true); }}
                         >
                           Editar
                         </Button>
@@ -794,7 +798,7 @@ export function CharacterLinkedEntitiesPanel({
         })}
       </div>
 
-      <div className="rounded border border-app-border p-3 space-y-3">
+      <Modal isOpen={formAberto} onClose={() => { setFormAberto(false); setForm(criarFormInicial()); }} title={form.id ? 'Editar vinculado' : 'Cadastrar vinculado'} size="full">
         <h4 className="text-sm font-semibold text-app-fg">
           {form.id ? 'Editar vinculado' : 'Cadastrar vinculado'}
         </h4>
@@ -971,7 +975,7 @@ export function CharacterLinkedEntitiesPanel({
               type="button"
               size="sm"
               variant="ghost"
-              onClick={() => setForm(criarFormInicial())}
+              onClick={() => { setForm(criarFormInicial()); setFormAberto(false); }}
             >
               Cancelar edicao
             </Button>
@@ -992,7 +996,7 @@ export function CharacterLinkedEntitiesPanel({
                 : `Criar ${rotuloTipo(form.tipo)}`}
           </Button>
         </div>
-      </div>
+      </Modal>
     </section>
   );
 }

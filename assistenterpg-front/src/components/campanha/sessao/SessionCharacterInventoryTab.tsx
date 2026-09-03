@@ -11,6 +11,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Select } from '@/components/ui/Select';
 import { useConfirm } from '@/hooks/useConfirm';
 import { InventarioModalEquipamento } from '@/components/personagem-base/create/modal/InventarioModalEquipamento';
+import { InventarioModalCategoria } from '@/components/personagem-base/create/modal/InventarioModalCategoria';
 import { InventarioModalEditar } from '@/components/personagem-base/create/modal/InventarioModalEditar';
 import {
   apiAdicionarItemInventarioCampanha,
@@ -42,6 +43,8 @@ import {
   getIconeTipo,
   equipamentoUsaPericiaPersonalizada,
   listarPericiasElegiveisItemPersonalizado,
+  CATEGORIAS_LABELS,
+  type CategoriaEquipamento,
 } from '@/lib/utils/inventario';
 
 type SessionCharacterInventoryTabProps = {
@@ -163,6 +166,8 @@ export function SessionCharacterInventoryTab({
   const [erro, setErro] = useState<UserErrorState | null>(null);
 
   const [modalAdicionarAberto, setModalAdicionarAberto] = useState(false);
+  const [inventarioExpandido, setInventarioExpandido] = useState(true);
+  const [categoriaAdicionar, setCategoriaAdicionar] = useState<CategoriaEquipamento>('ARMAS');
   const [etapaAdicionar, setEtapaAdicionar] = useState<EtapaAdicionar>('SELECIONAR');
   const [buscaEquipamento, setBuscaEquipamento] = useState('');
   const [equipamentoSelecionado, setEquipamentoSelecionado] =
@@ -236,14 +241,46 @@ export function SessionCharacterInventoryTab({
   }, [equipamentos.length, pericias.length]);
 
   const equipamentosFiltrados = useMemo(() => {
-    if (!buscaEquipamento.trim()) return equipamentos;
+    const porCategoria = equipamentos.filter((equip) => {
+      if (equip.fonte === 'HOMEBREW') return categoriaAdicionar === 'HOMEBREW';
+      if (equip.tipo === 'ARMA') return categoriaAdicionar === 'ARMAS';
+      if (equip.tipo === 'MUNICAO') return categoriaAdicionar === 'MUNICOES';
+      if (equip.tipo === 'PROTECAO') return categoriaAdicionar === 'PROTECOES';
+      if (equip.tipo === 'FERRAMENTA_AMALDICOADA' || equip.tipo === 'ITEM_AMALDICOADO') {
+        if (equip.armaAmaldicoada) return categoriaAdicionar === (equip.complexidadeMaldicao === 'COMPLEXA' ? 'ARMAS_AMALDICOADAS_COMPLEXAS' : 'ARMAS_AMALDICOADAS_SIMPLES');
+        if (equip.protecaoAmaldicoada) return categoriaAdicionar === (equip.complexidadeMaldicao === 'COMPLEXA' ? 'PROTECOES_AMALDICOADAS_COMPLEXAS' : 'PROTECOES_AMALDICOADAS_SIMPLES');
+        if (equip.artefatoAmaldicoado) return categoriaAdicionar === 'ARTEFATOS_AMALDICOADOS';
+        return categoriaAdicionar === 'ITENS_AMALDICOADOS';
+      }
+      return categoriaAdicionar === 'UTILITARIOS';
+    });
+    if (!buscaEquipamento.trim()) return porCategoria;
     const termo = buscaEquipamento.trim().toLowerCase();
-    return equipamentos.filter(
+    return porCategoria.filter(
       (equip) =>
         equip.nome.toLowerCase().includes(termo) ||
         equip.codigo.toLowerCase().includes(termo),
     );
-  }, [buscaEquipamento, equipamentos]);
+  }, [buscaEquipamento, categoriaAdicionar, equipamentos]);
+
+  const equipamentosPorCategoria = useMemo(() => {
+    const resultado = Object.fromEntries(
+      Object.keys(CATEGORIAS_LABELS).map((categoria) => [categoria, equipamentos.filter((equipamento) => {
+        if (equipamento.fonte === 'HOMEBREW') return categoria === 'HOMEBREW';
+        if (equipamento.tipo === 'ARMA') return categoria === 'ARMAS';
+        if (equipamento.tipo === 'MUNICAO') return categoria === 'MUNICOES';
+        if (equipamento.tipo === 'PROTECAO') return categoria === 'PROTECOES';
+        if (equipamento.tipo === 'FERRAMENTA_AMALDICOADA' || equipamento.tipo === 'ITEM_AMALDICOADO') {
+          if (equipamento.artefatoAmaldicoado) return categoria === 'ARTEFATOS_AMALDICOADOS';
+          if (equipamento.armaAmaldicoada) return categoria === (equipamento.complexidadeMaldicao === 'COMPLEXA' ? 'ARMAS_AMALDICOADAS_COMPLEXAS' : 'ARMAS_AMALDICOADAS_SIMPLES');
+          if (equipamento.protecaoAmaldicoada) return categoria === (equipamento.complexidadeMaldicao === 'COMPLEXA' ? 'PROTECOES_AMALDICOADAS_COMPLEXAS' : 'PROTECOES_AMALDICOADAS_SIMPLES');
+          return categoria === 'ITENS_AMALDICOADOS';
+        }
+        return categoria === 'UTILITARIOS';
+      })]),
+    ) as Record<CategoriaEquipamento, EquipamentoCatalogo[]>;
+    return resultado;
+  }, [equipamentos]);
 
   const resumoEspacos = inventario?.espacos;
   const itensSessao = inventario?.itensSessao ?? [];
@@ -265,6 +302,7 @@ export function SessionCharacterInventoryTab({
 
   const abrirModalAdicionar = () => {
     setEtapaAdicionar('SELECIONAR');
+    setCategoriaAdicionar('ARMAS');
     setEquipamentoSelecionado(null);
     setBuscaEquipamento('');
     setQuantidadeAdicionar(1);
@@ -597,8 +635,19 @@ export function SessionCharacterInventoryTab({
             <Icon name="add" className="h-3 w-3" /> Adicionar item
           </Button>
         ) : null}
+        <Button
+          size="xs"
+          variant="ghost"
+          aria-expanded={inventarioExpandido}
+          onClick={() => setInventarioExpandido((atual) => !atual)}
+        >
+          <Icon name={inventarioExpandido ? 'chevron-up' : 'chevron-down'} className="h-3 w-3" />
+          {inventarioExpandido ? 'Recolher' : 'Expandir'}
+        </Button>
       </div>
 
+      {inventarioExpandido ? (
+      <div className="space-y-2">
       {erro ? <ErrorAlert message={erro} /> : null}
 
       {resumoEspacos ? (
@@ -840,6 +889,8 @@ export function SessionCharacterInventoryTab({
           ) : null}
         </div>
       )}
+      </div>
+      ) : null}
 
       <Modal
         isOpen={modalAdicionarAberto}
@@ -850,6 +901,11 @@ export function SessionCharacterInventoryTab({
         <div className="space-y-4">
           {etapaAdicionar === 'SELECIONAR' ? (
             <>
+              <InventarioModalCategoria
+                categoriaAtiva={categoriaAdicionar}
+                equipamentosPorCategoria={equipamentosPorCategoria}
+                onSelectCategoria={setCategoriaAdicionar}
+              />
               {carregandoCatalogos ? (
                 <p className="text-xs text-app-muted">Carregando catalogo...</p>
               ) : (

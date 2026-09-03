@@ -46,13 +46,17 @@ export function formatarValorModificadorNarrativo(
     return `${formatarValorComSinal(valor)} ${unidade}`;
   }
 
+  if (campo === "PERICIA_BONUS") {
+    return formatarValorComSinal(valor);
+  }
+
   return formatarValorComSinal(valor);
 }
 
 export function obterAlvoModificadorNarrativo(
   modificador: ModificadorPersonagemCampanha,
 ): string | null {
-  if (modificador.campo === "PERICIA_TREINAMENTO") {
+  if (modificador.campo === "PERICIA_TREINAMENTO" || modificador.campo === "PERICIA_BONUS") {
     return modificador.pericia?.nome ?? modificador.periciaCodigo ?? null;
   }
 

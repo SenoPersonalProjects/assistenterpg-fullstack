@@ -53,13 +53,13 @@ type Props = {
 };
 
 type FiltroHistoricoContexto = 'TODOS' | 'SESSAO_ATUAL' | 'CENA_ATUAL';
-type TipoFormularioModificador = 'ATRIBUTOS' | 'PERICIAS' | 'GRAUS';
+type TipoFormularioModificador = 'RECURSOS' | 'PERICIAS' | 'PERICIAS_FLAT' | 'GRAUS';
 const FILTRO_HISTORICO_TIPO_TODOS = '__TODOS__';
 
 const CAMPOS_MODIFICADOR_NUMERICO_OPTIONS: Array<{
   value: Exclude<
     CampoModificadorPersonagemCampanha,
-    'PERICIA_TREINAMENTO' | 'GRAU_APRIMORAMENTO'
+    'PERICIA_TREINAMENTO' | 'PERICIA_BONUS' | 'GRAU_APRIMORAMENTO'
   >;
   label: string;
 }> = [
@@ -83,6 +83,7 @@ const LABEL_CAMPO_MODIFICADOR: Record<CampoModificadorPersonagemCampanha, string
     [
       ...CAMPOS_MODIFICADOR_NUMERICO_OPTIONS,
       { value: 'PERICIA_TREINAMENTO', label: 'Treinamento de perícia' },
+      { value: 'PERICIA_BONUS', label: 'Bônus flat de perícia' },
       { value: 'GRAU_APRIMORAMENTO', label: 'Grau de aprimoramento' },
     ].map((item) => [item.value, item.label]),
   ) as Record<CampoModificadorPersonagemCampanha, string>;
@@ -135,7 +136,7 @@ export function CampaignCharacterEditorModal({
   const [sanAtual, setSanAtual] = useState('');
 
   const [tipoFormularioModificador, setTipoFormularioModificador] =
-    useState<TipoFormularioModificador>('ATRIBUTOS');
+    useState<TipoFormularioModificador>('RECURSOS');
   const [campoModificador, setCampoModificador] =
     useState<CampoModificadorPersonagemCampanha>('EA_MAX');
   const [periciaModificadorCodigo, setPericiaModificadorCodigo] = useState('');
@@ -165,6 +166,7 @@ export function CampaignCharacterEditorModal({
   const [savingModificador, setSavingModificador] = useState(false);
   const [erro, setErro] = useState<UserErrorState | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
+  const [modalSelecao, setModalSelecao] = useState<'RECURSO' | 'PERICIA' | 'GRAU' | null>(null);
 
   const personagemId = personagem?.id ?? null;
 
@@ -471,12 +473,12 @@ export function CampaignCharacterEditorModal({
     let periciaCodigo: string | undefined;
     let tipoGrauCodigo: string | undefined;
 
-    if (tipoFormularioModificador === 'PERICIAS') {
+    if (tipoFormularioModificador === 'PERICIAS' || tipoFormularioModificador === 'PERICIAS_FLAT') {
       if (!periciaModificadorCodigo) {
         setErro('Selecione a perícia que receberá o ajuste narrativo.');
         return;
       }
-      campoEnvio = 'PERICIA_TREINAMENTO';
+      campoEnvio = tipoFormularioModificador === 'PERICIAS_FLAT' ? 'PERICIA_BONUS' : 'PERICIA_TREINAMENTO';
       periciaCodigo = periciaModificadorCodigo;
     }
 
@@ -651,8 +653,9 @@ export function CampaignCharacterEditorModal({
             </h3>
             <div className="flex flex-wrap gap-2">
               {[
-                { id: 'ATRIBUTOS' as const, label: 'Atributos' },
+                { id: 'RECURSOS' as const, label: 'Recursos' },
                 { id: 'PERICIAS' as const, label: 'Perícias' },
+                { id: 'PERICIAS_FLAT' as const, label: 'Bônus flat' },
                 { id: 'GRAUS' as const, label: 'Graus' },
               ].map((opcao) => (
                 <Button
@@ -671,7 +674,7 @@ export function CampaignCharacterEditorModal({
               ))}
             </div>
             <div className="grid gap-3 md:grid-cols-2">
-              {tipoFormularioModificador === 'ATRIBUTOS' ? (
+              {tipoFormularioModificador === 'RECURSOS' ? (
                 <Select
                   label="Campo"
                   value={campoModificador}
@@ -683,7 +686,7 @@ export function CampaignCharacterEditorModal({
                   options={CAMPOS_MODIFICADOR_NUMERICO_OPTIONS}
                 />
               ) : null}
-              {tipoFormularioModificador === 'PERICIAS' ? (
+              {tipoFormularioModificador === 'PERICIAS' || tipoFormularioModificador === 'PERICIAS_FLAT' ? (
                 <Select
                   label="Perícia"
                   value={periciaModificadorCodigo}
@@ -719,6 +722,8 @@ export function CampaignCharacterEditorModal({
                 helperText={
                   tipoFormularioModificador === 'PERICIAS'
                     ? '+1 concede um nível de treino; -1 remove um nível.'
+                    : tipoFormularioModificador === 'PERICIAS_FLAT'
+                      ? 'Bônus direto e personalizado: aceite valores positivos ou negativos.'
                     : tipoFormularioModificador === 'GRAUS'
                       ? '+1 concede um grau; -1 remove um grau.'
                       : undefined
@@ -739,6 +744,25 @@ export function CampaignCharacterEditorModal({
                 />
               </div>
             </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="xs" variant="ghost" onClick={() => setModalSelecao(tipoFormularioModificador === 'RECURSOS' ? 'RECURSO' : tipoFormularioModificador === 'GRAUS' ? 'GRAU' : 'PERICIA')}>
+                Abrir seletor detalhado
+              </Button>
+            </div>
+            <Modal
+              isOpen={modalSelecao !== null}
+              onClose={() => setModalSelecao(null)}
+              title={modalSelecao === 'RECURSO' ? 'Selecionar recurso' : modalSelecao === 'GRAU' ? 'Selecionar grau de aprimoramento' : 'Selecionar perícia'}
+              size="md"
+            >
+              <div className="grid gap-2">
+                {(modalSelecao === 'RECURSO' ? CAMPOS_MODIFICADOR_NUMERICO_OPTIONS : modalSelecao === 'GRAU' ? opcoesTiposGrauModificador : opcoesPericiasModificador).map((opcao) => (
+                  <button key={opcao.value} type="button" className="rounded-xl border border-app-border p-3 text-left hover:border-app-primary/60 hover:bg-app-primary/5" onClick={() => { if (modalSelecao === 'RECURSO') setCampoModificador(opcao.value as typeof campoModificador); else if (modalSelecao === 'GRAU') setTipoGrauModificadorCodigo(opcao.value); else setPericiaModificadorCodigo(opcao.value); setModalSelecao(null); }}>
+                    <p className="font-semibold text-app-fg">{opcao.label}</p>
+                  </button>
+                ))}
+              </div>
+            </Modal>
             <Button
               variant="primary"
               onClick={handleAplicarModificador}

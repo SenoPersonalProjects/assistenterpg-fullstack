@@ -97,6 +97,9 @@ export function CampaignRouletteTab({
   const [resultadosAnunciados, setResultadosAnunciados] = useState<
     Partial<Record<CampanhaRoletaSlot, ResultadoAnunciado>>
   >({});
+  const [animacoesEmCurso, setAnimacoesEmCurso] = useState<
+    Partial<Record<CampanhaRoletaSlot, string>>
+  >({});
   const [slot, setSlot] = useState<CampanhaRoletaSlot>('CLA');
   const [configurando, setConfigurando] = useState(false);
   const [alvoUsuarioId, setAlvoUsuarioId] = useState('');
@@ -155,6 +158,10 @@ export function CampaignRouletteTab({
   }, [carregarEstado, carregarHistorico, historico?.pagina]);
 
   const registrarGiro = useCallback((recebido: CampanhaRoletaGiro) => {
+    setAnimacoesEmCurso((atuais) => ({
+      ...atuais,
+      [recebido.sorteio.slot]: recebido.giro.animacaoId,
+    }));
     setVisualizacoes((atuais) => ({
       ...atuais,
       [recebido.sorteio.slot]: {
@@ -234,7 +241,9 @@ export function CampaignRouletteTab({
     sorteioExibido?.poolSnapshot.itens ?? resumoConfigurado?.pool.itens ?? [];
   const resultadoEstatico = giroAtual ? null : sorteioExibido?.resultadoFinal ?? null;
   const anuncio = resultadosAnunciados[slot];
-  const girando = Boolean(giroAtual && anuncio?.animacaoId !== giroAtual.animacaoId);
+  const girando = Boolean(
+    giroAtual && animacoesEmCurso[slot] === giroAtual.animacaoId,
+  );
   const resultadoVisivel = giroAtual
     ? anuncio?.animacaoId === giroAtual.animacaoId
       ? anuncio.nome
@@ -395,11 +404,18 @@ export function CampaignRouletteTab({
             giro={giroAtual}
             resultadoEstatico={resultadoEstatico}
             onAnimationComplete={(resultado) =>
-              giroAtual &&
-              setResultadosAnunciados((atuais) => ({
-                ...atuais,
-                [slot]: { animacaoId: giroAtual.animacaoId, nome: resultado.nome },
-              }))
+              giroAtual && (() => {
+                setAnimacoesEmCurso((atuais) => {
+                  if (atuais[slot] !== giroAtual.animacaoId) return atuais;
+                  const proximo = { ...atuais };
+                  delete proximo[slot];
+                  return proximo;
+                });
+                setResultadosAnunciados((atuais) => ({
+                  ...atuais,
+                  [slot]: { animacaoId: giroAtual.animacaoId, nome: resultado.nome },
+                }));
+              })()
             }
           />
 
