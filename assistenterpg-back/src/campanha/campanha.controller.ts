@@ -17,6 +17,8 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { CampanhaService } from './campanha.service';
 import { CreateCampanhaDto } from './dto/create-campanha.dto';
+import { UpdateCampanhaDto } from './dto/update-campanha.dto';
+import { ConcederPoderGenericoCampanhaDto, ConcederProficienciaCampanhaDto, CriarHabilidadePersonalizadaCampanhaDto } from './dto/concessoes-personagem-campanha.dto';
 import { AddMembroDto } from './dto/add-membro.dto';
 import { CreateConviteDto } from './dto/create-convite.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
@@ -279,6 +281,15 @@ export class CampanhaController {
     @Request() req: { user: { id: number } },
   ) {
     return this.campanhaService.excluirCampanha(id, req.user.id);
+  }
+
+  @Patch(':id')
+  async atualizar(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: UpdateCampanhaDto,
+  ) {
+    return this.campanhaService.atualizarCampanha(id, req.user.id, dto);
   }
 
   @Get(':id/membros')
@@ -665,6 +676,21 @@ export class CampanhaController {
       req.user.id,
     );
   }
+
+  @Get(':id/personagens/:personagemCampanhaId/concessoes')
+  listarConcessoes(@Param('id', ParseIntPipe) id: number, @Param('personagemCampanhaId', ParseIntPipe) personagemId: number, @Request() req: { user: { id: number } }) { return this.campanhaService.listarConcessoesPersonagemCampanha(id, personagemId, req.user.id); }
+  @Post(':id/personagens/:personagemCampanhaId/poderes-genericos')
+  concederPoder(@Param('id', ParseIntPipe) id: number, @Param('personagemCampanhaId', ParseIntPipe) personagemId: number, @Request() req: { user: { id: number } }, @Body() dto: ConcederPoderGenericoCampanhaDto) { return this.campanhaService.concederPoderGenericoCampanha(id, personagemId, req.user.id, dto); }
+  @Delete(':id/personagens/:personagemCampanhaId/poderes-genericos/:poderId')
+  removerPoder(@Param('id', ParseIntPipe) id: number, @Param('personagemCampanhaId', ParseIntPipe) personagemId: number, @Param('poderId', ParseIntPipe) poderId: number, @Request() req: { user: { id: number } }) { return this.campanhaService.removerPoderGenericoCampanha(id, personagemId, poderId, req.user.id); }
+  @Post(':id/personagens/:personagemCampanhaId/proficiencias')
+  concederProficiencia(@Param('id', ParseIntPipe) id: number, @Param('personagemCampanhaId', ParseIntPipe) personagemId: number, @Request() req: { user: { id: number } }, @Body() dto: ConcederProficienciaCampanhaDto) { return this.campanhaService.concederProficienciaCampanha(id, personagemId, req.user.id, dto); }
+  @Delete(':id/personagens/:personagemCampanhaId/proficiencias/:proficienciaId')
+  removerProficiencia(@Param('id', ParseIntPipe) id: number, @Param('personagemCampanhaId', ParseIntPipe) personagemId: number, @Param('proficienciaId', ParseIntPipe) proficienciaId: number, @Request() req: { user: { id: number } }) { return this.campanhaService.removerProficienciaCampanha(id, personagemId, proficienciaId, req.user.id); }
+  @Post(':id/personagens/:personagemCampanhaId/habilidades-personalizadas')
+  criarHabilidade(@Param('id', ParseIntPipe) id: number, @Param('personagemCampanhaId', ParseIntPipe) personagemId: number, @Request() req: { user: { id: number } }, @Body() dto: CriarHabilidadePersonalizadaCampanhaDto) { return this.campanhaService.criarHabilidadePersonalizadaCampanha(id, personagemId, req.user.id, dto); }
+  @Delete(':id/personagens/:personagemCampanhaId/habilidades-personalizadas/:habilidadeId')
+  removerHabilidade(@Param('id', ParseIntPipe) id: number, @Param('personagemCampanhaId', ParseIntPipe) personagemId: number, @Param('habilidadeId', ParseIntPipe) habilidadeId: number, @Request() req: { user: { id: number } }) { return this.campanhaService.removerHabilidadePersonalizadaCampanha(id, personagemId, habilidadeId, req.user.id); }
 
   @Get(':id/personagens/:personagemCampanhaId/macros')
   async listarMacrosPersonagemCampanha(

@@ -92,6 +92,7 @@ export class CampanhaPersonagensService {
         },
         inventarioItens: {
           select: {
+            id: true,
             equipamentoId: true,
             quantidade: true,
             equipado: true,
@@ -115,6 +116,10 @@ export class CampanhaPersonagensService {
     campanhaId: number,
     personagemCampanhaId: number,
   ): Promise<void> {
+    await tx.personagemCampanhaResistencia.deleteMany({
+      where: { personagemCampanhaId },
+    });
+
     const personagensSessao = await tx.personagemSessao.findMany({
       where: { personagemCampanhaId },
       select: { id: true },
@@ -157,6 +162,112 @@ export class CampanhaPersonagensService {
       await tx.personagemSessao.deleteMany({
         where: { id: { in: personagensSessaoIds } },
       });
+    }
+  }
+
+  private async sincronizarInventarioDaFichaBaseTx(
+    tx: Prisma.TransactionClient,
+    personagemCampanhaId: number,
+    itensBase: Array<{
+      id: number;
+      equipamentoId: number;
+      quantidade: number;
+      equipado: boolean;
+      categoriaCalculada: Prisma.InventarioItemBaseGetPayload<{
+        select: { categoriaCalculada: true };
+      }>['categoriaCalculada'];
+      nomeCustomizado: string | null;
+      notas: string | null;
+      estado: Prisma.JsonValue | null;
+      modificacoes: Array<{ modificacaoId: number }>;
+    }>,
+  ): Promise<void> {
+    const [itensCampanha, suprimidos] = await Promise.all([
+      tx.inventarioItemCampanha.findMany({
+        where: { personagemCampanhaId },
+        select: { id: true, itemBaseOrigemId: true },
+      }),
+      tx.inventarioItemCampanhaBaseSuprimido.findMany({
+        where: { personagemCampanhaId },
+        select: { itemBaseOrigemId: true },
+      }),
+    ]);
+    const porOrigem = new Map(
+      itensCampanha
+        .filter(
+          (item): item is typeof item & { itemBaseOrigemId: number } =>
+            item.itemBaseOrigemId !== null,
+        )
+        .map((item) => [item.itemBaseOrigemId, item]),
+    );
+    const origensBase = new Set(itensBase.map((item) => item.id));
+    const origensSuprimidas = new Set(
+      suprimidos.map((item) => item.itemBaseOrigemId),
+    );
+
+    const origensRemovidas = [...porOrigem.keys()].filter(
+      (origemId) => !origensBase.has(origemId),
+    );
+    if (origensRemovidas.length > 0) {
+      await tx.inventarioItemCampanha.deleteMany({
+        where: {
+          personagemCampanhaId,
+          itemBaseOrigemId: { in: origensRemovidas },
+        },
+      });
+    }
+
+    for (const itemBase of itensBase) {
+      if (origensSuprimidas.has(itemBase.id)) continue;
+      const itemCampanha = porOrigem.get(itemBase.id);
+      const dadosItem = {
+        equipamentoId: itemBase.equipamentoId,
+        quantidade: itemBase.quantidade,
+        equipado: itemBase.equipado,
+        categoriaCalculada: itemBase.categoriaCalculada,
+        nomeCustomizado: itemBase.nomeCustomizado,
+        notas: itemBase.notas,
+        estado:
+          itemBase.estado === null
+            ? Prisma.JsonNull
+            : (itemBase.estado as Prisma.InputJsonValue),
+      };
+
+      if (!itemCampanha) {
+        const criado = await tx.inventarioItemCampanha.create({
+          data: {
+            personagemCampanhaId,
+            itemBaseOrigemId: itemBase.id,
+            ...dadosItem,
+          },
+          select: { id: true },
+        });
+        if (itemBase.modificacoes.length > 0) {
+          await tx.inventarioItemCampanhaModificacao.createMany({
+            data: itemBase.modificacoes.map((modificacao) => ({
+              itemId: criado.id,
+              modificacaoId: modificacao.modificacaoId,
+            })),
+          });
+        }
+        continue;
+      }
+
+      await tx.inventarioItemCampanha.update({
+        where: { id: itemCampanha.id },
+        data: dadosItem,
+      });
+      await tx.inventarioItemCampanhaModificacao.deleteMany({
+        where: { itemId: itemCampanha.id },
+      });
+      if (itemBase.modificacoes.length > 0) {
+        await tx.inventarioItemCampanhaModificacao.createMany({
+          data: itemBase.modificacoes.map((modificacao) => ({
+            itemId: itemCampanha.id,
+            modificacaoId: modificacao.modificacaoId,
+          })),
+        });
+      }
     }
   }
 
@@ -421,6 +532,7 @@ export class CampanhaPersonagensService {
                           equipamento: {
                             connect: { id: itemBase.equipamentoId },
                           },
+                          itemBaseOrigemId: itemBase.id,
                           quantidade: itemBase.quantidade,
                           equipado: itemBase.equipado,
                           categoriaCalculada: itemBase.categoriaCalculada,
@@ -673,6 +785,12 @@ export class CampanhaPersonagensService {
           })),
         });
       }
+
+      await this.sincronizarInventarioDaFichaBaseTx(
+        tx,
+        personagemCampanhaId,
+        personagemBase.inventarioItens,
+      );
 
       await tx.personagemCampanhaHistorico.create({
         data: {

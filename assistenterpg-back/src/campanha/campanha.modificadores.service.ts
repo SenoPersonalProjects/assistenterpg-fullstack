@@ -96,6 +96,9 @@ export class CampanhaModificadoresService {
               nome: true,
             },
           },
+          resistenciaTipo: {
+            select: { id: true, nome: true },
+          },
         },
         orderBy: [{ ativo: 'desc' }, { criadoEm: 'desc' }],
       });
@@ -109,8 +112,11 @@ export class CampanhaModificadoresService {
       campo: modificador.campo,
       periciaCodigo: modificador.periciaCodigo,
       tipoGrauCodigo: modificador.tipoGrauCodigo,
+      atributoCodigo: modificador.atributoCodigo,
+      resistenciaTipoId: modificador.resistenciaTipoId,
       pericia: modificador.pericia,
       tipoGrau: modificador.tipoGrau,
+      resistenciaTipo: modificador.resistenciaTipo,
       valor: modificador.valor,
       nome: modificador.nome,
       descricao: modificador.descricao,
@@ -174,6 +180,8 @@ export class CampanhaModificadoresService {
               campo: dto.campo,
               periciaCodigo: alvo.periciaCodigo,
               tipoGrauCodigo: alvo.tipoGrauCodigo,
+              atributoCodigo: alvo.atributoCodigo,
+              resistenciaTipoId: alvo.resistenciaTipoId,
               valor: dto.valor,
               nome: dto.nome.trim(),
               descricao: dto.descricao?.trim() || null,
@@ -229,6 +237,8 @@ export class CampanhaModificadoresService {
                 nome: dto.nome,
                 periciaCodigo: alvo.periciaCodigo,
                 tipoGrauCodigo: alvo.tipoGrauCodigo,
+                atributoCodigo: alvo.atributoCodigo,
+                resistenciaTipoId: alvo.resistenciaTipoId,
                 sessaoId: contextoSessaoCena.sessaoId,
                 cenaId: contextoSessaoCena.cenaId,
                 valorAntes: alvo.valorAntes,
@@ -421,18 +431,22 @@ export class CampanhaModificadoresService {
   ): Promise<{
     periciaCodigo: string | null;
     tipoGrauCodigo: string | null;
+    atributoCodigo: string | null;
+    resistenciaTipoId: number | null;
     valorAntes: number;
     valorDepois: number;
     dataAtualizacao?: Prisma.PersonagemCampanhaUpdateInput;
   }> {
     const periciaCodigo = dto.periciaCodigo?.trim() || null;
     const tipoGrauCodigo = dto.tipoGrauCodigo?.trim() || null;
+    const atributoCodigo = dto.atributoCodigo?.trim().toUpperCase() || null;
+    const resistenciaTipoId = dto.resistenciaTipoId ?? null;
 
     if (isCampoModificadorNumerico(dto.campo)) {
-      if (periciaCodigo || tipoGrauCodigo) {
+      if (periciaCodigo || tipoGrauCodigo || atributoCodigo || resistenciaTipoId) {
         throw new CampanhaModificadorInvalidoException(
           'Campos numericos nao aceitam alvo de pericia ou grau.',
-          { campo: dto.campo, periciaCodigo, tipoGrauCodigo },
+          { campo: dto.campo, periciaCodigo, tipoGrauCodigo, atributoCodigo, resistenciaTipoId },
         );
       }
 
@@ -465,6 +479,8 @@ export class CampanhaModificadoresService {
       return {
         periciaCodigo: null,
         tipoGrauCodigo: null,
+        atributoCodigo: null,
+        resistenciaTipoId: null,
         valorAntes: valorAtualCampo,
         valorDepois: valorFinal,
         dataAtualizacao,
@@ -472,7 +488,7 @@ export class CampanhaModificadoresService {
     }
 
     if (dto.campo === 'PERICIA_TREINAMENTO') {
-      if (!periciaCodigo || tipoGrauCodigo) {
+      if (!periciaCodigo || tipoGrauCodigo || atributoCodigo || resistenciaTipoId) {
         throw new CampanhaModificadorInvalidoException(
           'Modificador de pericia exige periciaCodigo e nao aceita tipoGrauCodigo.',
           { campo: dto.campo, periciaCodigo, tipoGrauCodigo },
@@ -498,13 +514,15 @@ export class CampanhaModificadoresService {
       return {
         periciaCodigo,
         tipoGrauCodigo: null,
+        atributoCodigo: null,
+        resistenciaTipoId: null,
         valorAntes,
         valorDepois: calcularGrauTreinamentoEfetivo(valorAntes, dto.valor),
       };
     }
 
     if (dto.campo === 'GRAU_APRIMORAMENTO') {
-      if (!tipoGrauCodigo || periciaCodigo) {
+      if (!tipoGrauCodigo || periciaCodigo || atributoCodigo || resistenciaTipoId) {
         throw new CampanhaModificadorInvalidoException(
           'Modificador de grau exige tipoGrauCodigo e nao aceita periciaCodigo.',
           { campo: dto.campo, periciaCodigo, tipoGrauCodigo },
@@ -530,9 +548,47 @@ export class CampanhaModificadoresService {
       return {
         periciaCodigo: null,
         tipoGrauCodigo,
+        atributoCodigo: null,
+        resistenciaTipoId: null,
         valorAntes,
         valorDepois: calcularGrauAprimoramentoEfetivo(valorAntes, dto.valor),
       };
+    }
+
+    if (dto.campo === 'PERICIA_BONUS') {
+      if (!periciaCodigo || tipoGrauCodigo || atributoCodigo || resistenciaTipoId) {
+        throw new CampanhaModificadorInvalidoException(
+          'Bonus de pericia exige apenas periciaCodigo.',
+          { campo: dto.campo, periciaCodigo },
+        );
+      }
+      const pericia = await db.pericia.findUnique({ where: { codigo: periciaCodigo }, select: { codigo: true } });
+      if (!pericia) throw new CampanhaModificadorInvalidoException('Pericia do modificador nao encontrada.', { periciaCodigo });
+      return { periciaCodigo, tipoGrauCodigo: null, atributoCodigo: null, resistenciaTipoId: null, valorAntes: 0, valorDepois: dto.valor };
+    }
+
+    if (dto.campo === 'ATRIBUTO') {
+      const atributos = new Set(['AGILIDADE', 'FORCA', 'INTELECTO', 'PRESENCA', 'VIGOR']);
+      if (!atributoCodigo || !atributos.has(atributoCodigo) || periciaCodigo || tipoGrauCodigo || resistenciaTipoId) {
+        throw new CampanhaModificadorInvalidoException('Bonus de atributo exige um atributo valido.', { campo: dto.campo, atributoCodigo });
+      }
+      return { periciaCodigo: null, tipoGrauCodigo: null, atributoCodigo, resistenciaTipoId: null, valorAntes: 0, valorDepois: dto.valor };
+    }
+
+    if (dto.campo === 'RESISTENCIA') {
+      if (!resistenciaTipoId || periciaCodigo || tipoGrauCodigo || atributoCodigo) {
+        throw new CampanhaModificadorInvalidoException('Bonus de resistencia exige resistenciaTipoId.', { campo: dto.campo, resistenciaTipoId });
+      }
+      const resistencia = await db.resistenciaTipo.findUnique({ where: { id: resistenciaTipoId }, select: { id: true } });
+      if (!resistencia) throw new CampanhaModificadorInvalidoException('Tipo de resistencia nao encontrado.', { resistenciaTipoId });
+      return { periciaCodigo: null, tipoGrauCodigo: null, atributoCodigo: null, resistenciaTipoId, valorAntes: 0, valorDepois: dto.valor };
+    }
+
+    if (dto.campo === 'BONUS_DT_FEITICOS') {
+      if (periciaCodigo || tipoGrauCodigo || atributoCodigo || resistenciaTipoId) {
+        throw new CampanhaModificadorInvalidoException('Bonus de DT de feiticos nao aceita alvo.', { campo: dto.campo });
+      }
+      return { periciaCodigo: null, tipoGrauCodigo: null, atributoCodigo: null, resistenciaTipoId: null, valorAntes: 0, valorDepois: dto.valor };
     }
 
     throw new CampanhaModificadorInvalidoException(
@@ -546,14 +602,28 @@ export class CampanhaModificadoresService {
   ): void {
     const periciaCodigo = dto.periciaCodigo?.trim() || null;
     const tipoGrauCodigo = dto.tipoGrauCodigo?.trim() || null;
+    const atributoCodigo = dto.atributoCodigo?.trim() || null;
+    const resistenciaTipoId = dto.resistenciaTipoId ?? null;
     if (isCampoModificadorNumerico(dto.campo)) {
-      if (periciaCodigo || tipoGrauCodigo) {
+      if (periciaCodigo || tipoGrauCodigo || atributoCodigo || resistenciaTipoId) {
         throw new CampanhaModificadorInvalidoException(
           'Campos numericos nao aceitam alvo de pericia ou grau.',
           { campo: dto.campo, periciaCodigo, tipoGrauCodigo },
         );
       }
       return;
+    }
+    if (dto.campo === 'PERICIA_BONUS' && (!periciaCodigo || tipoGrauCodigo || atributoCodigo || resistenciaTipoId)) {
+      throw new CampanhaModificadorInvalidoException('Bonus de pericia exige apenas periciaCodigo.', { campo: dto.campo });
+    }
+    if (dto.campo === 'ATRIBUTO' && (!atributoCodigo || periciaCodigo || tipoGrauCodigo || resistenciaTipoId)) {
+      throw new CampanhaModificadorInvalidoException('Bonus de atributo exige apenas atributoCodigo.', { campo: dto.campo });
+    }
+    if (dto.campo === 'RESISTENCIA' && (!resistenciaTipoId || periciaCodigo || tipoGrauCodigo || atributoCodigo)) {
+      throw new CampanhaModificadorInvalidoException('Bonus de resistencia exige apenas resistenciaTipoId.', { campo: dto.campo });
+    }
+    if (dto.campo === 'BONUS_DT_FEITICOS' && (periciaCodigo || tipoGrauCodigo || atributoCodigo || resistenciaTipoId)) {
+      throw new CampanhaModificadorInvalidoException('Bonus de DT de feiticos nao aceita alvo.', { campo: dto.campo });
     }
     if (
       dto.campo === 'PERICIA_TREINAMENTO' &&
@@ -667,6 +737,10 @@ export class CampanhaModificadoresService {
         ),
         valorDepois,
       };
+    }
+
+    if (['PERICIA_BONUS', 'ATRIBUTO', 'RESISTENCIA', 'BONUS_DT_FEITICOS'].includes(modificador.campo)) {
+      return { valorAntes: 0, valorDepois: 0 };
     }
 
     throw new CampanhaModificadorInvalidoException(

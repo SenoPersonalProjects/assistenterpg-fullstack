@@ -335,6 +335,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Esta rolagem possui um efeito mecânico pendente.",
   SESSAO_ROLAGEM_IDEMPOTENCIA_CONFLITO:
     "Esta tentativa de rolagem já foi usada com outros dados. Tente novamente.",
+  SESSAO_RECURSOS_IDEMPOTENCIA_INCONSISTENTE:
+    "Esta solicitação de recursos já foi usada com dados diferentes. Atualize e tente novamente.",
+  SESSAO_INSPIRACAO_IDEMPOTENCIA_INCONSISTENTE:
+    "Esta solicitação de inspiração já foi usada com dados diferentes. Atualize e tente novamente.",
   MACRO_PERSONAGEM_CONFIG_INVALIDA: "A configuração da macro personalizada é inválida.",
   MACRO_PERSONAGEM_LIMITE_EXCEDIDO: "O personagem atingiu o limite de macros personalizadas.",
   MACRO_PERSONAGEM_NAO_ENCONTRADA: "Macro personalizada não encontrada.",
@@ -573,6 +577,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   DB_INTERNAL_ERROR: "Erro interno de banco de dados",
   FONTE_SUPLEMENTO_OBRIGATORIA:
     "A fonte deve ser SUPLEMENTO quando suplementoId for informado.",
+  FONTE_CONTEUDO_NAO_HABILITADA:
+    "Este conteúdo não está habilitado para a campanha.",
   SUPLEMENTO_ID_OBRIGATORIO:
     "suplementoId é obrigatório quando a fonte for SUPLEMENTO.",
   REFERENCIA_IMPORTACAO_INVALIDA:

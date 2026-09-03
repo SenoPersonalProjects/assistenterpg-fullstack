@@ -9,7 +9,54 @@ type ModificadorNarrativoEfetivo = {
   ativo?: boolean | null;
   periciaCodigo?: string | null;
   tipoGrauCodigo?: string | null;
+  atributoCodigo?: string | null;
+  resistenciaTipoId?: number | null;
 };
+
+export function calcularBonusPorAtributoNarrativos(
+  modificadores: ModificadorNarrativoEfetivo[] | null | undefined,
+): Map<string, number> {
+  const deltas = new Map<string, number>();
+  for (const modificador of modificadores ?? []) {
+    if (modificador.ativo === false || modificador.campo !== 'ATRIBUTO') continue;
+    const codigo = normalizarCodigo(modificador.atributoCodigo);
+    if (codigo) deltas.set(codigo, (deltas.get(codigo) ?? 0) + normalizarInteiro(modificador.valor));
+  }
+  return deltas;
+}
+
+export function calcularBonusPorResistenciaNarrativos(
+  modificadores: ModificadorNarrativoEfetivo[] | null | undefined,
+): Map<number, number> {
+  const deltas = new Map<number, number>();
+  for (const modificador of modificadores ?? []) {
+    if (modificador.ativo === false || modificador.campo !== 'RESISTENCIA' || !modificador.resistenciaTipoId) continue;
+    const id = modificador.resistenciaTipoId;
+    deltas.set(id, (deltas.get(id) ?? 0) + normalizarInteiro(modificador.valor));
+  }
+  return deltas;
+}
+
+export function calcularBonusDtFeiticosNarrativo(
+  modificadores: ModificadorNarrativoEfetivo[] | null | undefined,
+): number {
+  return (modificadores ?? []).reduce(
+    (total, modificador) => total + (modificador.ativo === false || modificador.campo !== 'BONUS_DT_FEITICOS' ? 0 : normalizarInteiro(modificador.valor)),
+    0,
+  );
+}
+
+export function calcularDeltasPericiaBonusNarrativos(
+  modificadores: ModificadorNarrativoEfetivo[] | null | undefined,
+): Map<string, number> {
+  const deltas = new Map<string, number>();
+  for (const modificador of modificadores ?? []) {
+    if (modificador.ativo === false || modificador.campo !== 'PERICIA_BONUS') continue;
+    const codigo = normalizarCodigo(modificador.periciaCodigo);
+    if (codigo) deltas.set(codigo, (deltas.get(codigo) ?? 0) + normalizarInteiro(modificador.valor));
+  }
+  return deltas;
+}
 
 type PericiaBaseNarrativa = {
   grauTreinamento?: number | null;
@@ -136,6 +183,7 @@ export function resolverPericiasEfetivasCampanha(
   modificadores: ModificadorNarrativoEfetivo[] | null | undefined,
 ): PericiaEfetivaCampanha[] {
   const deltas = calcularDeltasPericiaNarrativos(modificadores);
+  const deltasBonus = calcularDeltasPericiaBonusNarrativos(modificadores);
   const mapa = new Map<
     string,
     {
@@ -187,8 +235,8 @@ export function resolverPericiasEfetivasCampanha(
         atributoBase: pericia.atributoBase,
         grauTreinamento: pericia.grauTreinamento,
         bonusTreinamento,
-        bonusOutros: pericia.bonusExtra,
-        bonusTotal: bonusTreinamento + pericia.bonusExtra,
+        bonusOutros: pericia.bonusExtra + (deltasBonus.get(pericia.codigo) ?? 0),
+        bonusTotal: bonusTreinamento + pericia.bonusExtra + (deltasBonus.get(pericia.codigo) ?? 0),
       };
     })
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));

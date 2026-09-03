@@ -22,6 +22,7 @@ import { CampanhaVinculadosService } from './campanha.vinculados.service';
 import { CampanhaMacrosService } from './campanha.macros.service';
 import { CampanhaRoletaService } from './campanha.roleta.service';
 import { CampanhaGateway } from './campanha.gateway';
+import { CampanhaConcessoesService } from './campanha.concessoes.service';
 import { AmizadesModule } from 'src/amizades/amizades.module';
 import { SessaoCondicoesAutomaticasModule } from 'src/sessao-condicoes-automaticas/sessao-condicoes-automaticas.module';
 
@@ -56,6 +57,7 @@ import { SessaoCondicoesAutomaticasModule } from 'src/sessao-condicoes-automatic
     CampanhaMacrosService,
     CampanhaRoletaService,
     CampanhaGateway,
+    CampanhaConcessoesService,
     AuthSessionService,
   ],
   controllers: [CampanhaController],

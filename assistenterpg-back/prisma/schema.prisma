@@ -365,7 +365,11 @@ enum CampoModificadorPersonagemCampanha {
   PRESTIGIO_GERAL
   PRESTIGIO_CLA
   PERICIA_TREINAMENTO
+  PERICIA_BONUS
   GRAU_APRIMORAMENTO
+  ATRIBUTO
+  RESISTENCIA
+  BONUS_DT_FEITICOS
 }
 
 enum StatusPublicacao {
@@ -470,6 +474,8 @@ model Usuario {
   roletaSorteiosCancelados                 CampanhaRoletaSorteio[]                 @relation("CampanhaRoletaSorteioCanceladoPor")
   roletaEventos                            CampanhaRoletaEvento[]                  @relation("CampanhaRoletaEventoAtor")
   entidadesVinculadasCriadas               PersonagemCampanhaEntidadeVinculada[]  @relation("EntidadeVinculadaCriadaPor")
+  proficienciasCampanhaConcedidas          PersonagemCampanhaProficiencia[]       @relation("ProficienciaPersonagemCampanhaCriadaPor")
+  habilidadesCampanhaPersonalizadasCriadas PersonagemCampanhaHabilidadePersonalizada[] @relation("HabilidadePersonalizadaCampanhaCriadaPor")
   sustentacoesSessaoCriadas                PersonagemSessaoHabilidadeSustentada[] @relation("SustentacaoSessaoCriadaPor")
   sustentacoesSessaoDesativadas            PersonagemSessaoHabilidadeSustentada[] @relation("SustentacaoSessaoDesativadaPor")
   npcsAmeacas                              NpcAmeaca[]
@@ -713,6 +719,8 @@ model Campanha {
   nome         String
   descricao    String?  @db.Text
   status       String
+  // `null` preserva campanhas legadas sem restrição de fontes.
+  fontesConteudo Json?
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
@@ -730,6 +738,7 @@ model Campanha {
   templatesItensSessao      TemplateItemSessaoCampanha[]
   transferenciasItensSessao TransferenciaItemSessaoCampanha[]
   entidadesVinculadas       PersonagemCampanhaEntidadeVinculada[]
+  habilidadesPersonalizadas PersonagemCampanhaHabilidadePersonalizada[]
   roletaPresets             CampanhaRoletaPreset[]
   roletaSorteios            CampanhaRoletaSorteio[]
   roletaEventos             CampanhaRoletaEvento[]
@@ -1120,6 +1129,9 @@ model PersonagemCampanha {
   modificadores                    PersonagemCampanhaModificador[]
   macros                           PersonagemCampanhaMacro[]
   entidadesVinculadas              PersonagemCampanhaEntidadeVinculada[]
+  proficienciasConcedidas          PersonagemCampanhaProficiencia[]
+  habilidadesPersonalizadas        PersonagemCampanhaHabilidadePersonalizada[]
+  itensBaseSuprimidos              InventarioItemCampanhaBaseSuprimido[]
   entidadesSessaoComoDono          NpcAmeacaSessao[]                     @relation("NpcSessaoDonoPersonagem")
 
   @@unique([campanhaId, personagemBaseId])
@@ -1188,6 +1200,8 @@ model PersonagemCampanhaModificador {
   campo                CampoModificadorPersonagemCampanha
   periciaCodigo        String?
   tipoGrauCodigo       String?
+  atributoCodigo       String?
+  resistenciaTipoId    Int?
   valor                Int
   nome                 String
   descricao            String?                            @db.Text
@@ -1204,8 +1218,10 @@ model PersonagemCampanhaModificador {
   desfeitoPor        Usuario?           @relation("ModificadorPersonagemCampanhaDesfeitoPor", fields: [desfeitoPorId], references: [id], onDelete: SetNull)
   pericia            Pericia?           @relation(fields: [periciaCodigo], references: [codigo], onDelete: SetNull)
   tipoGrau           TipoGrau?          @relation(fields: [tipoGrauCodigo], references: [codigo], onDelete: SetNull)
+  resistenciaTipo    ResistenciaTipo?   @relation(fields: [resistenciaTipoId], references: [id], onDelete: SetNull)
 
   @@index([personagemCampanhaId, ativo])
+  @@index([resistenciaTipoId])
   @@index([campanhaId, criadoEm])
   @@index([sessaoId])
   @@index([cenaId])
@@ -1995,7 +2011,8 @@ model Proficiencia {
   subtipo   String?
 
   personagensBase PersonagemBaseProficiencia[]
-  classes         ClasseProficiencia[]
+  classes                         ClasseProficiencia[]
+  personagensCampanhaConcedidas   PersonagemCampanhaProficiencia[]
 }
 
 model PersonagemBaseProficiencia {
@@ -2034,6 +2051,7 @@ model ResistenciaTipo {
   // ✅ ATUALIZADO: Agora suporta PersonagemBase E PersonagemCampanha
   resistenciasPersonagemBase     PersonagemBaseResistencia[]
   resistenciasPersonagemCampanha PersonagemCampanhaResistencia[]
+  modificadoresPersonagemCampanha PersonagemCampanhaModificador[]
 }
 
 model PersonagemCampanhaResistencia {
@@ -2042,10 +2060,43 @@ model PersonagemCampanhaResistencia {
   resistenciaTipoId    Int
   valor                Int @default(0)
 
-  personagemCampanha PersonagemCampanha @relation(fields: [personagemCampanhaId], references: [id])
+  personagemCampanha PersonagemCampanha @relation(fields: [personagemCampanhaId], references: [id], onDelete: Cascade)
   resistenciaTipo    ResistenciaTipo    @relation(fields: [resistenciaTipoId], references: [id])
 
   @@unique([personagemCampanhaId, resistenciaTipoId])
+}
+
+model PersonagemCampanhaProficiencia {
+  id                   Int @id @default(autoincrement())
+  personagemCampanhaId Int
+  proficienciaId       Int
+  criadoPorId          Int
+  criadoEm             DateTime @default(now())
+
+  personagemCampanha PersonagemCampanha @relation(fields: [personagemCampanhaId], references: [id], onDelete: Cascade)
+  proficiencia       Proficiencia       @relation(fields: [proficienciaId], references: [id])
+  criadoPor          Usuario            @relation("ProficienciaPersonagemCampanhaCriadaPor", fields: [criadoPorId], references: [id], onDelete: Cascade)
+
+  @@unique([personagemCampanhaId, proficienciaId])
+  @@index([proficienciaId])
+  @@index([criadoPorId])
+}
+
+model PersonagemCampanhaHabilidadePersonalizada {
+  id                   Int @id @default(autoincrement())
+  campanhaId           Int
+  personagemCampanhaId Int
+  nome                 String @db.VarChar(120)
+  descricao            String @db.Text
+  criadoPorId          Int
+  criadoEm             DateTime @default(now())
+
+  campanha           Campanha           @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  personagemCampanha PersonagemCampanha @relation(fields: [personagemCampanhaId], references: [id], onDelete: Cascade)
+  criadoPor          Usuario            @relation("HabilidadePersonalizadaCampanhaCriadaPor", fields: [criadoPorId], references: [id], onDelete: Cascade)
+
+  @@index([campanhaId, personagemCampanhaId])
+  @@index([criadoPorId])
 }
 
 model Pericia {
@@ -2565,6 +2616,9 @@ model InventarioItemBaseModificacao {
 model InventarioItemCampanha {
   id                   Int                @id @default(autoincrement())
   personagemCampanhaId Int
+  // Não é FK propositalmente: a exclusão do item-base deve continuar rastreável
+  // até a próxima sincronização da ficha-base.
+  itemBaseOrigemId     Int?
   personagemCampanha   PersonagemCampanha @relation("InventarioCampanha", fields: [personagemCampanhaId], references: [id], onDelete: Cascade)
 
   equipamentoId Int
@@ -2586,8 +2640,21 @@ model InventarioItemCampanha {
   atualizadoEm DateTime @updatedAt
 
   @@index([personagemCampanhaId])
+  @@unique([personagemCampanhaId, itemBaseOrigemId])
   @@index([equipamentoId])
   @@map("inventario_item_campanha")
+}
+
+model InventarioItemCampanhaBaseSuprimido {
+  id                   Int @id @default(autoincrement())
+  personagemCampanhaId Int
+  itemBaseOrigemId     Int
+  criadoEm             DateTime @default(now())
+
+  personagemCampanha PersonagemCampanha @relation(fields: [personagemCampanhaId], references: [id], onDelete: Cascade)
+
+  @@unique([personagemCampanhaId, itemBaseOrigemId])
+  @@map("inventario_item_campanha_base_suprimido")
 }
 
 model InventarioItemCampanhaModificacao {

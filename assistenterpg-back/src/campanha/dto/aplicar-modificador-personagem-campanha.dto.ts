@@ -45,6 +45,16 @@ export class AplicarModificadorPersonagemCampanhaDto {
   tipoGrauCodigo?: string;
 
   @IsOptional()
+  @IsString({ message: 'atributoCodigo deve ser texto' })
+  @MaxLength(32)
+  atributoCodigo?: string;
+
+  @IsOptional()
+  @IsInt({ message: 'resistenciaTipoId deve ser inteiro' })
+  @Min(1, { message: 'resistenciaTipoId deve ser maior ou igual a 1' })
+  resistenciaTipoId?: number;
+
+  @IsOptional()
   @IsInt({ message: 'sessaoId deve ser inteiro' })
   @Min(1, { message: 'sessaoId deve ser maior ou igual a 1' })
   sessaoId?: number;

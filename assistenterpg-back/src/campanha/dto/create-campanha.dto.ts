@@ -1,5 +1,7 @@
 // src/campanha/dto/create-campanha.dto.ts
-import { IsString, IsOptional, MinLength, MaxLength } from 'class-validator';
+import { IsString, IsOptional, MinLength, MaxLength, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { FontesConteudoCampanhaDto } from './fontes-conteudo-campanha.dto';
 
 export class CreateCampanhaDto {
   @IsString({ message: 'O nome deve ser um texto' })
@@ -11,4 +13,9 @@ export class CreateCampanhaDto {
   @IsString({ message: 'A descrição deve ser um texto' })
   @MaxLength(500, { message: 'A descrição deve ter no máximo 500 caracteres' })
   descricao?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => FontesConteudoCampanhaDto)
+  fontesConteudo?: FontesConteudoCampanhaDto;
 }

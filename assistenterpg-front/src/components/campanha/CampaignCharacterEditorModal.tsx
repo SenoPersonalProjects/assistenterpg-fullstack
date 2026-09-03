@@ -35,6 +35,7 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { SessionCharacterInventoryTab } from '@/components/campanha/sessao/SessionCharacterInventoryTab';
 import { CharacterLinkedEntitiesPanel } from './CharacterLinkedEntitiesPanel';
+import { CampaignCharacterConcessionsSection } from './CampaignCharacterConcessionsSection';
 
 type Props = {
   isOpen: boolean;
@@ -635,6 +636,14 @@ export function CampaignCharacterEditorModal({
               void carregarDadosRelacionados();
             }}
           />
+
+          {personagemId ? (
+            <CampaignCharacterConcessionsSection
+              campanhaId={campanhaId}
+              personagemId={personagemId}
+              ativo={isOpen}
+            />
+          ) : null}
 
           <section className="rounded-lg border border-app-border bg-app-surface p-4 space-y-3">
             <h3 className="text-sm font-semibold text-app-fg">

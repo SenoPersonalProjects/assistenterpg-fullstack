@@ -6,6 +6,9 @@ import {
   normalizarNucleosDisponiveis,
 } from 'src/common/utils/pv-barras';
 import {
+  calcularBonusDtFeiticosNarrativo,
+  calcularBonusPorAtributoNarrativos,
+  calcularBonusPorResistenciaNarrativos,
   resolverGrausAprimoramentoEfetivosCampanha,
   resolverPericiasEfetivasCampanha,
 } from './engine/campanha-modificadores-efetivos';
@@ -45,6 +48,11 @@ export const PERSONAGEM_CAMPANHA_DETALHE_SELECT =
       select: {
         id: true,
         nome: true,
+        agilidade: true,
+        forca: true,
+        intelecto: true,
+        presenca: true,
+        vigor: true,
         pericias: {
           select: {
             grauTreinamento: true,
@@ -101,6 +109,8 @@ export const PERSONAGEM_CAMPANHA_DETALHE_SELECT =
         valor: true,
         periciaCodigo: true,
         tipoGrauCodigo: true,
+        atributoCodigo: true,
+        resistenciaTipoId: true,
         nome: true,
         descricao: true,
         criadoEm: true,
@@ -117,6 +127,13 @@ export const PERSONAGEM_CAMPANHA_DETALHE_SELECT =
             nome: true,
           },
         },
+      },
+    },
+    resistencias: {
+      select: {
+        resistenciaTipoId: true,
+        valor: true,
+        resistenciaTipo: { select: { id: true, nome: true } },
       },
     },
   });
@@ -150,6 +167,10 @@ export class CampanhaMapper {
         grausPreferenciais,
         modificadoresAtivos,
       );
+    const bonusAtributos = calcularBonusPorAtributoNarrativos(modificadoresAtivos);
+    const bonusResistencias = calcularBonusPorResistenciaNarrativos(modificadoresAtivos);
+    const atributoEfetivo = (codigo: string, valor: number | null | undefined) =>
+      Math.max(0, Number(valor ?? 0) + (bonusAtributos.get(codigo) ?? 0));
 
     return {
       id: personagem.id,
@@ -185,6 +206,11 @@ export class CampanhaMapper {
           personagem.defesaOutros,
       },
       atributos: {
+        agilidade: atributoEfetivo('AGILIDADE', personagem.personagemBase.agilidade),
+        forca: atributoEfetivo('FORCA', personagem.personagemBase.forca),
+        intelecto: atributoEfetivo('INTELECTO', personagem.personagemBase.intelecto),
+        presenca: atributoEfetivo('PRESENCA', personagem.personagemBase.presenca),
+        vigor: atributoEfetivo('VIGOR', personagem.personagemBase.vigor),
         limitePeEaPorTurno: personagem.limitePeEaPorTurno,
         prestigioGeral: personagem.prestigioGeral,
         prestigioCla: personagem.prestigioCla,
@@ -202,6 +228,11 @@ export class CampanhaMapper {
       modificadoresAtivos: personagem.modificadores,
       pericias: periciasEfetivas,
       grausAprimoramento: grausAprimoramentoEfetivos,
+      resistencias: (personagem.resistencias ?? []).map((resistencia) => ({
+        ...resistencia,
+        valorEfetivo: resistencia.valor + (bonusResistencias.get(resistencia.resistenciaTipoId) ?? 0),
+      })),
+      bonusDtFeiticos: calcularBonusDtFeiticosNarrativo(modificadoresAtivos),
     };
   }
 }

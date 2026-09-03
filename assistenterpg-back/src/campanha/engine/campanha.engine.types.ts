@@ -31,7 +31,12 @@ export type CampoRecursoAtual = 'pvAtual' | 'peAtual' | 'eaAtual' | 'sanAtual';
 
 export type CampoModificadorPersonagemCampanhaNumerico = Exclude<
   CampoModificadorPersonagemCampanha,
-  'PERICIA_TREINAMENTO' | 'GRAU_APRIMORAMENTO'
+  | 'PERICIA_TREINAMENTO'
+  | 'PERICIA_BONUS'
+  | 'GRAU_APRIMORAMENTO'
+  | 'ATRIBUTO'
+  | 'RESISTENCIA'
+  | 'BONUS_DT_FEITICOS'
 >;
 
 export type FiltrosListarModificadoresCampanha = {

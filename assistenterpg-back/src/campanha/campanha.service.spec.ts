@@ -12,6 +12,7 @@ import { CampanhaConvitesService } from './campanha.convites.service';
 import { CampanhaInventarioService } from './campanha.inventario.service';
 import { CampanhaItensSessaoService } from './campanha.itens-sessao.service';
 import { CampanhaVinculadosService } from './campanha.vinculados.service';
+import { CampanhaConcessoesService } from './campanha.concessoes.service';
 import { PresencaService } from 'src/amizades/presenca.service';
 import { TecnicaInataPropriaService } from '../tecnicas-amaldicoadas/tecnica-inata-propria.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -248,6 +249,10 @@ describe('CampanhaService', () => {
         },
         {
           provide: CampanhaVinculadosService,
+          useValue: {},
+        },
+        {
+          provide: CampanhaConcessoesService,
           useValue: {},
         },
         {
@@ -1069,6 +1074,9 @@ describe('CampanhaService', () => {
       tecnicaInataPropriaId: null,
     });
     const tx = {
+      personagemCampanhaResistencia: {
+        deleteMany: jest.fn(),
+      },
       personagemSessao: {
         findMany: jest.fn().mockResolvedValue([]),
       },
@@ -1088,6 +1096,9 @@ describe('CampanhaService', () => {
 
     const resposta = await service.desassociarPersonagemCampanha(7, 901, 3);
 
+    expect(tx.personagemCampanhaResistencia.deleteMany).toHaveBeenCalledWith({
+      where: { personagemCampanhaId: 901 },
+    });
     expect(tx.personagemCampanha.delete).toHaveBeenCalledWith({
       where: { id: 901 },
     });
@@ -1113,6 +1124,9 @@ describe('CampanhaService', () => {
       tecnicaInataPropriaId: null,
     });
     const tx = {
+      personagemCampanhaResistencia: {
+        deleteMany: jest.fn(),
+      },
       personagemSessao: {
         findMany: jest.fn().mockResolvedValue([{ id: 15 }]),
         deleteMany: jest.fn(),

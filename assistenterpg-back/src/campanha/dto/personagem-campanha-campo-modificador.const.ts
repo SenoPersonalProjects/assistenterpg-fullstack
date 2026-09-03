@@ -13,7 +13,11 @@ export const CAMPOS_MODIFICADOR_PERSONAGEM_CAMPANHA = [
   'PRESTIGIO_GERAL',
   'PRESTIGIO_CLA',
   'PERICIA_TREINAMENTO',
+  'PERICIA_BONUS',
   'GRAU_APRIMORAMENTO',
+  'ATRIBUTO',
+  'RESISTENCIA',
+  'BONUS_DT_FEITICOS',
 ] as const;
 
 export type CampoModificadorPersonagemCampanha =

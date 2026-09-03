@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma, TipoEquipamento } from '@prisma/client';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { Prisma, TipoEquipamento, TipoFonte } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CampanhaAccessService } from './campanha.access.service';
 import { InventarioEngine } from '../inventario/engine/inventario.engine';
@@ -85,6 +85,79 @@ export class CampanhaInventarioService {
     private readonly engine: InventarioEngine,
     private readonly mapper: InventarioMapper,
   ) {}
+
+  private idsFontes(valor: unknown, chave: string): Set<number> {
+    if (!valor || typeof valor !== 'object' || Array.isArray(valor)) {
+      return new Set();
+    }
+    const ids = (valor as Record<string, unknown>)[chave];
+    return new Set(
+      Array.isArray(ids)
+        ? ids.filter((id): id is number => Number.isInteger(id) && id > 0)
+        : [],
+    );
+  }
+
+  private async validarFonteEquipamentoCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    equipamento: {
+      fonte: TipoFonte;
+      suplementoId: number | null;
+      homebrewOrigemId: number | null;
+    },
+  ): Promise<void> {
+    if (equipamento.fonte === TipoFonte.SISTEMA_BASE) return;
+    const contexto = await this.prisma.personagemCampanha.findUnique({
+      where: { id: personagemCampanhaId },
+      select: { personagemBase: { select: { fontesConteudo: true } } },
+    });
+    const campanha = await this.prisma.campanha.findUnique({
+      where: { id: campanhaId },
+      select: { fontesConteudo: true },
+    });
+    // Campanhas criadas antes deste recurso continuam compatíveis até serem configuradas.
+    if (campanha?.fontesConteudo === null || campanha?.fontesConteudo === undefined) {
+      return;
+    }
+    const fontesCampanha = campanha.fontesConteudo;
+    if (
+      equipamento.fonte === TipoFonte.SUPLEMENTO &&
+      equipamento.suplementoId !== null &&
+      this.idsFontes(fontesCampanha, 'suplementoIds').has(equipamento.suplementoId)
+    ) {
+      return;
+    }
+    if (
+      equipamento.fonte === TipoFonte.HOMEBREW &&
+      equipamento.homebrewOrigemId !== null &&
+      this.idsFontes(fontesCampanha, 'homebrewIds').has(equipamento.homebrewOrigemId) &&
+      this.idsFontes(contexto?.personagemBase.fontesConteudo, 'homebrewIds').has(
+        equipamento.homebrewOrigemId,
+      )
+    ) {
+      return;
+    }
+    throw new BadRequestException({
+      code: 'FONTE_CONTEUDO_NAO_HABILITADA',
+      message: 'O item não pertence às fontes habilitadas para esta campanha.',
+    });
+  }
+
+  private async tornarItemLocalSeHerdado(
+    personagemCampanhaId: number,
+    itemId: number,
+    prisma: PrismaLike = this.prisma,
+  ): Promise<void> {
+    await prisma.inventarioItemCampanha.updateMany({
+      where: {
+        id: itemId,
+        personagemCampanhaId,
+        itemBaseOrigemId: { not: null },
+      },
+      data: { itemBaseOrigemId: null },
+    });
+  }
 
   private async validarEstadoItemPersonalizado(
     db: PrismaLike,
@@ -657,6 +730,12 @@ export class CampanhaInventarioService {
         );
       }
 
+      await this.validarFonteEquipamentoCampanha(
+        campanhaId,
+        personagemCampanhaId,
+        equipamento,
+      );
+
       let modificacoesValidas: ModificacaoCalculoEntity[] = [];
       if (dto.modificacoes && dto.modificacoes.length > 0) {
         modificacoesValidas = await this.prisma.modificacaoEquipamento.findMany(
@@ -933,6 +1012,8 @@ export class CampanhaInventarioService {
         include: inventarioItemCampanhaComDadosInclude,
       });
 
+      await this.tornarItemLocalSeHerdado(personagemCampanhaId, itemId);
+
       await this.atualizarEstadoInventarioCampanha(personagemCampanhaId);
 
       return this.mapper.mapItem(itemAtualizado);
@@ -953,6 +1034,7 @@ export class CampanhaInventarioService {
     try {
       const item = await this.prisma.inventarioItemCampanha.findUnique({
         where: { id: itemId },
+        select: { id: true, personagemCampanhaId: true, itemBaseOrigemId: true },
       });
 
       if (!item || item.personagemCampanhaId !== personagemCampanhaId) {
@@ -966,6 +1048,22 @@ export class CampanhaInventarioService {
       await this.prisma.inventarioItemCampanha.delete({
         where: { id: itemId },
       });
+
+      if (item.itemBaseOrigemId !== null) {
+        await this.prisma.inventarioItemCampanhaBaseSuprimido.upsert({
+          where: {
+            personagemCampanhaId_itemBaseOrigemId: {
+              personagemCampanhaId,
+              itemBaseOrigemId: item.itemBaseOrigemId,
+            },
+          },
+          create: {
+            personagemCampanhaId,
+            itemBaseOrigemId: item.itemBaseOrigemId,
+          },
+          update: {},
+        });
+      }
 
       await this.atualizarEstadoInventarioCampanha(personagemCampanhaId);
 
@@ -1047,6 +1145,7 @@ export class CampanhaInventarioService {
           modificacaoId: dto.modificacaoId,
         },
       });
+      await this.tornarItemLocalSeHerdado(personagemCampanhaId, itemId);
 
       const novaQuantidadeModificacoes = this.contarModificacoesEfetivas({
         modificacoes: [
@@ -1148,6 +1247,7 @@ export class CampanhaInventarioService {
           },
         },
       });
+      await this.tornarItemLocalSeHerdado(personagemCampanhaId, itemId);
 
       const novaQuantidadeModificacoes = this.contarModificacoesEfetivas({
         modificacoes: item.modificacoes

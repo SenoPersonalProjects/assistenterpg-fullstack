@@ -1,9 +1,24 @@
 import {
+  calcularBonusDtFeiticosNarrativo,
+  calcularBonusPorAtributoNarrativos,
+  calcularBonusPorResistenciaNarrativos,
   resolverGrausAprimoramentoEfetivosCampanha,
   resolverPericiasEfetivasCampanha,
 } from './campanha-modificadores-efetivos';
 
 describe('campanha-modificadores-efetivos', () => {
+  it('compõe bônus permanentes de atributo, resistência e DT', () => {
+    const modificadores = [
+      { campo: 'ATRIBUTO' as const, atributoCodigo: 'AGILIDADE', valor: -1 },
+      { campo: 'RESISTENCIA' as const, resistenciaTipoId: 3, valor: 2 },
+      { campo: 'BONUS_DT_FEITICOS' as const, valor: 1 },
+    ];
+
+    expect(calcularBonusPorAtributoNarrativos(modificadores).get('AGILIDADE')).toBe(-1);
+    expect(calcularBonusPorResistenciaNarrativos(modificadores).get(3)).toBe(2);
+    expect(calcularBonusDtFeiticosNarrativo(modificadores)).toBe(1);
+  });
+
   it('aplica treinamento narrativo em perícias e converte cada nível em +5', () => {
     const pericias = resolverPericiasEfetivasCampanha(
       [
@@ -63,6 +78,37 @@ describe('campanha-modificadores-efetivos', () => {
         codigo: 'LUTA',
         grauTreinamento: 0,
         bonusTreinamento: 0,
+      }),
+    );
+  });
+
+  it('soma bônus numéricos de perícia sem alterar o grau de treinamento', () => {
+    const [pericia] = resolverPericiasEfetivasCampanha(
+      [
+        {
+          grauTreinamento: 1,
+          bonusExtra: 1,
+          pericia: {
+            codigo: 'OCULTISMO',
+            nome: 'Ocultismo',
+            atributoBase: 'INTELECTO',
+          },
+        },
+      ],
+      [
+        {
+          campo: 'PERICIA_BONUS',
+          valor: 2,
+          periciaCodigo: 'OCULTISMO',
+        },
+      ],
+    );
+
+    expect(pericia).toEqual(
+      expect.objectContaining({
+        grauTreinamento: 1,
+        bonusOutros: 3,
+        bonusTotal: 8,
       }),
     );
   });

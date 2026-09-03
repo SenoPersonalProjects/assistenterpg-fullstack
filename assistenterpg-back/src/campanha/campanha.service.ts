@@ -48,6 +48,9 @@ import {
 } from './dto/entidade-vinculada-personagem.dto';
 import { criarPresetsPadraoRoleta } from './campanha-roleta';
 import { bloquearCampanhaTx } from './campanha-concorrencia';
+import { UpdateCampanhaDto } from './dto/update-campanha.dto';
+import { CampanhaConcessoesService } from './campanha.concessoes.service';
+import { ConcederPoderGenericoCampanhaDto, ConcederProficienciaCampanhaDto, CriarHabilidadePersonalizadaCampanhaDto } from './dto/concessoes-personagem-campanha.dto';
 
 const usuarioAtivoVerificadoWhere = {
   emailVerificadoEm: { not: null },
@@ -66,11 +69,12 @@ export class CampanhaService {
     private readonly itensSessaoService: CampanhaItensSessaoService,
     private readonly vinculadosService: CampanhaVinculadosService,
     private readonly presencaService: PresencaService,
+    private readonly concessoesService: CampanhaConcessoesService,
   ) {}
 
   async criarCampanha(
     donoId: number,
-    dto: { nome: string; descricao?: string },
+    dto: { nome: string; descricao?: string; fontesConteudo?: unknown },
   ) {
     return this.prisma.campanha.create({
       data: {
@@ -78,6 +82,13 @@ export class CampanhaService {
         descricao: dto.descricao ?? '',
         status: 'ATIVA',
         donoId,
+        // O null e reservado às campanhas legadas, que permanecem irrestritas.
+        // Campanhas novas começam apenas com o sistema-base habilitado.
+        fontesConteudo: (dto.fontesConteudo ?? {
+          suplementoIds: [],
+          homebrewIds: [],
+          homebrewGrupoIds: [],
+        }) as Prisma.InputJsonValue,
         roletaPresets: {
           create: criarPresetsPadraoRoleta(donoId),
         },
@@ -89,6 +100,40 @@ export class CampanhaService {
         _count: {
           select: { membros: true, personagens: true, sessoes: true },
         },
+      },
+    });
+  }
+
+  listarConcessoesPersonagemCampanha(campanhaId: number, personagemId: number, usuarioId: number) { return this.concessoesService.listar(campanhaId, personagemId, usuarioId); }
+  concederPoderGenericoCampanha(campanhaId: number, personagemId: number, usuarioId: number, dto: ConcederPoderGenericoCampanhaDto) { return this.concessoesService.concederPoder(campanhaId, personagemId, usuarioId, dto); }
+  removerPoderGenericoCampanha(campanhaId: number, personagemId: number, poderId: number, usuarioId: number) { return this.concessoesService.removerPoder(campanhaId, personagemId, poderId, usuarioId); }
+  concederProficienciaCampanha(campanhaId: number, personagemId: number, usuarioId: number, dto: ConcederProficienciaCampanhaDto) { return this.concessoesService.concederProficiencia(campanhaId, personagemId, usuarioId, dto); }
+  removerProficienciaCampanha(campanhaId: number, personagemId: number, proficienciaId: number, usuarioId: number) { return this.concessoesService.removerProficiencia(campanhaId, personagemId, proficienciaId, usuarioId); }
+  criarHabilidadePersonalizadaCampanha(campanhaId: number, personagemId: number, usuarioId: number, dto: CriarHabilidadePersonalizadaCampanhaDto) { return this.concessoesService.criarHabilidadePersonalizada(campanhaId, personagemId, usuarioId, dto); }
+  removerHabilidadePersonalizadaCampanha(campanhaId: number, personagemId: number, habilidadeId: number, usuarioId: number) { return this.concessoesService.removerHabilidadePersonalizada(campanhaId, personagemId, habilidadeId, usuarioId); }
+
+  async atualizarCampanha(
+    campanhaId: number,
+    usuarioId: number,
+    dto: UpdateCampanhaDto,
+  ) {
+    const campanha = await this.prisma.campanha.findUnique({
+      where: { id: campanhaId },
+      select: { donoId: true },
+    });
+    if (!campanha) throw new CampanhaNaoEncontradaException(campanhaId);
+    if (campanha.donoId !== usuarioId) {
+      throw new CampanhaApenasDonoException('editar as fontes da campanha');
+    }
+    return this.prisma.campanha.update({
+      where: { id: campanhaId },
+      data: {
+        nome: dto.nome,
+        descricao: dto.descricao,
+        fontesConteudo:
+          dto.fontesConteudo === undefined
+            ? undefined
+            : (dto.fontesConteudo as Prisma.InputJsonValue),
       },
     });
   }
