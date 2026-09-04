@@ -500,7 +500,7 @@ export const itensOperacionaisSeed: EquipamentoOperacionalSeed[] = [
     descricao: 'Mochila leve de alta qualidade. Não usa nenhum espaço e aumenta sua capacidade de carga em 2 espaços.',
     tipo: TipoEquipamento.ITEM_OPERACIONAL,
     categoria: CategoriaEquipamento.CATEGORIA_4,
-    espacos: -2,
+    espacos: 0,
     efeito: 'Aumenta capacidade de carga em 2 espaços',
     tipoUso: TipoUsoEquipamento.GERAL,
   },

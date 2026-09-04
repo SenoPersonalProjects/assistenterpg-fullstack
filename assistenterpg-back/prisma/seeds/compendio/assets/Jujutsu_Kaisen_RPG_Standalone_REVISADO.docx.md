@@ -2396,7 +2396,7 @@ São o equipamento variado necessário para situações adversas durante as miss
 | Equipamento de Sobrevivência | 0 | 2 |
 | Lanterna Tática | 4 | 1 |
 | Máscara de gás | 0 | 1 |
-| Mochila Militar | 4 | -2 |
+| Mochila Militar | 4 | 0 (concede +2 espaços) |
 | Óculos de Visão Térmica | 1 | 1 |
 | Pé de cabra | 0 | 1 |
 | Pistola de Dardos | 4 | 1 |
