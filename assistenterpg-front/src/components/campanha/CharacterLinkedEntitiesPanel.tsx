@@ -888,7 +888,7 @@ export function CharacterLinkedEntitiesPanel({
             </p>
             {form.tipo === 'SHIKIGAMI' ? (
               <p>
-                Ataques:{' '}
+                Perícias (ataque e apoio):{' '}
                 {configuracaoSelecionada.previewCalculo.pools.ataquesMax}{' '}
                 pontos, teto{' '}
                 {configuracaoSelecionada.previewCalculo.pools.tetoAtaque}
