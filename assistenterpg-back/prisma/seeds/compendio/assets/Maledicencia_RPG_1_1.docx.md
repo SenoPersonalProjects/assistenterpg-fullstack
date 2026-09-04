@@ -2527,6 +2527,14 @@ Para manter o Shikigami forte, mas sem ultrapassar completamente o teto dos pró
 
 Dentro desses limites, o jogador pode concentrar os pontos para criar Shikigami mais focados em combate próximo(Luta alta), mais precisos(Pontaria alta) ou mais poderosos nos encantamentos (Jujutsu alto), sempre em diálogo com o conceito e papel daquele familiar na mesa.
 
+### **9.1.3.2. Perícias Não Obrigatórias**
+
+Além das perícias obrigatórias de ataque, o jogador pode usar parte do mesmo pool de perícias do Shikigami para distribuir pontos em perícias variadas que não estejam diretamente relacionadas ao combate, como Percepção, Intuição ou Acrobacia. Não existem pontos extras separados para essas perícias: cada ponto investido nelas é retirado do pool compartilhado com Luta, Pontaria e Jujutsu.
+
+Para cada grau de aprimoramento em Técnica de Shikigami, o usuário recebe +5 pontos extras para esse pool compartilhado. Luta, Pontaria e Jujutsu continuam sendo as perícias obrigatórias do familiar, mas os pontos podem ser redistribuídos entre elas e as demais perícias válidas, desde que nenhuma perícia ultrapasse o limite máximo da tabela de perícias de ataque.
+
+As perícias não obrigatórias devem fazer sentido para o conceito e a função do Shikigami. Elas podem representar, por exemplo, um familiar de apoio que observa o campo e concede informações ao usuário, ou um batedor especializado em movimentação e furtividade.
+
 ### **9.1.4. Resistências Obrigatórias**
 
 Todo Shikigami precisa ter Fortitude, Reflexos e Vontade definidos, já que é alvo de efeitos físicos, mágicos e mentais como qualquer criatura. Em vez de usar graus de treinamento, o sistema utiliza um pool de bônus fixo para essas três resistências.

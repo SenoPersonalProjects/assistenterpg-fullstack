@@ -1724,6 +1724,8 @@ export class CampanhaVinculadosService {
         fortitude: this.numeroPersistencia(dados.fortitude, 0),
         reflexos: this.numeroPersistencia(dados.reflexos, 0),
         vontade: this.numeroPersistencia(dados.vontade, 0),
+        percepcao: this.numeroPersistencia(dados.percepcao, 0),
+        periciasExtras: this.lerPericiasExtras(dados.periciasEspeciais),
       },
       motivoRecalculo: motivo,
     });
@@ -1760,10 +1762,16 @@ export class CampanhaVinculadosService {
         this.numeroPersistencia(dados[campo], 0) >
         calculo.pools.tetoResistencia,
     );
+    const periciaExtraAcimaTeto =
+      calculo.pools.tetoAtaque !== null &&
+      Object.values(this.lerPericiasExtras(dados.periciasEspeciais)).some(
+        (valor) => valor > calculo.pools.tetoAtaque!,
+      );
     if (
       excedentes ||
       atributoAcimaTeto ||
       ataqueAcimaTeto ||
+      periciaExtraAcimaTeto ||
       resistenciaAcimaTeto
     ) {
       throw new BusinessException(
@@ -1971,6 +1979,16 @@ export class CampanhaVinculadosService {
   ) {
     if (pontaria === undefined) return periciasEspeciais;
     return { ...(periciasEspeciais ?? {}), pontaria };
+  }
+
+  private lerPericiasExtras(valor: unknown): Record<string, number> {
+    if (!valor || typeof valor !== 'object' || Array.isArray(valor)) return {};
+    return Object.fromEntries(
+      Object.entries(valor as Record<string, unknown>)
+        .filter(([codigo]) => !['PONTARIA', 'PERCEPCAO'].includes(codigo.trim().toUpperCase()))
+        .map(([codigo, bonus]) => [codigo, this.numeroPersistencia(bonus, 0)] as const)
+        .filter(([, bonus]) => bonus > 0),
+    );
   }
 
   private mesclarRegistros(

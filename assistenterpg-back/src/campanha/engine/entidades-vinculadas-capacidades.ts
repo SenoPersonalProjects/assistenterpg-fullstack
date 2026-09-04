@@ -35,6 +35,8 @@ export type DistribuicaoVinculado = {
   fortitude: number;
   reflexos: number;
   vontade: number;
+  percepcao?: number;
+  periciasExtras?: Record<string, number>;
 };
 
 type CalcularAutomaticoInput = {
@@ -185,6 +187,10 @@ export function calcularFichaAutomaticaVinculado(
         input.distribuicao.luta,
         input.distribuicao.pontaria,
         input.distribuicao.jujutsu,
+        input.distribuicao.percepcao ?? 0,
+        ...Object.entries(input.distribuicao.periciasExtras ?? {})
+          .filter(([codigo]) => !['PONTARIA', 'PERCEPCAO'].includes(codigo.trim().toUpperCase()))
+          .map(([, valor]) => valor),
       ])
     : 0;
   const resistenciasDistribuidas = soma([

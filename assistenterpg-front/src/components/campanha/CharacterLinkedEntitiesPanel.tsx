@@ -81,6 +81,7 @@ type FormState = {
   vontade: string;
   luta: string;
   jujutsu: string;
+  periciasExtras: Array<{ codigo: string; bonus: string }>;
 };
 
 const TIPOS: Array<{ value: TipoEntidadeVinculadaPersonagem; label: string }> = [
@@ -203,7 +204,15 @@ function criarFormInicial(): FormState {
     vontade: '0',
     luta: '0',
     jujutsu: '0',
+    periciasExtras: [],
   };
+}
+
+function lerPericiasExtras(valor: unknown): Array<{ codigo: string; bonus: string }> {
+  if (!valor || typeof valor !== 'object' || Array.isArray(valor)) return [];
+  return Object.entries(valor as Record<string, unknown>)
+    .filter(([codigo]) => !['PONTARIA', 'PERCEPCAO'].includes(codigo.trim().toUpperCase()))
+    .map(([codigo, bonus]) => ({ codigo, bonus: String(bonus) }));
 }
 
 function preencherForm(entidade: EntidadeVinculadaPersonagem): FormState {
@@ -248,6 +257,7 @@ function preencherForm(entidade: EntidadeVinculadaPersonagem): FormState {
     vontade: String(entidade.vontade),
     luta: String(entidade.luta),
     jujutsu: String(entidade.jujutsu),
+    periciasExtras: lerPericiasExtras(entidade.periciasEspeciais),
   };
 }
 
@@ -297,6 +307,11 @@ function montarPayload(form: FormState): EntidadeVinculadaPersonagemPayload {
     vontade: inteiro(form.vontade, 0),
     luta: inteiro(form.luta, 0),
     jujutsu: inteiro(form.jujutsu, 0),
+    periciasEspeciais: Object.fromEntries(
+      form.periciasExtras
+        .map(({ codigo, bonus }) => [codigo.trim().toUpperCase(), inteiro(bonus, 0)] as const)
+        .filter(([codigo, bonus]) => codigo && !['PONTARIA', 'PERCEPCAO'].includes(codigo) && bonus > 0),
+    ),
   };
 }
 
@@ -957,6 +972,74 @@ export function CharacterLinkedEntitiesPanel({
             />
           ))}
         </div>
+        {form.tipo === 'SHIKIGAMI' ? (
+          <section className="space-y-2 rounded border border-app-border bg-app-bg/30 p-3">
+            <div>
+              <h5 className="text-sm font-semibold text-app-fg">
+                Perícias não obrigatórias
+              </h5>
+              <p className="text-xs text-app-muted">
+                Use parte do mesmo pool de Luta, Pontaria e Jujutsu. Cada valor
+                deve respeitar o teto indicado pela técnica.
+              </p>
+            </div>
+            {form.periciasExtras.map((pericia, index) => (
+              <div key={`${pericia.codigo}-${index}`} className="grid gap-2 sm:grid-cols-[1fr_120px_auto]">
+                <Input
+                  label={index === 0 ? 'Código da perícia' : undefined}
+                  value={pericia.codigo}
+                  placeholder="INTUICAO"
+                  onChange={(event) =>
+                    setForm((atual) => ({
+                      ...atual,
+                      periciasExtras: atual.periciasExtras.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, codigo: event.target.value } : item,
+                      ),
+                    }))
+                  }
+                />
+                <Input
+                  label={index === 0 ? 'Bônus' : undefined}
+                  value={pericia.bonus}
+                  onChange={(event) =>
+                    setForm((atual) => ({
+                      ...atual,
+                      periciasExtras: atual.periciasExtras.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, bonus: event.target.value } : item,
+                      ),
+                    }))
+                  }
+                />
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  onClick={() =>
+                    setForm((atual) => ({
+                      ...atual,
+                      periciasExtras: atual.periciasExtras.filter((_, itemIndex) => itemIndex !== index),
+                    }))
+                  }
+                >
+                  Remover
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              size="xs"
+              variant="secondary"
+              onClick={() =>
+                setForm((atual) => ({
+                  ...atual,
+                  periciasExtras: [...atual.periciasExtras, { codigo: '', bonus: '0' }],
+                }))
+              }
+            >
+              Adicionar perícia
+            </Button>
+          </section>
+        ) : null}
         {capacidades?.permissoes.podeIgnorarLimites ? (
           <label className="flex items-center gap-2 text-xs text-app-muted">
             <input

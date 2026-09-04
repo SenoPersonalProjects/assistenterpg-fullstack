@@ -108,6 +108,30 @@ describe('engine de capacidades de entidades vinculadas', () => {
     expect(depoisDePerderGrau.pools.atributosDistribuidos).toBe(6);
   });
 
+  it('compartilha o pool de pericias do shikigami com pericias nao obrigatorias', () => {
+    const calculo = calcularFichaAutomaticaVinculado({
+      tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+      nivel: 1,
+      grau: 0,
+      maiorAtributoDono: 3,
+      testeJujutsuDono: 5,
+      limitePeEaPorTurno: 2,
+      papel: 'FLEXIVEL',
+      distribuicao: {
+        ...distribuicaoVazia,
+        luta: 5,
+        pontaria: 5,
+        jujutsu: 5,
+        percepcao: 5,
+        periciasExtras: { INTUICAO: 5 },
+      },
+    });
+
+    expect(calculo.pools.ataquesMax).toBe(20);
+    expect(calculo.pools.ataquesDistribuidos).toBe(25);
+    expect(calculo.excedentes.ataques).toBe(5);
+  });
+
   it('resolve vagas e tetos por faixa de nivel', () => {
     expect([1, 5, 9, 13, 17].map(resolverLimiteVagasCorpos)).toEqual([
       1, 2, 3, 4, 5,
