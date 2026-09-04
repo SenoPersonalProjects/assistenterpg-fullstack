@@ -2382,6 +2382,30 @@ São o equipamento variado necessário para situações adversas durante as miss
 * Taser: Um dispositivo de eletrochoque capaz de atordoar ou até incapacitar um alvo. Você pode gastar uma ação padrão para atingir um ser adjacente. O alvo sofre 1d6 pontos de dano de eletricidade e fica atordoado por uma rodada (Fortitude DT Agi evita). A bateria do taser dura dois usos.  
 * Traje Hazmat: Uma roupa impermeável e que cobre o corpo inteiro, usada para impedir o contato do usuário com materiais tóxicos. Fornece \+5 em testes de resistência contra efeitos ambientais e resistência à dano químico 10\.
 
+**Categoria e peso dos itens operacionais:**
+
+| Item | Categoria | Peso |
+| --- | ---: | ---: |
+| Algemas | 0 | 1 |
+| Arpéu | 0 | 1 |
+| Bandoleira | 4 | 1 |
+| Binóculos | 0 | 1 |
+| Bloqueador de Sinal | 4 | 1 |
+| Cicatrizante | 4 | 1 |
+| Corda | 0 | 1 |
+| Equipamento de Sobrevivência | 0 | 2 |
+| Lanterna Tática | 4 | 1 |
+| Máscara de gás | 0 | 1 |
+| Mochila Militar | 4 | -2 |
+| Óculos de Visão Térmica | 1 | 1 |
+| Pé de cabra | 0 | 1 |
+| Pistola de Dardos | 4 | 1 |
+| Pistola Sinalizadora | 0 | 1 |
+| Soqueira | 0 | 1 |
+| Spray de Pimenta | 4 | 1 |
+| Taser | 4 | 1 |
+| Traje Hazmat | 4 | 2 |
+
 ### **8.5.4. Itens Amaldiçoados**
 
 No combate às maldições, a escola técnica não faz uso apenas de combate bruto e ofensivo contra as maldições e mestres de maldição. Existe uma divisão inteira da Central
