@@ -60,6 +60,7 @@ import type {
   NpcSessaoCampanha,
   ParticipanteIniciativaSessaoCampanha,
   PersonagemCampanhaResumo,
+  PersonagemCampanhaLista,
   SessaoCampanhaDetalhe,
   SessaoCampanhaRelatorio,
   TipoCenaSessaoCampanha,
@@ -417,7 +418,7 @@ export default function SessaoCampanhaPage() {
   const [modalAdicionarPersonagemAberto, setModalAdicionarPersonagemAberto] =
     useState(false);
   const [personagensDisponiveis, setPersonagensDisponiveis] = useState<
-    PersonagemCampanhaResumo[]
+    PersonagemCampanhaLista[]
   >([]);
   const [carregandoPersonagensDisponiveis, setCarregandoPersonagensDisponiveis] =
     useState(false);

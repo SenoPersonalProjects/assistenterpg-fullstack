@@ -6,7 +6,7 @@ import { Loading } from '@/components/ui/Loading';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
-import type { PersonagemCampanhaResumo, UserErrorState } from '@/lib/types';
+import type { PersonagemCampanhaLista, UserErrorState } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 
 type AddPersonagemModalProps = {
@@ -15,7 +15,7 @@ type AddPersonagemModalProps = {
   onConfirm: () => void;
   adicionando: boolean;
   sessaoEncerrada: boolean;
-  personagensDisponiveis: PersonagemCampanhaResumo[];
+  personagensDisponiveis: PersonagemCampanhaLista[];
   personagemSelecionadoId: string;
   onPersonagemSelecionadoChange: (value: string) => void;
   iniciativaValor: string;
@@ -101,24 +101,35 @@ export function AddPersonagemModal({
             <p className="text-xs text-app-muted">
               Jogador: {textoSeguro(personagemSelecionado.dono?.apelido ?? '-')}
             </p>
-            <div className="session-chip-row">
-              <span className="session-chip">
-                PV {personagemSelecionado.recursos.pvAtual}/
-                {personagemSelecionado.recursos.pvMax}
-              </span>
-              <span className="session-chip">
-                SAN {personagemSelecionado.recursos.sanAtual}/
-                {personagemSelecionado.recursos.sanMax}
-              </span>
-              <span className="session-chip">
-                PE {personagemSelecionado.recursos.peAtual}/
-                {personagemSelecionado.recursos.peMax}
-              </span>
-              <span className="session-chip">
-                EA {personagemSelecionado.recursos.eaAtual}/
-                {personagemSelecionado.recursos.eaMax}
-              </span>
-            </div>
+            {'recursos' in personagemSelecionado ? (
+              <div className="session-chip-row">
+                <span className="session-chip">
+                  PV {personagemSelecionado.recursos.pvAtual}/
+                  {personagemSelecionado.recursos.pvMax}
+                </span>
+                <span className="session-chip">
+                  SAN {personagemSelecionado.recursos.sanAtual}/
+                  {personagemSelecionado.recursos.sanMax}
+                </span>
+                <span className="session-chip">
+                  PE {personagemSelecionado.recursos.peAtual}/
+                  {personagemSelecionado.recursos.peMax}
+                </span>
+                <span className="session-chip">
+                  EA {personagemSelecionado.recursos.eaAtual}/
+                  {personagemSelecionado.recursos.eaMax}
+                </span>
+              </div>
+            ) : (
+              <div className="session-chip-row">
+                <span className="session-chip">
+                  Físico: {personagemSelecionado.status.fisico}
+                </span>
+                <span className="session-chip">
+                  Mental: {personagemSelecionado.status.mental}
+                </span>
+              </div>
+            )}
           </div>
         ) : null}
 

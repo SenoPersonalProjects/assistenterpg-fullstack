@@ -272,14 +272,40 @@ export class CampanhaPersonagensService {
   }
 
   async listarPersonagensCampanha(campanhaId: number, usuarioId: number) {
-    await this.accessService.garantirAcesso(campanhaId, usuarioId);
-
-    const personagens =
-      await this.persistence.listarPersonagensCampanha(campanhaId);
-
-    return personagens.map((personagem) =>
-      this.mapper.mapearPersonagemCampanhaResposta(personagem),
+    const acesso = await this.accessService.garantirAcesso(
+      campanhaId,
+      usuarioId,
     );
+
+    if (acesso.ehMestre) {
+      const personagens =
+        await this.persistence.listarPersonagensCampanha(campanhaId);
+
+      return personagens.map((personagem) =>
+        this.mapper.mapearPersonagemCampanhaResposta(personagem),
+      );
+    }
+
+    const resumos =
+      await this.persistence.listarPersonagensCampanhaResumo(campanhaId);
+    const idsProprios = resumos
+      .filter((personagem) => personagem.donoId === usuarioId)
+      .map((personagem) => personagem.id);
+    const proprios =
+      await this.persistence.listarPersonagensCampanhaDetalhados(
+        campanhaId,
+        idsProprios,
+      );
+    const propriosPorId = new Map(
+      proprios.map((personagem) => [personagem.id, personagem]),
+    );
+
+    return resumos.map((resumo) => {
+      const proprio = propriosPorId.get(resumo.id);
+      return proprio
+        ? this.mapper.mapearPersonagemCampanhaResposta(proprio)
+        : this.mapper.mapearPersonagemCampanhaResumo(resumo);
+    });
   }
 
   async listarPersonagensBaseDisponiveisParaAssociacao(

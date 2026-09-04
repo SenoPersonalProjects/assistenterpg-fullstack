@@ -175,7 +175,36 @@ export type PersonagemCampanhaResumo = {
     tipoGrauNome: string;
     valor: number;
   }>;
+  visibilidade: 'completa';
+  status: StatusPersonagemCampanhaResumo;
 };
+
+export type StatusPersonagemCampanhaResumo = {
+  fisico: 'Vivo' | 'Machucado' | 'Morrendo';
+  mental: 'Bom' | 'Ruim' | 'Enlouquecendo';
+};
+
+export type PersonagemCampanhaResumoPublico = {
+  id: number;
+  campanhaId: number;
+  personagemBaseId: number;
+  donoId: number;
+  nome: string;
+  personagemBase: {
+    id: number;
+    nome: string;
+  };
+  dono: {
+    id: number;
+    apelido: string;
+  };
+  visibilidade: 'resumida';
+  status: StatusPersonagemCampanhaResumo;
+};
+
+export type PersonagemCampanhaLista =
+  | PersonagemCampanhaResumo
+  | PersonagemCampanhaResumoPublico;
 
 export type PersonagemBaseDisponivelCampanha = {
   id: number;

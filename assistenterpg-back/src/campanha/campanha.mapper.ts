@@ -145,8 +145,79 @@ export type PersonagemCampanhaDetalhePayload =
     select: typeof PERSONAGEM_CAMPANHA_DETALHE_SELECT;
   }>;
 
+export type StatusPersonagemCampanhaResumo = {
+  fisico: 'Vivo' | 'Machucado' | 'Morrendo';
+  mental: 'Bom' | 'Ruim' | 'Enlouquecendo';
+};
+
+type PersonagemCampanhaResumoPayload = {
+  id: number;
+  campanhaId: number;
+  personagemBaseId: number;
+  donoId: number;
+  nome: string;
+  pvAtual: number;
+  pvMax: number;
+  pvBarrasTotal: number;
+  pvBarrasRestantes: number;
+  sanAtual: number;
+  sanMax: number;
+  personagemBase: { id: number; nome: string };
+  dono: { id: number; apelido: string };
+};
+
+export function calcularStatusPersonagemCampanhaResumo(
+  personagem: Pick<
+    PersonagemCampanhaResumoPayload,
+    | 'pvAtual'
+    | 'pvMax'
+    | 'pvBarrasTotal'
+    | 'pvBarrasRestantes'
+    | 'sanAtual'
+    | 'sanMax'
+  >,
+): StatusPersonagemCampanhaResumo {
+  const infoPv = calcularPvBarraMaximos(
+    personagem.pvMax,
+    personagem.pvBarrasTotal,
+    personagem.pvBarrasRestantes,
+  );
+  const pvBarraMaxAtual = infoPv.pvBarraMaxAtual;
+
+  return {
+    fisico:
+      personagem.pvAtual <= 0
+        ? 'Morrendo'
+        : pvBarraMaxAtual > 0 && personagem.pvAtual <= pvBarraMaxAtual / 2
+          ? 'Machucado'
+          : 'Vivo',
+    mental:
+      personagem.sanAtual <= 0
+        ? 'Enlouquecendo'
+        : personagem.sanMax > 0 && personagem.sanAtual <= personagem.sanMax / 2
+          ? 'Ruim'
+          : 'Bom',
+  };
+}
+
 @Injectable()
 export class CampanhaMapper {
+  mapearPersonagemCampanhaResumo(
+    personagem: PersonagemCampanhaResumoPayload,
+  ) {
+    return {
+      id: personagem.id,
+      campanhaId: personagem.campanhaId,
+      personagemBaseId: personagem.personagemBaseId,
+      donoId: personagem.donoId,
+      nome: personagem.nome,
+      personagemBase: personagem.personagemBase,
+      dono: personagem.dono,
+      visibilidade: 'resumida' as const,
+      status: calcularStatusPersonagemCampanhaResumo(personagem),
+    };
+  }
+
   mapearPersonagemCampanhaResposta(
     personagem: PersonagemCampanhaDetalhePayload,
   ) {
@@ -176,6 +247,7 @@ export class CampanhaMapper {
       Math.max(0, Number(valor ?? 0) + (bonusAtributos.get(codigo) ?? 0));
 
     return {
+      visibilidade: 'completa' as const,
       id: personagem.id,
       campanhaId: personagem.campanhaId,
       personagemBaseId: personagem.personagemBaseId,
@@ -240,6 +312,7 @@ export class CampanhaMapper {
         .filter((modificador) => modificador.campo === 'VULNERABILIDADE' && modificador.resistenciaTipoId)
         .map((modificador) => ({ resistenciaTipoId: modificador.resistenciaTipoId, resistenciaTipo: modificador.resistenciaTipo })),
       bonusDtFeiticos: calcularBonusDtFeiticosNarrativo(modificadoresAtivos),
+      status: calcularStatusPersonagemCampanhaResumo(personagem),
     };
   }
 }

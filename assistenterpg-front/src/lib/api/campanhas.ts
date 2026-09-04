@@ -7,6 +7,7 @@ import type {
   HistoricoPersonagemCampanha,
   ModificadorPersonagemCampanha,
   PersonagemBaseDisponivelCampanha,
+  PersonagemCampanhaLista,
   PersonagemCampanhaResumo,
   AplicarCondicaoSessaoCampanhaPayload,
   AdicionarNpcSessaoCampanhaPayload,
@@ -256,7 +257,7 @@ export async function apiRecusarConvite(codigo: string): Promise<void> {
 
 export async function apiListarPersonagensCampanha(
   campanhaId: number,
-): Promise<PersonagemCampanhaResumo[]> {
+): Promise<PersonagemCampanhaLista[]> {
   const { data } = await apiClient.get(`/campanhas/${campanhaId}/personagens`);
   return Array.isArray(data) ? data : [];
 }

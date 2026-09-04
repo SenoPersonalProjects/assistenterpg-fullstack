@@ -11,6 +11,7 @@ import {
 } from '@/lib/api';
 import type {
   PersonagemBaseDisponivelCampanha,
+  PersonagemCampanhaLista,
   PersonagemCampanhaResumo,
  UserErrorState } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
@@ -33,6 +34,20 @@ type Props = {
   onTotalPersonagensChange?: (total: number) => void;
 };
 
+function ehPersonagemDetalhado(
+  personagem: PersonagemCampanhaLista,
+): personagem is PersonagemCampanhaResumo {
+  return personagem.visibilidade === 'completa';
+}
+
+function corStatusFisico(status: PersonagemCampanhaResumo['status']['fisico']) {
+  return status === 'Vivo' ? 'green' : status === 'Machucado' ? 'yellow' : 'orange';
+}
+
+function corStatusMental(status: PersonagemCampanhaResumo['status']['mental']) {
+  return status === 'Bom' ? 'green' : status === 'Ruim' ? 'yellow' : 'orange';
+}
+
 function chaveDismissSugestao(campanhaId: number): string {
   return `assistenterpg:campanha:${campanhaId}:sugestao-personagem-dismissed`;
 }
@@ -44,7 +59,7 @@ export function CampaignCharactersSection({
   onTotalPersonagensChange,
 }: Props) {
   const [personagensCampanha, setPersonagensCampanha] = useState<
-    PersonagemCampanhaResumo[]
+    PersonagemCampanhaLista[]
   >([]);
   const [personagensBase, setPersonagensBase] = useState<
     PersonagemBaseDisponivelCampanha[]
@@ -322,6 +337,7 @@ export function CampaignCharactersSection({
         <div className="grid gap-3 md:grid-cols-2">
           {personagensCampanha.map((personagem) => {
             const podeEditar = usuarioEhMestre || personagem.donoId === usuarioId;
+            const detalhado = ehPersonagemDetalhado(personagem);
             return (
               <article
                 key={personagem.id}
@@ -337,47 +353,61 @@ export function CampaignCharactersSection({
                       {personagem.personagemBase.nome}
                     </p>
                   </div>
-                  <Badge color="gray" size="sm">
-                    Nv {personagem.nivel}
-                  </Badge>
+                  {detalhado ? (
+                    <Badge color="gray" size="sm">
+                      Nv {personagem.nivel}
+                    </Badge>
+                  ) : null}
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <Badge color="red" size="sm">
-                    PV {personagem.recursos.pvAtual}/{personagem.recursos.pvMax}
-                  </Badge>
-                  <Badge color="blue" size="sm">
-                    PE {personagem.recursos.peAtual}/{personagem.recursos.peMax}
-                  </Badge>
-                  <Badge color="orange" size="sm">
-                    EA {personagem.recursos.eaAtual}/{personagem.recursos.eaMax}
-                  </Badge>
-                  <Badge color="purple" size="sm">
-                    SAN {personagem.recursos.sanAtual}/{personagem.recursos.sanMax}
-                  </Badge>
-                </div>
+                {detalhado ? (
+                  <>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge color="red" size="sm">
+                        PV {personagem.recursos.pvAtual}/{personagem.recursos.pvMax}
+                      </Badge>
+                      <Badge color="blue" size="sm">
+                        PE {personagem.recursos.peAtual}/{personagem.recursos.peMax}
+                      </Badge>
+                      <Badge color="orange" size="sm">
+                        EA {personagem.recursos.eaAtual}/{personagem.recursos.eaMax}
+                      </Badge>
+                      <Badge color="purple" size="sm">
+                        SAN {personagem.recursos.sanAtual}/{personagem.recursos.sanMax}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge color="gray" size="sm">
+                        DEF {personagem.defesa.total}
+                      </Badge>
+                      <Badge color="gray" size="sm">
+                        ESQ {personagem.atributos.esquiva}
+                      </Badge>
+                      <Badge color="gray" size="sm">
+                        BLQ {personagem.atributos.bloqueio}
+                      </Badge>
+                      <Badge
+                        color={personagem.modificadoresAtivos.length ? 'purple' : 'gray'}
+                        size="sm"
+                        className="gap-1"
+                      >
+                        <Icon name="sparkles" className="h-3 w-3" />
+                        Mods {personagem.modificadoresAtivos.length}
+                      </Badge>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    <Badge color={corStatusFisico(personagem.status.fisico)} size="sm">
+                      Físico: {personagem.status.fisico}
+                    </Badge>
+                    <Badge color={corStatusMental(personagem.status.mental)} size="sm">
+                      Mental: {personagem.status.mental}
+                    </Badge>
+                  </div>
+                )}
 
-                <div className="flex flex-wrap gap-2">
-                  <Badge color="gray" size="sm">
-                    DEF {personagem.defesa.total}
-                  </Badge>
-                  <Badge color="gray" size="sm">
-                    ESQ {personagem.atributos.esquiva}
-                  </Badge>
-                  <Badge color="gray" size="sm">
-                    BLQ {personagem.atributos.bloqueio}
-                  </Badge>
-                  <Badge
-                    color={personagem.modificadoresAtivos.length ? 'purple' : 'gray'}
-                    size="sm"
-                    className="gap-1"
-                  >
-                    <Icon name="sparkles" className="h-3 w-3" />
-                    Mods {personagem.modificadoresAtivos.length}
-                  </Badge>
-                </div>
-
-                {podeEditar && (
+                {podeEditar && detalhado && (
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
                       variant="secondary"
