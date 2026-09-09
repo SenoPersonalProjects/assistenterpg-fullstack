@@ -1006,7 +1006,7 @@ export function SessionCharacterDetailsTabs({
             'PERSONAGEM',
             card.personagemSessaoId,
             card.nomePersonagem,
-            card.condicoesAtivas,
+            card.condicoesAtivas ?? [],
             'inline',
           )
         : null}

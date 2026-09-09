@@ -134,6 +134,7 @@ import { formatarCustos } from '@/lib/campanha/sessao-habilidades';
 import {
   aplicarAtualizacaoIncrementalSessao,
   chavesOrdenacaoAtualizacaoSessao,
+  normalizarDetalheSessao,
 } from '@/lib/campanha/sessao-atualizacoes';
 import type { EventoSessaoAtualizada } from '@/lib/realtime/sessao-socket';
 import { useSessaoLayout } from '@/hooks/useSessaoLayout';
@@ -3287,8 +3288,18 @@ export default function SessaoCampanhaPage() {
     () => detalhe?.participantes ?? [],
     [detalhe?.participantes],
   );
-  const cards = useMemo(() => detalhe?.cards ?? [], [detalhe?.cards]);
-  const npcs = useMemo(() => detalhe?.npcs ?? [], [detalhe?.npcs]);
+  const detalheNormalizado = useMemo(
+    () => (detalhe ? normalizarDetalheSessao(detalhe) : null),
+    [detalhe],
+  );
+  const cards = useMemo(
+    () => detalheNormalizado?.cards ?? [],
+    [detalheNormalizado?.cards],
+  );
+  const npcs = useMemo(
+    () => detalheNormalizado?.npcs ?? [],
+    [detalheNormalizado?.npcs],
+  );
   const npcsAlvosSociais = useMemo(() => {
     const idsAlvos = new Set(
       alvosSociais

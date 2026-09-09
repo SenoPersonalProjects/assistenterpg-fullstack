@@ -21,17 +21,18 @@ function normalizarStatusTexto(valor: string): string {
 }
 
 function encontrarCondicaoPorChaveOuNome(
-  condicoesAtivas: CondicaoAtivaSessaoCampanha[],
+  condicoesAtivas: readonly CondicaoAtivaSessaoCampanha[] | null | undefined,
   chave: string,
   termos: string[] = [],
 ): CondicaoAtivaSessaoCampanha | null {
-  const condicaoAutomatica = condicoesAtivas.find(
+  const condicoes = Array.isArray(condicoesAtivas) ? condicoesAtivas : [];
+  const condicaoAutomatica = condicoes.find(
     (condicao) => condicao.chaveAutomacao === chave,
   );
   if (condicaoAutomatica) return condicaoAutomatica;
   if (termos.length === 0) return null;
   return (
-    condicoesAtivas.find((condicao) => {
+    condicoes.find((condicao) => {
       const nome = normalizarStatusTexto(condicao.nome);
       return termos.some((termo) => nome.includes(termo));
     }) ?? null
@@ -40,7 +41,7 @@ function encontrarCondicaoPorChaveOuNome(
 
 export function resolverStatusFisico(
   recursos: RecursosStatus | null,
-  condicoesAtivas: CondicaoAtivaSessaoCampanha[],
+  condicoesAtivas?: readonly CondicaoAtivaSessaoCampanha[] | null,
   limiteMorrendo?: number | null,
   opcoes: OpcoesStatus = {},
 ): string | null {
@@ -95,7 +96,7 @@ export function resolverStatusFisico(
 
 export function resolverStatusMental(
   recursos: RecursosStatus | null,
-  condicoesAtivas: CondicaoAtivaSessaoCampanha[],
+  condicoesAtivas?: readonly CondicaoAtivaSessaoCampanha[] | null,
   limiteEnlouquecendo?: number | null,
   opcoes: OpcoesStatus = {},
 ): string | null {

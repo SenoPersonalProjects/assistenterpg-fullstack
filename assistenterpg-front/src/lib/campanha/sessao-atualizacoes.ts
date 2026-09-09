@@ -5,14 +5,53 @@ import type {
   SessaoCampanhaDetalhe,
 } from '@/lib/types';
 
+/**
+ * Compatibiliza snapshots parciais de sessão com o contrato consumido pela UI.
+ * Listas de condições vazias são semanticamente equivalentes à ausência do
+ * campo, mas impedem que uma resposta legada interrompa a renderização.
+ */
+export function normalizarDetalheSessao(
+  detalhe: SessaoCampanhaDetalhe,
+): SessaoCampanhaDetalhe {
+  const cards = Array.isArray(detalhe.cards) ? detalhe.cards : [];
+  const npcs = Array.isArray(detalhe.npcs) ? detalhe.npcs : [];
+  const cardsNormalizados = cards.some(
+    (card) => !Array.isArray(card.condicoesAtivas),
+  )
+    ? cards.map((card) => ({
+        ...card,
+        condicoesAtivas: Array.isArray(card.condicoesAtivas)
+          ? card.condicoesAtivas
+          : [],
+      }))
+    : cards;
+  const npcsNormalizados = npcs.some(
+    (npc) => !Array.isArray(npc.condicoesAtivas),
+  )
+    ? npcs.map((npc) => ({
+        ...npc,
+        condicoesAtivas: Array.isArray(npc.condicoesAtivas)
+          ? npc.condicoesAtivas
+          : [],
+      }))
+    : npcs;
+
+  return {
+    ...detalhe,
+    cards: cardsNormalizados,
+    npcs: npcsNormalizados,
+  };
+}
+
 export function aplicarAtualizacaoIncrementalSessao(
   detalhe: SessaoCampanhaDetalhe,
   atualizacao: AtualizacaoIncrementalSessaoCampanha,
 ): SessaoCampanhaDetalhe {
+  const detalheNormalizado = normalizarDetalheSessao(detalhe);
   if (atualizacao.tipo === 'RECURSO_AJUSTADO') {
     return {
-      ...detalhe,
-      cards: detalhe.cards.map((card) => {
+      ...detalheNormalizado,
+      cards: detalheNormalizado.cards.map((card) => {
         if (
           card.personagemSessaoId !== atualizacao.personagemSessaoId ||
           !card.recursos
@@ -33,12 +72,14 @@ export function aplicarAtualizacaoIncrementalSessao(
     };
   }
 
-  const regraInspiracao = detalhe.regrasOpcionais?.INSPIRACAO;
-  if (!regraInspiracao || !detalhe.regrasOpcionais) return detalhe;
+  const regraInspiracao = detalheNormalizado.regrasOpcionais?.INSPIRACAO;
+  if (!regraInspiracao || !detalheNormalizado.regrasOpcionais) {
+    return detalheNormalizado;
+  }
   return {
-    ...detalhe,
+    ...detalheNormalizado,
     regrasOpcionais: {
-      ...detalhe.regrasOpcionais,
+      ...detalheNormalizado.regrasOpcionais,
       INSPIRACAO: {
         ...regraInspiracao,
         estado: {

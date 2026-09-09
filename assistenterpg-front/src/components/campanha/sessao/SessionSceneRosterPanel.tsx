@@ -70,6 +70,7 @@ export function SessionSceneRosterPanel({
       card: SessaoCampanhaDetalhe['cards'][number],
       iniciativaValor: number | null,
     ): RosterItem => {
+      const condicoesAtivas = card.condicoesAtivas ?? [];
       const recursos = card.recursos
         ? {
             pvAtual: card.recursos.pvAtual,
@@ -80,13 +81,13 @@ export function SessionSceneRosterPanel({
         : null;
       const statusFisico = resolverStatusFisico(
         recursos,
-        card.condicoesAtivas,
+        condicoesAtivas,
         card.turnosMorrendo ?? null,
         { indisponivelQuandoSemRecurso: true },
       );
       const statusMental = resolverStatusMental(
         recursos,
-        card.condicoesAtivas,
+        condicoesAtivas,
         card.turnosEnlouquecendo ?? null,
         { indisponivelQuandoSemRecurso: true },
       );
@@ -100,7 +101,7 @@ export function SessionSceneRosterPanel({
         iniciativaValor,
         statusFisico,
         statusMental,
-        condicoes: card.condicoesAtivas,
+        condicoes: condicoesAtivas,
       };
     };
 
@@ -108,6 +109,7 @@ export function SessionSceneRosterPanel({
       npc: NpcSessaoCampanha,
       iniciativaValor: number | null,
     ): RosterItem => {
+      const condicoesAtivas = npc.condicoesAtivas ?? [];
       const recursos = {
         pvAtual: npc.pontosVidaAtual,
         pvMax: npc.pontosVidaMax,
@@ -116,7 +118,7 @@ export function SessionSceneRosterPanel({
       };
       const statusFisico = resolverStatusFisico(
         recursos,
-        npc.condicoesAtivas,
+        condicoesAtivas,
         null,
         { indisponivelQuandoSemRecurso: true },
       );
@@ -124,7 +126,7 @@ export function SessionSceneRosterPanel({
         typeof npc.sanAtual === 'number' && typeof npc.sanMax === 'number'
           ? resolverStatusMental(
               recursos,
-              npc.condicoesAtivas,
+              condicoesAtivas,
               null,
               { indisponivelQuandoSemRecurso: true },
             )
@@ -139,7 +141,7 @@ export function SessionSceneRosterPanel({
         iniciativaValor,
         statusFisico,
         statusMental,
-        condicoes: npc.condicoesAtivas,
+        condicoes: condicoesAtivas,
       };
     };
 

@@ -259,7 +259,7 @@ export function SessionCharactersPanel({
           const abaDetalheCard = abasDetalheCard[card.personagemSessaoId] ?? 'RESUMO';
           const totalTecnicasCard =
             (card.tecnicaInata ? 1 : 0) + card.tecnicasNaoInatas.length;
-          const totalCondicoesAtivasCard = card.condicoesAtivas.length;
+          const totalCondicoesAtivasCard = card.condicoesAtivas?.length ?? 0;
           const totalSustentacoesAtivasCard = card.sustentacoesAtivas.length;
           const pontosInspiracao =
             pontosInspiracaoPorPersonagem[String(card.personagemCampanhaId)] ?? 0;

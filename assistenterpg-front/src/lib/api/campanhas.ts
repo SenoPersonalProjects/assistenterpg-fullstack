@@ -1,6 +1,7 @@
 // lib/api/campanhas.ts
 import { apiClient } from './axios-client';
 import { normalizeListResult, type ListResult } from './pagination';
+import { normalizarDetalheSessao } from '@/lib/campanha/sessao-atualizacoes';
 import type {
   CampanhaResumo,
   ConviteCampanha,
@@ -585,7 +586,7 @@ export async function apiGetSessaoCampanha(
   const { data } = await apiClient.get(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}`,
   );
-  return data;
+  return normalizarDetalheSessao(data as SessaoCampanhaDetalhe);
 }
 
 export async function apiListarSessoesAgendadasCampanha(

@@ -3,6 +3,7 @@ import type { SessaoCampanhaDetalhe } from '@/lib/types';
 import {
   aplicarAtualizacaoIncrementalSessao,
   chavesOrdenacaoAtualizacaoSessao,
+  normalizarDetalheSessao,
 } from './sessao-atualizacoes';
 
 function detalheBase(): SessaoCampanhaDetalhe {
@@ -38,6 +39,19 @@ function detalheBase(): SessaoCampanhaDetalhe {
 }
 
 describe('atualizações incrementais de sessão', () => {
+  it('normaliza condições ausentes de snapshots parciais', () => {
+    const parcial = {
+      ...detalheBase(),
+      cards: [{ ...detalheBase().cards[0], condicoesAtivas: undefined }],
+      npcs: [{ npcSessaoId: 51, condicoesAtivas: null }],
+    } as unknown as SessaoCampanhaDetalhe;
+
+    const normalizado = normalizarDetalheSessao(parcial);
+
+    expect(normalizado.cards[0].condicoesAtivas).toEqual([]);
+    expect(normalizado.npcs[0].condicoesAtivas).toEqual([]);
+  });
+
   it('aplica somente o recurso e as condições do personagem alvo', () => {
     const detalhe = detalheBase();
     const condicao = {

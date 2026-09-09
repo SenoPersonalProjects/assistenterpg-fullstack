@@ -240,11 +240,12 @@ export function CharacterSessionCard({
     typeof card.turnosMorrendo === 'number' ? card.turnosMorrendo : null;
   const limiteEnlouquecendo =
     typeof card.turnosEnlouquecendo === 'number' ? card.turnosEnlouquecendo : null;
+  const condicoesAtivas = card.condicoesAtivas ?? [];
   const statusFisico = recursos
-    ? resolverStatusFisico(recursos, card.condicoesAtivas, limiteMorrendo)
+    ? resolverStatusFisico(recursos, condicoesAtivas, limiteMorrendo)
     : null;
   const statusMental = recursos
-    ? resolverStatusMental(recursos, card.condicoesAtivas, limiteEnlouquecendo)
+    ? resolverStatusMental(recursos, condicoesAtivas, limiteEnlouquecendo)
     : null;
   const statusFisicoColor =
     statusFisico === 'Morto'
