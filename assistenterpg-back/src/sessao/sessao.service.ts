@@ -7609,6 +7609,28 @@ export class SessaoService {
             { campanhaId, vinculadoId },
           );
         }
+        if (
+          !acesso.ehMestre &&
+          entidade.personagemCampanha.donoId !== usuarioId
+        ) {
+          const personagemSessaoControlado =
+            await tx.personagemSessao.findFirst({
+              where: {
+                sessaoId,
+                personagemCampanhaId: entidade.personagemCampanhaId,
+                controladorUsuarioId: usuarioId,
+              },
+              select: { id: true },
+            });
+          if (!personagemSessaoControlado) {
+            throw new BusinessException(
+              'Voce nao pode invocar este vinculado',
+              'ENTIDADE_ACESSO_NEGADO',
+              { vinculadoId },
+            );
+          }
+        }
+
         await bloquearPersonagemCampanhaTx(
           tx,
           campanhaId,
@@ -7663,18 +7685,6 @@ export class SessaoService {
             { personagemCampanhaId: entidade.personagemCampanhaId, sessaoId },
           );
         }
-        if (
-          !acesso.ehMestre &&
-          entidade.personagemCampanha.donoId !== usuarioId &&
-          personagemSessao.controladorUsuarioId !== usuarioId
-        ) {
-          throw new BusinessException(
-            'Voce nao pode invocar este vinculado',
-            'ENTIDADE_ACESSO_NEGADO',
-            { vinculadoId },
-          );
-        }
-
         await this.validarLimiteEntidadeVinculadaAtivaTx(
           tx,
           sessaoId,

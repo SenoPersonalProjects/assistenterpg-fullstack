@@ -452,8 +452,18 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Este item não pode ser consumido com calma neste momento.",
   SESSAO_CONSUMO_FORMULA_INVALIDA:
     "A fórmula persistida para este consumível é inválida.",
-  SESSAO_CONSUMO_RECURSO_NPC_INDISPONIVEL:
-    "O recurso do NPC/Ameaça não pode receber este consumível.",
+  SESSAO_CONDICAO_HABILIDADE_NOT_FOUND:
+    "A condição configurada para esta habilidade não foi encontrada.",
+  SESSAO_CONTROLADOR_INVALIDO:
+    "O controlador precisa ser um jogador ativo desta campanha.",
+  SESSAO_CONVERSAO_PEEA_GASTO_INVALIDO:
+    "Informe um gasto positivo e par de PE para a conversão instantânea.",
+  SESSAO_ELENCO_CONTROLADO_PELO_MESTRE:
+    "Nesta sessão, somente o mestre pode alterar o elenco.",
+  SESSAO_NPC_EDICAO_NEGADA:
+    "Você só pode ajustar os recursos e a iniciativa do NPC sob seu controle.",
+  SESSAO_NPC_VINCULADO_CONTROLE_HERDADO:
+    "Entidades vinculadas seguem automaticamente o controlador do personagem de origem.",
   SESSAO_PERITO_PENDENTE_EXISTENTE:
     "Este personagem já possui um efeito de Perito pendente.",
   NPC_AMEACA_NOT_FOUND: "Aliado/Ameaça não encontrado",

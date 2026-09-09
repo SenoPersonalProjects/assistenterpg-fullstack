@@ -3944,6 +3944,9 @@ describe('SessaoService', () => {
           personagemCampanha: { id: 20, nome: 'Outro', donoId: 99, nivel: 1 },
         }),
       },
+      personagemSessao: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
     };
     prisma.$transaction.mockImplementation(
       async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
