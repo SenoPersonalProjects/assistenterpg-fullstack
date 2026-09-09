@@ -197,6 +197,14 @@ export function NpcSessionCard({
 }: NpcSessionCardProps) {
   const nomeTipoFicha = npc.fichaTipo === 'NPC' ? 'Aliado' : 'Ameaça';
   const vinculoLabel = formatarVinculoNpc(npc);
+  // A API omite coleções privadas nos resumos de NPC. Mesmo que um cartão seja
+  // montado durante uma atualização concorrente, a interface deve permanecer
+  // segura e tratar esses dados como listas vazias.
+  const pericias = npc.pericias ?? [];
+  const periciasEspeciais = npc.periciasEspeciais ?? [];
+  const passivas = npc.passivas ?? [];
+  const acoes = npc.acoes ?? [];
+  const condicoesAtivas = npc.condicoesAtivas ?? [];
   const linhasRecursos: LinhaRecursoNpc[] = [
     {
       key: 'pv',
@@ -238,7 +246,7 @@ export function NpcSessionCard({
   const podeOperar = Boolean(npc.podeControlar) || podeAjustar;
   const iniciativaTexto =
     typeof iniciativaValor === 'number' ? String(iniciativaValor) : '--';
-  const condicoesColor = npc.condicoesAtivas.length > 0 ? 'yellow' : 'gray';
+  const condicoesColor = condicoesAtivas.length > 0 ? 'yellow' : 'gray';
   const [expandido, setExpandido] = useState(false);
   const [recursosRecolhidos, setRecursosRecolhidos] = useState(true);
   const [abaAtiva, setAbaAtiva] = useState<AbaDetalheNpc>('RESUMO');
@@ -270,38 +278,38 @@ export function NpcSessionCard({
     vigor: mudouCampo(draft?.vigor, npc.atributos?.vigor ?? ''),
     percepcao: mudouCampo(
       draft?.percepcao,
-      npc.pericias.find((pericia) => pericia.codigo === 'PERCEPCAO')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === 'PERCEPCAO')?.bonus ?? '',
     ),
     iniciativa: mudouCampo(
       draft?.iniciativa,
-      npc.pericias.find((pericia) => pericia.codigo === 'INICIATIVA')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === 'INICIATIVA')?.bonus ?? '',
     ),
     fortitude: mudouCampo(
       draft?.fortitude,
-      npc.pericias.find((pericia) => pericia.codigo === 'FORTITUDE')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === 'FORTITUDE')?.bonus ?? '',
     ),
     reflexos: mudouCampo(
       draft?.reflexos,
-      npc.pericias.find((pericia) => pericia.codigo === 'REFLEXOS')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === 'REFLEXOS')?.bonus ?? '',
     ),
     vontade: mudouCampo(
       draft?.vontade,
-      npc.pericias.find((pericia) => pericia.codigo === 'VONTADE')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === 'VONTADE')?.bonus ?? '',
     ),
     luta: mudouCampo(
       draft?.luta,
-      npc.pericias.find((pericia) => pericia.codigo === 'LUTA')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === 'LUTA')?.bonus ?? '',
     ),
     jujutsu: mudouCampo(
       draft?.jujutsu,
-      npc.pericias.find((pericia) => pericia.codigo === 'JUJUTSU')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === 'JUJUTSU')?.bonus ?? '',
     ),
     notasCena: mudouCampo(draft?.notasCena, npc.notasCena ?? ''),
   };
   const possuiAlteracoes = Object.values(camposAlterados).some(Boolean);
 
   const totalPericiasNpc =
-    (npc.pericias?.length ?? 0) + (npc.periciasEspeciais?.length ?? 0);
+    pericias.length + periciasEspeciais.length;
   const tabs: SessionTabItem[] = [
     { id: 'RESUMO', label: 'Resumo', icon: 'chart' },
     { id: 'ATRIBUTOS', label: 'Atributos', icon: 'strength' },
@@ -315,7 +323,7 @@ export function NpcSessionCard({
       id: 'CONDICOES',
       label: 'Condições',
       icon: 'status',
-      count: npc.condicoesAtivas.length,
+      count: condicoesAtivas.length,
     },
   ];
   if (podeAjustar) {
@@ -326,18 +334,18 @@ export function NpcSessionCard({
       id: 'PASSIVAS',
       label: 'Passivas',
       icon: 'shield',
-      count: npc.passivas.length,
+      count: passivas.length,
     },
-    { id: 'ACOES', label: 'Ações', icon: 'sword', count: npc.acoes.length },
+    { id: 'ACOES', label: 'Ações', icon: 'sword', count: acoes.length },
   );
 
-  const totalAcoes = npc.acoes.length;
-  const totalAcoesComCusto = npc.acoes.filter(
+  const totalAcoes = acoes.length;
+  const totalAcoesComCusto = acoes.filter(
     (acao) =>
       typeof acao.custoPE === 'number' || typeof acao.custoEA === 'number',
   ).length;
-  const totalAcoesComDano = npc.acoes.filter((acao) => Boolean(acao.dano)).length;
-  const totalAcoesComResistencia = npc.acoes.filter(
+  const totalAcoesComDano = acoes.filter((acao) => Boolean(acao.dano)).length;
+  const totalAcoesComResistencia = acoes.filter(
     (acao) => Boolean(acao.resistencia || acao.dtResistencia),
   ).length;
 
@@ -377,16 +385,16 @@ export function NpcSessionCard({
           </p>
         </div>
         <Badge size="sm" color="gray">
-          {npc.passivas.length} passiva{npc.passivas.length === 1 ? '' : 's'}
+          {passivas.length} passiva{passivas.length === 1 ? '' : 's'}
         </Badge>
       </div>
 
       <div className="session-chip-row">
-        <span className="session-chip">Total {npc.passivas.length}</span>
+        <span className="session-chip">Total {passivas.length}</span>
         <span className="session-chip">Efeitos continuos</span>
       </div>
 
-      {npc.passivas.length === 0 ? (
+      {passivas.length === 0 ? (
         <EmptyState
           variant="session"
           size="sm"
@@ -396,7 +404,7 @@ export function NpcSessionCard({
         />
       ) : (
         <div className="session-npc-passivas">
-          {npc.passivas.map((passiva, passivaIndex) => (
+          {passivas.map((passiva, passivaIndex) => (
             <div
               key={`npc-passiva-${npc.npcSessaoId}-${passivaIndex}`}
               className="session-npc-passiva"
@@ -448,7 +456,7 @@ export function NpcSessionCard({
         </div>
       ) : null}
 
-      {npc.acoes.length === 0 ? (
+      {acoes.length === 0 ? (
         <EmptyState
           variant="session"
           size="sm"
@@ -458,7 +466,7 @@ export function NpcSessionCard({
         />
       ) : (
         <div className="session-npc-acoes">
-          {npc.acoes.map((acao, acaoIndex) => {
+          {acoes.map((acao, acaoIndex) => {
             const { primario, resistencia, rolagem } = montarMetadadosAcao(acao);
             const custoPE =
               typeof acao.custoPE === 'number' ? acao.custoPE : null;
@@ -608,8 +616,7 @@ export function NpcSessionCard({
   };
 
   const renderPericiasNpc = () => {
-    const periciasPrincipais = npc.pericias ?? [];
-    const periciasEspeciais = npc.periciasEspeciais ?? [];
+    const periciasPrincipais = pericias;
 
     if (periciasPrincipais.length === 0 && periciasEspeciais.length === 0) {
       return (
@@ -1091,7 +1098,7 @@ export function NpcSessionCard({
 
       <div className="flex flex-wrap items-center gap-2">
         <Badge size="sm" color={condicoesColor}>
-          Condições {npc.condicoesAtivas.length}
+          Condições {condicoesAtivas.length}
         </Badge>
         <Badge size="sm" color="gray">
           VD {npc.vd}
@@ -1177,7 +1184,7 @@ export function NpcSessionCard({
                 'NPC',
                 npc.npcSessaoId,
                 npc.nome,
-                npc.condicoesAtivas,
+                condicoesAtivas,
                 'inline',
               )
             : null}

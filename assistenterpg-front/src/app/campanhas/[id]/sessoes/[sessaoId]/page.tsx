@@ -275,6 +275,11 @@ function labelParticipanteIniciativa(
 }
 
 function montarEdicaoNpcBase(npc: NpcSessaoCampanha): NpcEditavel {
+  // Resumos públicos de NPC não carregam perícias. Este rascunho também é
+  // criado durante sincronizações de realtime, então precisa aceitar a
+  // resposta reduzida sem tentar acessar dados que não foram autorizados.
+  const pericias = npc.pericias ?? [];
+
   return {
     fichaTipo: npc.fichaTipo,
     tipo: npc.tipo,
@@ -305,25 +310,25 @@ function montarEdicaoNpcBase(npc: NpcSessaoCampanha): NpcEditavel {
         ? ''
         : String(npc.atributos.vigor),
     percepcao: String(
-      npc.pericias.find((pericia) => pericia.codigo === 'PERCEPCAO')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === 'PERCEPCAO')?.bonus ?? '',
     ),
     iniciativa: String(
-      npc.pericias.find((pericia) => pericia.codigo === 'INICIATIVA')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === 'INICIATIVA')?.bonus ?? '',
     ),
     fortitude: String(
-      npc.pericias.find((pericia) => pericia.codigo === 'FORTITUDE')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === 'FORTITUDE')?.bonus ?? '',
     ),
     reflexos: String(
-      npc.pericias.find((pericia) => pericia.codigo === 'REFLEXOS')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === 'REFLEXOS')?.bonus ?? '',
     ),
     vontade: String(
-      npc.pericias.find((pericia) => pericia.codigo === 'VONTADE')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === 'VONTADE')?.bonus ?? '',
     ),
     luta: String(
-      npc.pericias.find((pericia) => pericia.codigo === 'LUTA')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === 'LUTA')?.bonus ?? '',
     ),
     jujutsu: String(
-      npc.pericias.find((pericia) => pericia.codigo === 'JUJUTSU')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === 'JUJUTSU')?.bonus ?? '',
     ),
     notasCena: npc.notasCena ?? '',
   };
