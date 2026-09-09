@@ -3916,6 +3916,15 @@ export default function SessaoCampanhaPage() {
 
               {podeControlarSessao ? (
                 <>
+                  <SessionRosterControlPanel
+                    elencoControladoPeloMestre={Boolean(detalhe.elencoControladoPeloMestre)}
+                    participantes={detalhe.participantes}
+                    personagens={cards}
+                    npcs={npcs}
+                    atualizando={atualizandoElenco}
+                    onAtualizarElenco={handleAtualizarElencoControlado}
+                    onAtualizarControlador={handleAtualizarControladorParticipante}
+                  />
                   <SessionPanel
                     title="Escudo do Mestre"
                     subtitle="Guias rápidos e regras operacionais."
@@ -4135,17 +4144,6 @@ export default function SessaoCampanhaPage() {
           ) : null}
 
           <section className="space-y-3">
-            {podeControlarSessao ? (
-              <SessionRosterControlPanel
-                elencoControladoPeloMestre={Boolean(detalhe.elencoControladoPeloMestre)}
-                participantes={detalhe.participantes}
-                personagens={cards}
-                npcs={npcs}
-                atualizando={atualizandoElenco}
-                onAtualizarElenco={handleAtualizarElencoControlado}
-                onAtualizarControlador={handleAtualizarControladorParticipante}
-              />
-            ) : null}
             {podeControlarSessao ? renderCardsSessao() : null}
 
             {!podeControlarSessao && socialAtivo && npcsAlvosSociais.length > 0 ? (

@@ -86,8 +86,8 @@ export function SessionRosterControlPanel({
                 <p className="text-sm font-semibold text-app-fg">{item.nome}</p>
                 <Badge color={item.tipo === 'NPC' ? 'purple' : 'blue'} size="sm">{item.tipo === 'NPC' ? 'NPC' : 'Personagem'}</Badge>
               </div>
-              <Button size="sm" variant="ghost" onClick={item.onClick} disabled={atualizando}>
-                {labelControlador(item.controladorUsuarioId)}
+              <Button size="sm" variant="secondary" onClick={item.onClick} disabled={atualizando}>
+                Controlador: {labelControlador(item.controladorUsuarioId)}
               </Button>
             </div>
           ))}
