@@ -244,7 +244,10 @@ async function main() {
         if (npcSessao) await tx.npcAmeacaSessao.update({ where: { id: npcSessao.id }, data: { cenaId: cena.id, nomeExibicao: npc.nome, fichaTipo: npc.fichaTipo, tipo: npc.tipo, tamanho: npc.tamanho, passivasGuia: item.passivas as Prisma.InputJsonValue, acoesGuia: item.acoes as Prisma.InputJsonValue } });
         else await tx.npcAmeacaSessao.create({ data: { sessaoId: manifesto.sessaoId, npcAmeacaId: npc.id, ...dados } });
       }
-    }, { timeout: 30000 });
+    // O importador reconcilia fichas, catálogo privado e participantes da sessão
+    // em uma única transação. No TiDB remoto, a primeira execução pode levar mais
+    // de 30 segundos apenas nas operações idempotentes já existentes.
+    }, { maxWait: 30_000, timeout: 120_000 });
   } finally {
     await prisma.$disconnect();
   }
