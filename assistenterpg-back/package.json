@@ -23,6 +23,7 @@
     "security:preflight": "ts-node scripts/auth-security-preflight.ts",
     "recalc:inventario": "ts-node scripts/recalcular-espacos-inventario.ts",
     "fix:sustentacao": "ts-node scripts/fixar-custos-sustentacao.ts",
+    "import:elenco-sessao": "ts-node scripts/importar-elenco-sessao.ts",
     "seed:modificacoes-aplicaveis": "ts-node prisma/seeds/relacoes/equipamentos-modificacoes-aplicaveis.ts",
     "seed:tecnicas:inatas": "ts-node prisma/seeds/tecnicas/seed-tecnicas-inatas.ts",
     "seed:tecnicas:nao-inatas": "ts-node prisma/seeds/tecnicas/seed-tecnicas-nao-inatas.ts",

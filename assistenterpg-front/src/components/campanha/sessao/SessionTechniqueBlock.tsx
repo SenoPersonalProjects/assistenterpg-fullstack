@@ -40,6 +40,7 @@ type SessionTechniqueBlockProps = {
     habilidadeTecnicaId: number,
     variacaoHabilidadeId?: number,
     acumulos?: number,
+    gastoPE?: number,
   ) => void;
   onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
   onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
@@ -59,6 +60,22 @@ function montarChaveAcumuloHabilidade(
   variacaoHabilidadeId?: number,
 ): string {
   return `acumulo:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
+}
+
+function montarChaveGastoPEHabilidade(
+  personagemSessaoId: number,
+  habilidadeTecnicaId: number,
+  variacaoHabilidadeId?: number,
+): string {
+  return `gasto-pe:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
+}
+
+function ehConversaoPeEmEa(mecanicasSessao: unknown): boolean {
+  return (
+    typeof mecanicasSessao === 'object' &&
+    mecanicasSessao !== null &&
+    (mecanicasSessao as { tipo?: unknown }).tipo === 'CONVERTER_PE_EM_EA'
+  );
 }
 
 function parseAcumulos(
@@ -313,9 +330,26 @@ export function SessionTechniqueBlock({
               custoBaseTotalPE,
               descontosRitualPredileto,
             );
+            const custoBaseSustentacaoEA =
+              (custoBase.custoSustentacaoEA ?? 0) +
+              custoBase.escalonamentoCustoSustentacaoEA * acumulosBaseExtras;
+            const custoBaseSustentacaoPE =
+              (custoBase.custoSustentacaoPE ?? 0) +
+              custoBase.escalonamentoCustoSustentacaoPE * acumulosBaseExtras;
             const chaveBase = montarChaveUsoHabilidade(
               card.personagemSessaoId,
               habilidade.id,
+            );
+            const chaveGastoPEBase = montarChaveGastoPEHabilidade(
+              card.personagemSessaoId,
+              habilidade.id,
+            );
+            const conversaoInstantaneaBase = ehConversaoPeEmEa(
+              custoBase.mecanicasSessao,
+            );
+            const gastoPEBase = Math.max(
+              2,
+              Math.trunc(Number(acumulosHabilidade[chaveGastoPEBase]) || 2),
             );
             const testesBaseResolvidos = resolverTesteHabilidade(
               habilidade.testesExigidos,
@@ -395,8 +429,8 @@ export function SessionTechniqueBlock({
                         {custoBase.sustentada
                           ? renderCustoBadges({
                               prefix: 'Sust.',
-                              custoEA: custoBase.custoSustentacaoEA ?? 0,
-                              custoPE: custoBase.custoSustentacaoPE ?? 0,
+                              custoEA: custoBaseSustentacaoEA,
+                              custoPE: custoBaseSustentacaoPE,
                               color: 'cyan',
                               variant: 'outline',
                             })
@@ -459,6 +493,31 @@ export function SessionTechniqueBlock({
                         )
                       }
                     />
+                  ) : null}
+                  {conversaoInstantaneaBase ? (
+                    <div className="rounded border border-app-border bg-app-bg/80 p-2 space-y-1">
+                      <label className="text-xs font-semibold text-app-fg" htmlFor={chaveGastoPEBase}>
+                        PE para converter (valor par)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id={chaveGastoPEBase}
+                          type="number"
+                          min={2}
+                          step={2}
+                          value={gastoPEBase}
+                          disabled={!card.podeEditar || sessaoEncerrada}
+                          onChange={(event) =>
+                            onAtualizarAcumulosHabilidade(
+                              chaveGastoPEBase,
+                              String(Math.max(2, Math.trunc(Number(event.target.value) || 2))),
+                            )
+                          }
+                          className="h-8 w-20 rounded border border-app-border bg-app-surface px-2 text-center text-xs text-app-fg"
+                        />
+                        <span className="text-xs text-app-muted">Recebe {Math.floor(gastoPEBase / 2)} EA.</span>
+                      </div>
+                    </div>
                   ) : null}
                   {card.podeEditar && (testesBaseResolvidos || danoBaseDisponivel) ? (
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -525,6 +584,7 @@ export function SessionTechniqueBlock({
                             habilidade.id,
                             undefined,
                             acumulosBase,
+                            conversaoInstantaneaBase ? gastoPEBase : undefined,
                           )
                         }
                         disabled={
@@ -585,6 +645,14 @@ export function SessionTechniqueBlock({
                           custoVariacaoTotalPE,
                           descontosRitualPredileto,
                         );
+                        const custoVariacaoSustentacaoEA =
+                          (custoVariacao.custoSustentacaoEA ?? 0) +
+                          custoVariacao.escalonamentoCustoSustentacaoEA *
+                            acumulosVariacaoExtras;
+                        const custoVariacaoSustentacaoPE =
+                          (custoVariacao.custoSustentacaoPE ?? 0) +
+                          custoVariacao.escalonamentoCustoSustentacaoPE *
+                            acumulosVariacaoExtras;
                         const testesVariacaoResolvidos = resolverTesteHabilidade(
                           habilidade.testesExigidos,
                           card.pericias ?? [],
@@ -634,6 +702,20 @@ export function SessionTechniqueBlock({
                           habilidade.id,
                           variacao.id,
                         );
+                        const chaveGastoPEVariacao = montarChaveGastoPEHabilidade(
+                          card.personagemSessaoId,
+                          habilidade.id,
+                          variacao.id,
+                        );
+                        const conversaoInstantaneaVariacao = ehConversaoPeEmEa(
+                          custoVariacao.mecanicasSessao,
+                        );
+                        const gastoPEVariacao = Math.max(
+                          2,
+                          Math.trunc(
+                            Number(acumulosHabilidade[chaveGastoPEVariacao]) || 2,
+                          ),
+                        );
                         const qtdSustentacaoVariacaoAtiva =
                           obterQtdSustentacaoAtiva(habilidade.id, variacao.id);
                         const variacaoAberta =
@@ -668,12 +750,8 @@ export function SessionTechniqueBlock({
                                     {custoVariacao.sustentada
                                       ? renderCustoBadges({
                                           prefix: 'Sust.',
-                                          custoEA:
-                                            custoVariacao.custoSustentacaoEA ??
-                                            0,
-                                          custoPE:
-                                            custoVariacao.custoSustentacaoPE ??
-                                            0,
+                                          custoEA: custoVariacaoSustentacaoEA,
+                                          custoPE: custoVariacaoSustentacaoPE,
                                           color: 'cyan',
                                           variant: 'outline',
                                         })
@@ -743,6 +821,31 @@ export function SessionTechniqueBlock({
                                   }
                                 />
                               ) : null}
+                              {conversaoInstantaneaVariacao ? (
+                                <div className="rounded border border-app-border bg-app-bg/80 p-2 space-y-1">
+                                  <label className="text-xs font-semibold text-app-fg" htmlFor={chaveGastoPEVariacao}>
+                                    PE para converter (valor par)
+                                  </label>
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      id={chaveGastoPEVariacao}
+                                      type="number"
+                                      min={2}
+                                      step={2}
+                                      value={gastoPEVariacao}
+                                      disabled={!card.podeEditar || sessaoEncerrada}
+                                      onChange={(event) =>
+                                        onAtualizarAcumulosHabilidade(
+                                          chaveGastoPEVariacao,
+                                          String(Math.max(2, Math.trunc(Number(event.target.value) || 2))),
+                                        )
+                                      }
+                                      className="h-8 w-20 rounded border border-app-border bg-app-surface px-2 text-center text-xs text-app-fg"
+                                    />
+                                    <span className="text-xs text-app-muted">Recebe {Math.floor(gastoPEVariacao / 2)} EA.</span>
+                                  </div>
+                                </div>
+                              ) : null}
                               {card.podeEditar &&
                               (testesVariacaoResolvidos || danoVariacaoDisponivel) ? (
                                 <div className="flex flex-wrap items-center gap-1.5">
@@ -808,8 +911,11 @@ export function SessionTechniqueBlock({
                                     void onUsarHabilidade(
                                       card.personagemSessaoId,
                                       habilidade.id,
-                                      variacao.id,
-                                      acumulosVariacao,
+                                    variacao.id,
+                                    acumulosVariacao,
+                                    conversaoInstantaneaVariacao
+                                      ? gastoPEVariacao
+                                      : undefined,
                                     )
                                   }
                                   disabled={

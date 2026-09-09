@@ -35,6 +35,8 @@ import { RemoverCondicaoSessaoDto } from './dto/remover-condicao-sessao.dto';
 import { SessaoGateway } from './sessao.gateway';
 import { AdicionarPersonagemSessaoDto } from './dto/adicionar-personagem-sessao.dto';
 import { AtualizarRecursosPersonagemSessaoDto } from './dto/atualizar-recursos-personagem-sessao.dto';
+import { AtualizarElencoSessaoDto } from './dto/atualizar-elenco-sessao.dto';
+import { AtualizarControladorSessaoDto } from './dto/atualizar-controlador-sessao.dto';
 import {
   AjustarInspiracaoSessaoDto,
   AtualizarIniciativaAlternadaSessaoDto,
@@ -90,6 +92,23 @@ export class SessaoController {
       sessaoId,
       req.user.id,
     );
+  }
+
+  @Patch(':sessaoId/elenco')
+  async atualizarElencoSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarElencoSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.atualizarElencoSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'ELENCO_ATUALIZADO');
+    return resultado;
   }
 
   @Get(':sessaoId/chat')
@@ -591,6 +610,25 @@ export class SessaoController {
     return resultado;
   }
 
+  @Patch(':sessaoId/personagens/:personagemSessaoId/controlador')
+  async atualizarControladorPersonagemSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('personagemSessaoId', ParseIntPipe) personagemSessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarControladorSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.atualizarControladorPersonagemSessao(
+      campanhaId,
+      sessaoId,
+      personagemSessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'CONTROLE_PARTICIPANTE_ATUALIZADO');
+    return resultado;
+  }
+
   @Post(':sessaoId/npcs')
   async adicionarNpcSessao(
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
@@ -730,6 +768,25 @@ export class SessaoController {
       'NPC_ATUALIZADO',
     );
 
+    return resultado;
+  }
+
+  @Patch(':sessaoId/npcs/:npcSessaoId/controlador')
+  async atualizarControladorNpcSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('npcSessaoId', ParseIntPipe) npcSessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarControladorSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.atualizarControladorNpcSessao(
+      campanhaId,
+      sessaoId,
+      npcSessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'CONTROLE_PARTICIPANTE_ATUALIZADO');
     return resultado;
   }
 

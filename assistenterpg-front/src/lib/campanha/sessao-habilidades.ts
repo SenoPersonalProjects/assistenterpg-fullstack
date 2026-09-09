@@ -21,6 +21,9 @@ export type CustoExibicaoSessao = {
   escalonamentoCustoPE: number;
   custoSustentacaoEA: number | null;
   custoSustentacaoPE: number | null;
+  escalonamentoCustoSustentacaoEA: number;
+  escalonamentoCustoSustentacaoPE: number;
+  mecanicasSessao: unknown;
 };
 
 export function contarRituaisPrediletos(
@@ -99,6 +102,11 @@ export function resolverCustoExibicaoSessao(
   let duracao = habilidade.duracao;
   let custoSustentacaoEA = habilidade.custoSustentacaoEA;
   let custoSustentacaoPE = habilidade.custoSustentacaoPE;
+  let escalonamentoCustoSustentacaoEA =
+    habilidade.escalonamentoCustoSustentacaoEA;
+  let escalonamentoCustoSustentacaoPE =
+    habilidade.escalonamentoCustoSustentacaoPE;
+  let mecanicasSessao = habilidade.mecanicasSessao;
   let escalonaPorGrau = habilidade.escalonaPorGrau;
   let escalonamentoCustoEA = habilidade.escalonamentoCustoEA;
   let escalonamentoCustoPE = habilidade.escalonamentoCustoPE;
@@ -118,6 +126,17 @@ export function resolverCustoExibicaoSessao(
     }
     if (typeof variacao.custoSustentacaoPE === 'number') {
       custoSustentacaoPE = variacao.custoSustentacaoPE;
+    }
+    if (typeof variacao.escalonamentoCustoSustentacaoEA === 'number') {
+      escalonamentoCustoSustentacaoEA =
+        variacao.escalonamentoCustoSustentacaoEA;
+    }
+    if (typeof variacao.escalonamentoCustoSustentacaoPE === 'number') {
+      escalonamentoCustoSustentacaoPE =
+        variacao.escalonamentoCustoSustentacaoPE;
+    }
+    if (variacao.mecanicasSessao !== null) {
+      mecanicasSessao = variacao.mecanicasSessao;
     }
     if (typeof variacao.escalonaPorGrau === 'boolean') {
       escalonaPorGrau = variacao.escalonaPorGrau;
@@ -145,6 +164,13 @@ export function resolverCustoExibicaoSessao(
     escalonamentoCustoPE: escalonavel ? normalizar(escalonamentoCustoPE, 0) : 0,
     custoSustentacaoEA: sustentada ? normalizar(custoSustentacaoEA, 1) : null,
     custoSustentacaoPE: sustentada ? normalizar(custoSustentacaoPE, 0) : null,
+    escalonamentoCustoSustentacaoEA: sustentada
+      ? normalizar(escalonamentoCustoSustentacaoEA, 0)
+      : 0,
+    escalonamentoCustoSustentacaoPE: sustentada
+      ? normalizar(escalonamentoCustoSustentacaoPE, 0)
+      : 0,
+    mecanicasSessao,
   };
 }
 

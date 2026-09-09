@@ -162,7 +162,7 @@ export function SessionNpcsPanel({
             podeControlarSessao={podeControlarSessao}
             sessaoEncerrada={sessaoEncerrada}
             draft={edicaoNpcs[npc.npcSessaoId]}
-            ajustesRecursos={ajustesRecursosNpc[npc.npcSessaoId] ?? { pv: '0', san: '0', ea: '0' }}
+            ajustesRecursos={ajustesRecursosNpc[npc.npcSessaoId] ?? { pv: '0', san: '0', ea: '0', pe: '0' }}
             campoRecursoPendente={
               campoRecursoPendente?.startsWith(`${npc.npcSessaoId}:`)
                 ? (campoRecursoPendente.split(':')[1] as CampoAjusteRecursoNpc)

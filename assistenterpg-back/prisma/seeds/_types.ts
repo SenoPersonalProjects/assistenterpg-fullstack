@@ -108,6 +108,7 @@ export type SeedResistenciaTipo = {
 };
 
 export type SeedCondicao = {
+  codigo?: string;
   nome: string;
   descricao: string;
   icone?: string | null;

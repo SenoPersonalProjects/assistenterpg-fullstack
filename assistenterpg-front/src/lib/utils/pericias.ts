@@ -47,7 +47,7 @@ export function getValorGrau(nome: GrauTreinamentoNome): number {
  */
 export function validarLimiteGrauPorNivel(grauNovo: number, nivel: number): boolean {
   if (grauNovo === 10 && nivel < 3) return false; // Graduado só no nível 3+
-  if (grauNovo === 15 && nivel < 9) return false; // Veterano só no nível 9+
+  if (grauNovo === 15 && nivel < 8) return false; // Veterano só no nível 8+
   if (grauNovo === 20 && nivel < 16) return false; // Expert só no nível 16+
   return true;
 }
@@ -56,7 +56,7 @@ export function validarLimiteGrauPorNivel(grauNovo: number, nivel: number): bool
  * Retorna os níveis que concedem graus de treinamento
  */
 export function getNiveisGrausTreinamento(): number[] {
-  return [3, 7, 11, 16];
+  return [3, 8, 11, 16];
 }
 
 /**
@@ -111,7 +111,7 @@ export function getLimitesGrauInfo(): {
 } {
   return {
     graduado: { nivel: 3, nome: 'Graduado' },
-    veterano: { nivel: 9, nome: 'Veterano' },
+    veterano: { nivel: 8, nome: 'Veterano' },
     expert: { nivel: 16, nome: 'Expert' },
   };
 }

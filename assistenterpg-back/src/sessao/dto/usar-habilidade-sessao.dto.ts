@@ -18,4 +18,9 @@ export class UsarHabilidadeSessaoDto {
   @IsInt()
   @Min(1)
   acumulos?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  gastoPE?: number;
 }

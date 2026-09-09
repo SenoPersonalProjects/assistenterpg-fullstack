@@ -559,6 +559,9 @@ export type NpcSessaoCampanha = {
   entidadeVinculadaId?: number | null;
   personagemDonoId?: number | null;
   personagemControladorSessaoId?: number | null;
+  controladorUsuarioId?: number | null;
+  controlador?: { id: number; apelido: string } | null;
+  visibilidade?: 'completa' | 'resumida';
   tipoVinculo?: TipoEntidadeVinculadaPersonagem | null;
   vinculo?: {
     id: number;
@@ -584,6 +587,8 @@ export type NpcSessaoCampanha = {
   sanMax: number | null;
   eaAtual: number | null;
   eaMax: number | null;
+  peAtual?: number | null;
+  peMax?: number | null;
   machucado: number | null;
   deslocamentoMetros: number;
   notasCena: string | null;
@@ -595,6 +600,7 @@ export type NpcSessaoCampanha = {
   condicoesAtivas: CondicaoAtivaSessaoCampanha[];
   ocultoJogadores: boolean;
   podeEditar: boolean;
+  podeControlar?: boolean;
 };
 
 export type DuracaoCondicaoSessaoModo =
@@ -668,6 +674,8 @@ export type AdicionarNpcSessaoCampanhaPayload = {
   sanAtual?: number | null;
   eaMax?: number | null;
   eaAtual?: number | null;
+  peMax?: number | null;
+  peAtual?: number | null;
   machucado?: number | null;
   deslocamentoMetros?: number;
   notasCena?: string;
@@ -688,6 +696,8 @@ export type AdicionarNpcSimplesSessaoCampanhaPayload = {
   sanAtual?: number | null;
   eaMax?: number | null;
   eaAtual?: number | null;
+  peMax?: number | null;
+  peAtual?: number | null;
   machucado?: number | null;
   deslocamentoMetros?: number;
   agilidade?: number | null;
@@ -712,6 +722,7 @@ export type AtualizarNpcSessaoCampanhaPayload = Partial<
       pontosVidaAtualEsperado: number;
       sanAtualEsperado: number;
       eaAtualEsperado: number;
+      peAtualEsperado?: number;
     }
 >;
 
@@ -880,6 +891,9 @@ export type VariacaoHabilidadeSessaoCampanha = {
   custoEA: number | null;
   custoSustentacaoEA: number | null;
   custoSustentacaoPE: number | null;
+  escalonamentoCustoSustentacaoEA: number | null;
+  escalonamentoCustoSustentacaoPE: number | null;
+  mecanicasSessao: unknown;
   execucao: string | null;
   area: string | null;
   alcance: string | null;
@@ -925,6 +939,9 @@ export type HabilidadeTecnicaSessaoCampanha = {
   custoEA: number;
   custoSustentacaoEA: number | null;
   custoSustentacaoPE: number | null;
+  escalonamentoCustoSustentacaoEA: number;
+  escalonamentoCustoSustentacaoPE: number;
+  mecanicasSessao: unknown;
   escalonaPorGrau: boolean;
   grauTipoGrauCodigo: string | null;
   acumulosMaximos: number;
@@ -1035,6 +1052,7 @@ export type SessaoCampanhaDetalhe = {
   campanhaId: number;
   titulo: string;
   status: string;
+  elencoControladoPeloMestre?: boolean;
   rodadaAtual: number | null;
   indiceTurnoAtual: number | null;
   controleTurnosAtivo: boolean;
@@ -1075,6 +1093,8 @@ export type SessaoCampanhaDetalhe = {
     personagemCampanhaId: number;
     personagemBaseId: number;
     donoId: number;
+    controladorUsuarioId?: number | null;
+    controlador?: { id: number; apelido: string } | null;
     nomeJogador: string;
     nomePersonagem: string;
     podeEditar: boolean;

@@ -34,6 +34,11 @@ export class AtualizarNpcSessaoDto extends PartialType(
   eaAtualEsperado?: number;
 
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  peAtualEsperado?: number;
+
+  @IsOptional()
   @IsEnum(TipoFichaNpcAmeaca)
   fichaTipo?: TipoFichaNpcAmeaca;
 

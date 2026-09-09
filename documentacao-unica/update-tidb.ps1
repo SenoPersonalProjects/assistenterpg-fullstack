@@ -348,6 +348,24 @@ function Get-SeedCommand {
         DestructiveRelations = $false
       }
     }
+    'elenco-pro-codex' {
+      $manifestPath = $env:PRO_CODEX_MANIFEST_PATH
+      if ([string]::IsNullOrWhiteSpace($manifestPath)) {
+        throw 'Defina PRO_CODEX_MANIFEST_PATH para executar o importador do elenco Pro Codex.'
+      }
+      Assert-FileExists -Path $manifestPath -Label 'Manifesto externo do elenco Pro Codex'
+      $arguments = @('run', 'import:elenco-sessao', '--', '--manifest', $manifestPath)
+      if ($env:PRO_CODEX_IMPORT_MODE -eq 'apply') {
+        $arguments += '--apply'
+      }
+      return [pscustomobject]@{
+        Name = 'elenco-pro-codex'
+        Tool = 'npm'
+        Arguments = $arguments
+        ValidatesCompendio = $false
+        DestructiveRelations = $false
+      }
+    }
     'sobrevivendo' {
       return [pscustomobject]@{
         Name = 'sobrevivendo'

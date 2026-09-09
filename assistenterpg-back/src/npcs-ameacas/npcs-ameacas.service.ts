@@ -563,6 +563,7 @@ export class NpcsAmeacasService {
       vd: npcAmeaca.vd,
       defesa: npcAmeaca.defesa,
       pontosVida: npcAmeaca.pontosVida,
+      peMax: npcAmeaca.peMax,
       criadoEm: npcAmeaca.criadoEm,
       atualizadoEm: npcAmeaca.atualizadoEm,
     };
@@ -688,6 +689,7 @@ export class NpcsAmeacasService {
       jujutsuDados: dto.jujutsuDados,
       defesa: dto.defesa,
       pontosVida: dto.pontosVida,
+      peMax: dto.peMax,
       machucado: dto.machucado ?? undefined,
       deslocamentoMetros: dto.deslocamentoMetros,
       periciasEspeciais: this.normalizarJsonParaPersistir(periciasEspeciais),
@@ -817,6 +819,7 @@ export class NpcsAmeacasService {
       if (dto.jujutsuDados !== undefined) data.jujutsuDados = dto.jujutsuDados;
       if (dto.defesa !== undefined) data.defesa = dto.defesa;
       if (dto.pontosVida !== undefined) data.pontosVida = dto.pontosVida;
+      if (dto.peMax !== undefined) data.peMax = dto.peMax;
       if (dto.machucado !== undefined) data.machucado = dto.machucado;
       if (dto.deslocamentoMetros !== undefined) {
         data.deslocamentoMetros = dto.deslocamentoMetros;

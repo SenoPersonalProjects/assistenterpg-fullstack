@@ -456,29 +456,31 @@ model Usuario {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  campanhasQuePossui                       Campanha[]                             @relation("CampanhasDoDono")
+  campanhasQuePossui                       Campanha[]                                  @relation("CampanhasDoDono")
   personagensBase                          PersonagemBase[]
-  personagensCampanha                      PersonagemCampanha[]                   @relation("PersonagensCampanhaDoDono")
+  personagensCampanha                      PersonagemCampanha[]                        @relation("PersonagensCampanhaDoDono")
   membrosCampanha                          MembroCampanha[]
   historicosPersonagemCampanha             PersonagemCampanhaHistorico[]
-  modificadoresPersonagemCampanhaCriados   PersonagemCampanhaModificador[]        @relation("ModificadorPersonagemCampanhaCriadoPor")
-  modificadoresPersonagemCampanhaDesfeitos PersonagemCampanhaModificador[]        @relation("ModificadorPersonagemCampanhaDesfeitoPor")
-  macrosPersonagemCampanhaCriadas          PersonagemCampanhaMacro[]              @relation("MacroPersonagemCampanhaCriadaPor")
-  macrosPersonagemCampanhaAtualizadas      PersonagemCampanhaMacro[]              @relation("MacroPersonagemCampanhaAtualizadaPor")
-  macrosPersonagemCampanhaRemovidas        PersonagemCampanhaMacro[]              @relation("MacroPersonagemCampanhaRemovidaPor")
-  roletaPresetsCriados                     CampanhaRoletaPreset[]                  @relation("CampanhaRoletaPresetCriadoPor")
-  roletaPresetsAtualizados                 CampanhaRoletaPreset[]                  @relation("CampanhaRoletaPresetAtualizadoPor")
-  roletaPermissoesConcedidas               CampanhaRoletaPermissao[]               @relation("CampanhaRoletaPermissaoConcedidaPor")
-  roletaSorteiosComoAlvo                   CampanhaRoletaSorteio[]                 @relation("CampanhaRoletaSorteioAlvo")
-  roletaSorteiosIniciados                  CampanhaRoletaSorteio[]                 @relation("CampanhaRoletaSorteioIniciadoPor")
-  roletaSorteiosFinalizados                CampanhaRoletaSorteio[]                 @relation("CampanhaRoletaSorteioFinalizadoPor")
-  roletaSorteiosCancelados                 CampanhaRoletaSorteio[]                 @relation("CampanhaRoletaSorteioCanceladoPor")
-  roletaEventos                            CampanhaRoletaEvento[]                  @relation("CampanhaRoletaEventoAtor")
-  entidadesVinculadasCriadas               PersonagemCampanhaEntidadeVinculada[]  @relation("EntidadeVinculadaCriadaPor")
-  proficienciasCampanhaConcedidas          PersonagemCampanhaProficiencia[]       @relation("ProficienciaPersonagemCampanhaCriadaPor")
+  modificadoresPersonagemCampanhaCriados   PersonagemCampanhaModificador[]             @relation("ModificadorPersonagemCampanhaCriadoPor")
+  modificadoresPersonagemCampanhaDesfeitos PersonagemCampanhaModificador[]             @relation("ModificadorPersonagemCampanhaDesfeitoPor")
+  macrosPersonagemCampanhaCriadas          PersonagemCampanhaMacro[]                   @relation("MacroPersonagemCampanhaCriadaPor")
+  macrosPersonagemCampanhaAtualizadas      PersonagemCampanhaMacro[]                   @relation("MacroPersonagemCampanhaAtualizadaPor")
+  macrosPersonagemCampanhaRemovidas        PersonagemCampanhaMacro[]                   @relation("MacroPersonagemCampanhaRemovidaPor")
+  roletaPresetsCriados                     CampanhaRoletaPreset[]                      @relation("CampanhaRoletaPresetCriadoPor")
+  roletaPresetsAtualizados                 CampanhaRoletaPreset[]                      @relation("CampanhaRoletaPresetAtualizadoPor")
+  roletaPermissoesConcedidas               CampanhaRoletaPermissao[]                   @relation("CampanhaRoletaPermissaoConcedidaPor")
+  roletaSorteiosComoAlvo                   CampanhaRoletaSorteio[]                     @relation("CampanhaRoletaSorteioAlvo")
+  roletaSorteiosIniciados                  CampanhaRoletaSorteio[]                     @relation("CampanhaRoletaSorteioIniciadoPor")
+  roletaSorteiosFinalizados                CampanhaRoletaSorteio[]                     @relation("CampanhaRoletaSorteioFinalizadoPor")
+  roletaSorteiosCancelados                 CampanhaRoletaSorteio[]                     @relation("CampanhaRoletaSorteioCanceladoPor")
+  roletaEventos                            CampanhaRoletaEvento[]                      @relation("CampanhaRoletaEventoAtor")
+  entidadesVinculadasCriadas               PersonagemCampanhaEntidadeVinculada[]       @relation("EntidadeVinculadaCriadaPor")
+  proficienciasCampanhaConcedidas          PersonagemCampanhaProficiencia[]            @relation("ProficienciaPersonagemCampanhaCriadaPor")
   habilidadesCampanhaPersonalizadasCriadas PersonagemCampanhaHabilidadePersonalizada[] @relation("HabilidadePersonalizadaCampanhaCriadaPor")
-  sustentacoesSessaoCriadas                PersonagemSessaoHabilidadeSustentada[] @relation("SustentacaoSessaoCriadaPor")
-  sustentacoesSessaoDesativadas            PersonagemSessaoHabilidadeSustentada[] @relation("SustentacaoSessaoDesativadaPor")
+  sustentacoesSessaoCriadas                PersonagemSessaoHabilidadeSustentada[]      @relation("SustentacaoSessaoCriadaPor")
+  sustentacoesSessaoDesativadas            PersonagemSessaoHabilidadeSustentada[]      @relation("SustentacaoSessaoDesativadaPor")
+  personagensSessaoControlados             PersonagemSessao[]                          @relation("PersonagemSessaoControladorUsuario")
+  npcsSessaoControlados                    NpcAmeacaSessao[]                          @relation("NpcSessaoControladorUsuario")
   npcsAmeacas                              NpcAmeaca[]
   preferencias                             PreferenciaUsuario?
   tokensAuth                               AuthToken[]
@@ -487,20 +489,20 @@ model Usuario {
   oauthIdentidades                         UsuarioOAuthIdentidade[]
   googleCredencial                         UsuarioGoogleCredencial?
   oauthStates                              OAuthState[]
-  sessoesAgendadasCriadas                  SessaoAgendada[]                       @relation("SessaoAgendadaCriador")
-  conversasAmizadeComoUsuarioA             ConversaAmizade[]                      @relation("ConversaAmizadeUsuarioA")
-  conversasAmizadeComoUsuarioB             ConversaAmizade[]                      @relation("ConversaAmizadeUsuarioB")
-  mensagensAmizade                         MensagemAmizade[]                      @relation("MensagemAmizadeAutor")
+  sessoesAgendadasCriadas                  SessaoAgendada[]                            @relation("SessaoAgendadaCriador")
+  conversasAmizadeComoUsuarioA             ConversaAmizade[]                           @relation("ConversaAmizadeUsuarioA")
+  conversasAmizadeComoUsuarioB             ConversaAmizade[]                           @relation("ConversaAmizadeUsuarioB")
+  mensagensAmizade                         MensagemAmizade[]                           @relation("MensagemAmizadeAutor")
   leiturasConversasAmizade                 LeituraConversaAmizade[]
   anotacoes                                Anotacao[]
-  itensSessaoCriados                       ItemSessaoCampanha[]                   @relation("ItemSessaoCriadoPor")
-  templatesItensSessaoCriados              TemplateItemSessaoCampanha[]           @relation("TemplateItemSessaoCriadoPor")
-  transferenciasItensSessaoSolicitadas     TransferenciaItemSessaoCampanha[]      @relation("TransferenciaItemSessaoSolicitante")
-  transferenciasItensSessaoRespondidas     TransferenciaItemSessaoCampanha[]      @relation("TransferenciaItemSessaoRespondidaPor")
-  amizadesComoUsuarioA                     Amizade[]                              @relation("AmizadeUsuarioA")
-  amizadesComoUsuarioB                     Amizade[]                              @relation("AmizadeUsuarioB")
-  solicitacoesAmizadeEnviadas              Amizade[]                              @relation("AmizadeSolicitante")
-  solicitacoesAmizadeRecebidas             Amizade[]                              @relation("AmizadeDestinatario")
+  itensSessaoCriados                       ItemSessaoCampanha[]                        @relation("ItemSessaoCriadoPor")
+  templatesItensSessaoCriados              TemplateItemSessaoCampanha[]                @relation("TemplateItemSessaoCriadoPor")
+  transferenciasItensSessaoSolicitadas     TransferenciaItemSessaoCampanha[]           @relation("TransferenciaItemSessaoSolicitante")
+  transferenciasItensSessaoRespondidas     TransferenciaItemSessaoCampanha[]           @relation("TransferenciaItemSessaoRespondidaPor")
+  amizadesComoUsuarioA                     Amizade[]                                   @relation("AmizadeUsuarioA")
+  amizadesComoUsuarioB                     Amizade[]                                   @relation("AmizadeUsuarioB")
+  solicitacoesAmizadeEnviadas              Amizade[]                                   @relation("AmizadeSolicitante")
+  solicitacoesAmizadeRecebidas             Amizade[]                                   @relation("AmizadeDestinatario")
 
   // ✅ NOVO: Relações com suplementos e homebrews
   suplementosAtivos            UsuarioSuplemento[]
@@ -715,17 +717,17 @@ model LeituraConversaAmizade {
 }
 
 model Campanha {
-  id           Int      @id @default(autoincrement())
-  donoId       Int
-  nome         String
-  descricao    String?  @db.Text
-  status       String
+  id             Int      @id @default(autoincrement())
+  donoId         Int
+  nome           String
+  descricao      String?  @db.Text
+  status         String
   // `null` preserva campanhas legadas sem restrição de fontes.
   fontesConteudo Json?
-  criadoEm     DateTime @default(now())
-  atualizadoEm DateTime @updatedAt
+  criadoEm       DateTime @default(now())
+  atualizadoEm   DateTime @updatedAt
 
-  dono                      Usuario                               @relation("CampanhasDoDono", fields: [donoId], references: [id], onDelete: Cascade)
+  dono                      Usuario                                     @relation("CampanhasDoDono", fields: [donoId], references: [id], onDelete: Cascade)
   membros                   MembroCampanha[]
   personagens               PersonagemCampanha[]
   historicoPersonagens      PersonagemCampanhaHistorico[]
@@ -779,8 +781,8 @@ model MembroCampanha {
   papel      String
   entrouEm   DateTime @default(now())
 
-  campanha Campanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
-  usuario  Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  campanha        Campanha                 @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  usuario         Usuario                  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   roletaPermissao CampanhaRoletaPermissao?
 
   @@unique([campanhaId, usuarioId])
@@ -789,21 +791,21 @@ model MembroCampanha {
 }
 
 model CampanhaRoletaPreset {
-  id              Int                  @id @default(autoincrement())
+  id              Int                @id @default(autoincrement())
   campanhaId      Int
   slot            CampanhaRoletaSlot
   modo            CampanhaRoletaModo
-  configVersao    Int                  @default(1)
+  configVersao    Int                @default(1)
   config          Json
-  revisao         Int                  @default(1)
+  revisao         Int                @default(1)
   criadoPorId     Int?
   atualizadoPorId Int?
-  criadoEm        DateTime             @default(now())
-  atualizadoEm    DateTime             @updatedAt
+  criadoEm        DateTime           @default(now())
+  atualizadoEm    DateTime           @updatedAt
 
-  campanha      Campanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
-  criadoPor     Usuario? @relation("CampanhaRoletaPresetCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
-  atualizadoPor Usuario? @relation("CampanhaRoletaPresetAtualizadoPor", fields: [atualizadoPorId], references: [id], onDelete: SetNull)
+  campanha      Campanha                @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  criadoPor     Usuario?                @relation("CampanhaRoletaPresetCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  atualizadoPor Usuario?                @relation("CampanhaRoletaPresetAtualizadoPor", fields: [atualizadoPorId], references: [id], onDelete: SetNull)
   sorteios      CampanhaRoletaSorteio[]
 
   @@unique([campanhaId, slot])
@@ -812,17 +814,17 @@ model CampanhaRoletaPreset {
 }
 
 model CampanhaRoletaPermissao {
-  id              Int      @id @default(autoincrement())
-  campanhaId      Int
-  usuarioId       Int
-  podeConfigurar  Boolean  @default(false)
-  podeGirar       Boolean  @default(false)
-  concedidoPorId  Int?
-  criadoEm        DateTime @default(now())
-  atualizadoEm    DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  campanhaId     Int
+  usuarioId      Int
+  podeConfigurar Boolean  @default(false)
+  podeGirar      Boolean  @default(false)
+  concedidoPorId Int?
+  criadoEm       DateTime @default(now())
+  atualizadoEm   DateTime @updatedAt
 
   membro       MembroCampanha @relation(fields: [campanhaId, usuarioId], references: [campanhaId, usuarioId], onDelete: Cascade)
-  concedidoPor Usuario? @relation("CampanhaRoletaPermissaoConcedidaPor", fields: [concedidoPorId], references: [id], onDelete: SetNull)
+  concedidoPor Usuario?       @relation("CampanhaRoletaPermissaoConcedidaPor", fields: [concedidoPorId], references: [id], onDelete: SetNull)
 
   @@unique([campanhaId, usuarioId])
   @@index([usuarioId])
@@ -830,34 +832,34 @@ model CampanhaRoletaPermissao {
 }
 
 model CampanhaRoletaSorteio {
-  id                 Int                           @id @default(autoincrement())
-  campanhaId         Int
-  presetId           Int
-  slot               CampanhaRoletaSlot
-  modo               CampanhaRoletaModo
-  alvoUsuarioId      Int?
-  status             CampanhaRoletaSorteioStatus  @default(AGUARDANDO_GIRO_1)
-  chaveAtiva         String?                       @unique @db.VarChar(80)
-  configSnapshot     Json
-  poolSnapshot       Json
-  resultados         Json
-  resultadoFinal     Json?
-  revisao            Int                           @default(1)
-  iniciadoPorId      Int?
-  finalizadoPorId    Int?
-  canceladoPorId     Int?
-  criadoEm           DateTime                      @default(now())
-  atualizadoEm       DateTime                      @updatedAt
-  finalizadoEm       DateTime?
-  canceladoEm        DateTime?
+  id              Int                         @id @default(autoincrement())
+  campanhaId      Int
+  presetId        Int
+  slot            CampanhaRoletaSlot
+  modo            CampanhaRoletaModo
+  alvoUsuarioId   Int?
+  status          CampanhaRoletaSorteioStatus @default(AGUARDANDO_GIRO_1)
+  chaveAtiva      String?                     @unique @db.VarChar(80)
+  configSnapshot  Json
+  poolSnapshot    Json
+  resultados      Json
+  resultadoFinal  Json?
+  revisao         Int                         @default(1)
+  iniciadoPorId   Int?
+  finalizadoPorId Int?
+  canceladoPorId  Int?
+  criadoEm        DateTime                    @default(now())
+  atualizadoEm    DateTime                    @updatedAt
+  finalizadoEm    DateTime?
+  canceladoEm     DateTime?
 
-  campanha     Campanha              @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
-  preset       CampanhaRoletaPreset  @relation(fields: [presetId], references: [id], onDelete: Restrict)
-  alvo         Usuario?              @relation("CampanhaRoletaSorteioAlvo", fields: [alvoUsuarioId], references: [id], onDelete: SetNull)
-  iniciadoPor  Usuario?              @relation("CampanhaRoletaSorteioIniciadoPor", fields: [iniciadoPorId], references: [id], onDelete: SetNull)
-  finalizadoPor Usuario?              @relation("CampanhaRoletaSorteioFinalizadoPor", fields: [finalizadoPorId], references: [id], onDelete: SetNull)
-  canceladoPor Usuario?              @relation("CampanhaRoletaSorteioCanceladoPor", fields: [canceladoPorId], references: [id], onDelete: SetNull)
-  eventos      CampanhaRoletaEvento[]
+  campanha      Campanha               @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  preset        CampanhaRoletaPreset   @relation(fields: [presetId], references: [id], onDelete: Restrict)
+  alvo          Usuario?               @relation("CampanhaRoletaSorteioAlvo", fields: [alvoUsuarioId], references: [id], onDelete: SetNull)
+  iniciadoPor   Usuario?               @relation("CampanhaRoletaSorteioIniciadoPor", fields: [iniciadoPorId], references: [id], onDelete: SetNull)
+  finalizadoPor Usuario?               @relation("CampanhaRoletaSorteioFinalizadoPor", fields: [finalizadoPorId], references: [id], onDelete: SetNull)
+  canceladoPor  Usuario?               @relation("CampanhaRoletaSorteioCanceladoPor", fields: [canceladoPorId], references: [id], onDelete: SetNull)
+  eventos       CampanhaRoletaEvento[]
 
   @@index([campanhaId, slot, status, criadoEm])
   @@index([campanhaId, alvoUsuarioId, criadoEm])
@@ -866,20 +868,20 @@ model CampanhaRoletaSorteio {
 }
 
 model CampanhaRoletaEvento {
-  id              Int                        @id @default(autoincrement())
+  id              Int                      @id @default(autoincrement())
   campanhaId      Int
   sorteioId       Int
   atorUsuarioId   Int?
   tipo            CampanhaRoletaEventoTipo
-  clientRequestId String                     @db.VarChar(36)
-  intencaoHash    String                     @db.VarChar(64)
+  clientRequestId String                   @db.VarChar(36)
+  intencaoHash    String                   @db.VarChar(64)
   dados           Json
   resposta        Json
-  criadoEm        DateTime                   @default(now())
+  criadoEm        DateTime                 @default(now())
 
-  campanha Campanha               @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  campanha Campanha              @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
   sorteio  CampanhaRoletaSorteio @relation(fields: [sorteioId], references: [id], onDelete: Cascade)
-  ator     Usuario?               @relation("CampanhaRoletaEventoAtor", fields: [atorUsuarioId], references: [id], onDelete: SetNull)
+  ator     Usuario?              @relation("CampanhaRoletaEventoAtor", fields: [atorUsuarioId], references: [id], onDelete: SetNull)
 
   @@unique([campanhaId, atorUsuarioId, clientRequestId])
   @@index([campanhaId, criadoEm])
@@ -1024,6 +1026,7 @@ model NpcAmeaca {
 
   defesa     Int  @default(10)
   pontosVida Int  @default(1)
+  peMax      Int?
   machucado  Int?
 
   deslocamentoMetros Int @default(6)
@@ -1119,10 +1122,10 @@ model PersonagemCampanha {
 
   personagensSessao                PersonagemSessao[]
   habilidadesCampanha              HabilidadePersonagemCampanha[]
-  inventarioItens                  InventarioItemCampanha[]              @relation("InventarioCampanha")
+  inventarioItens                  InventarioItemCampanha[]                    @relation("InventarioCampanha")
   itensSessao                      ItemSessaoCampanha[]
-  transferenciasItensSessaoOrigem  TransferenciaItemSessaoCampanha[]     @relation("TransferenciaItemSessaoOrigem")
-  transferenciasItensSessaoDestino TransferenciaItemSessaoCampanha[]     @relation("TransferenciaItemSessaoDestino")
+  transferenciasItensSessaoOrigem  TransferenciaItemSessaoCampanha[]           @relation("TransferenciaItemSessaoOrigem")
+  transferenciasItensSessaoDestino TransferenciaItemSessaoCampanha[]           @relation("TransferenciaItemSessaoDestino")
   grausAprimoramento               GrauPersonagemCampanha[]
   poderesGenericos                 PoderGenericoPersonagemCampanha[]
   tecnicasAprendidas               PersonagemCampanhaTecnica[]
@@ -1133,7 +1136,7 @@ model PersonagemCampanha {
   proficienciasConcedidas          PersonagemCampanhaProficiencia[]
   habilidadesPersonalizadas        PersonagemCampanhaHabilidadePersonalizada[]
   itensBaseSuprimidos              InventarioItemCampanhaBaseSuprimido[]
-  entidadesSessaoComoDono          NpcAmeacaSessao[]                     @relation("NpcSessaoDonoPersonagem")
+  entidadesSessaoComoDono          NpcAmeacaSessao[]                           @relation("NpcSessaoDonoPersonagem")
 
   @@unique([campanhaId, personagemBaseId])
   @@index([campanhaId])
@@ -1242,6 +1245,7 @@ model Sessao {
   cenaAtualTipo                   String    @default("LIVRE")
   cenaAtualNome                   String?
   limitesCategoriaInventarioAtivo Boolean   @default(false)
+  elencoControladoPeloMestre      Boolean   @default(false)
   iniciadoEm                      DateTime  @default(now())
   encerradoEm                     DateTime?
 
@@ -1470,6 +1474,7 @@ model NpcAmeacaSessao {
   entidadeVinculadaId           Int?
   personagemDonoId              Int?
   personagemControladorSessaoId Int?
+  controladorUsuarioId          Int?
   tipoVinculo                   TipoEntidadeVinculadaPersonagem?
   nomeExibicao                  String
   fichaTipo                     TipoFichaNpcAmeaca               @default(AMEACA)
@@ -1484,6 +1489,8 @@ model NpcAmeacaSessao {
   sanMax                        Int?
   eaAtual                       Int?
   eaMax                         Int?
+  peAtual                       Int?
+  peMax                         Int?
   machucado                     Int?
   agilidade                     Int?
   forca                         Int?
@@ -1511,6 +1518,7 @@ model NpcAmeacaSessao {
   entidadeVinculada                PersonagemCampanhaEntidadeVinculada? @relation(fields: [entidadeVinculadaId], references: [id], onDelete: SetNull)
   personagemDono                   PersonagemCampanha?                  @relation("NpcSessaoDonoPersonagem", fields: [personagemDonoId], references: [id], onDelete: SetNull)
   personagemControladorSessao      PersonagemSessao?                    @relation("NpcSessaoControladorPersonagem", fields: [personagemControladorSessaoId], references: [id], onDelete: SetNull)
+  controladorUsuario               Usuario?                              @relation("NpcSessaoControladorUsuario", fields: [controladorUsuarioId], references: [id], onDelete: SetNull)
   condicoes                        CondicaoPersonagemSessao[]
   transferenciasItensSessaoDestino TransferenciaItemSessaoCampanha[]
 
@@ -1520,6 +1528,7 @@ model NpcAmeacaSessao {
   @@index([entidadeVinculadaId])
   @@index([personagemDonoId])
   @@index([personagemControladorSessaoId])
+  @@index([controladorUsuarioId])
   @@index([sessaoId, cenaId])
   @@index([sessaoId, entidadeVinculadaId])
 }
@@ -1530,16 +1539,20 @@ model PersonagemSessao {
   cenaId               Int?
   personagemCampanhaId Int
   iniciativaValor      Int?
+  controladorUsuarioId Int?
 
   sessao             Sessao             @relation("PersonagensDaSessao", fields: [sessaoId], references: [id])
   cena               Cena?              @relation("PersonagensDaCena", fields: [cenaId], references: [id])
   personagemCampanha PersonagemCampanha @relation(fields: [personagemCampanhaId], references: [id])
+  controladorUsuario  Usuario?           @relation("PersonagemSessaoControladorUsuario", fields: [controladorUsuarioId], references: [id], onDelete: SetNull)
 
   condicoes              CondicaoPersonagemSessao[]
   habilidadesSustentadas PersonagemSessaoHabilidadeSustentada[]
   eventosComoAtor        EventoSessao[]                         @relation("EventosComoAtor")
   eventosComoAlvo        EventoSessao[]                         @relation("EventosComoAlvo")
   npcsControlados        NpcAmeacaSessao[]                      @relation("NpcSessaoControladorPersonagem")
+
+  @@index([controladorUsuarioId])
 }
 
 model PersonagemSessaoHabilidadeSustentada {
@@ -1563,12 +1576,13 @@ model PersonagemSessaoHabilidadeSustentada {
   desativadaPorUsuarioId Int?
   motivoDesativacao      String?   @db.Text
 
-  sessao             Sessao              @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
-  personagemSessao   PersonagemSessao    @relation(fields: [personagemSessaoId], references: [id], onDelete: Cascade)
-  habilidadeTecnica  HabilidadeTecnica   @relation(fields: [habilidadeTecnicaId], references: [id], onDelete: Cascade)
-  variacaoHabilidade VariacaoHabilidade? @relation(fields: [variacaoHabilidadeId], references: [id], onDelete: SetNull)
-  criadaPor          Usuario             @relation("SustentacaoSessaoCriadaPor", fields: [criadaPorUsuarioId], references: [id], onDelete: Cascade)
-  desativadaPor      Usuario?            @relation("SustentacaoSessaoDesativadaPor", fields: [desativadaPorUsuarioId], references: [id], onDelete: SetNull)
+  sessao             Sessao                     @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  personagemSessao   PersonagemSessao           @relation(fields: [personagemSessaoId], references: [id], onDelete: Cascade)
+  habilidadeTecnica  HabilidadeTecnica          @relation(fields: [habilidadeTecnicaId], references: [id], onDelete: Cascade)
+  variacaoHabilidade VariacaoHabilidade?        @relation(fields: [variacaoHabilidadeId], references: [id], onDelete: SetNull)
+  criadaPor          Usuario                    @relation("SustentacaoSessaoCriadaPor", fields: [criadaPorUsuarioId], references: [id], onDelete: Cascade)
+  desativadaPor      Usuario?                   @relation("SustentacaoSessaoDesativadaPor", fields: [desativadaPorUsuarioId], references: [id], onDelete: SetNull)
+  condicoesGeradas   CondicaoPersonagemSessao[]
 
   @@index([sessaoId, ativa])
   @@index([personagemSessaoId, ativa])
@@ -1578,6 +1592,7 @@ model PersonagemSessaoHabilidadeSustentada {
 
 model Condicao {
   id        Int     @id @default(autoincrement())
+  codigo    String? @unique
   nome      String  @unique
   descricao String  @db.Text
   icone     String?
@@ -1595,31 +1610,34 @@ model CondicaoPersonagemSessao {
   turnoAplicacao     Int
   duracaoTurnos      Int?
 
-  duracaoModo     String    @default("ATE_REMOVER")
-  duracaoValor    Int?
-  restanteDuracao Int?
-  ativo           Boolean   @default(true)
-  automatica      Boolean   @default(false)
-  chaveAutomacao  String?
-  contadorTurnos  Int       @default(0)
-  acumulos        Int       @default(1)
-  fonteCodigo     String?
-  limiteFonte     Int?
-  origemDescricao String?   @db.Text
-  observacao      String?   @db.Text
-  removidaEm      DateTime?
-  motivoRemocao   String?   @db.Text
+  duracaoModo             String    @default("ATE_REMOVER")
+  duracaoValor            Int?
+  restanteDuracao         Int?
+  ativo                   Boolean   @default(true)
+  automatica              Boolean   @default(false)
+  chaveAutomacao          String?
+  contadorTurnos          Int       @default(0)
+  acumulos                Int       @default(1)
+  fonteCodigo             String?
+  limiteFonte             Int?
+  origemDescricao         String?   @db.Text
+  observacao              String?   @db.Text
+  removidaEm              DateTime?
+  motivoRemocao           String?   @db.Text
+  sustentacaoHabilidadeId Int?
 
-  sessao           Sessao?           @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
-  personagemSessao PersonagemSessao? @relation(fields: [personagemSessaoId], references: [id], onDelete: Cascade)
-  npcSessao        NpcAmeacaSessao?  @relation(fields: [npcSessaoId], references: [id], onDelete: Cascade)
-  condicao         Condicao          @relation(fields: [condicaoId], references: [id])
-  cena             Cena              @relation(fields: [cenaId], references: [id])
+  sessao                Sessao?                               @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  personagemSessao      PersonagemSessao?                     @relation(fields: [personagemSessaoId], references: [id], onDelete: Cascade)
+  npcSessao             NpcAmeacaSessao?                      @relation(fields: [npcSessaoId], references: [id], onDelete: Cascade)
+  condicao              Condicao                              @relation(fields: [condicaoId], references: [id])
+  cena                  Cena                                  @relation(fields: [cenaId], references: [id])
+  sustentacaoHabilidade PersonagemSessaoHabilidadeSustentada? @relation(fields: [sustentacaoHabilidadeId], references: [id], onDelete: SetNull)
 
   @@index([sessaoId, ativo])
   @@index([personagemSessaoId, ativo])
   @@index([npcSessaoId, ativo])
   @@index([condicaoId])
+  @@index([sustentacaoHabilidadeId])
 }
 
 model EventoSessao {
@@ -2011,9 +2029,9 @@ model Proficiencia {
   categoria String
   subtipo   String?
 
-  personagensBase PersonagemBaseProficiencia[]
-  classes                         ClasseProficiencia[]
-  personagensCampanhaConcedidas   PersonagemCampanhaProficiencia[]
+  personagensBase               PersonagemBaseProficiencia[]
+  classes                       ClasseProficiencia[]
+  personagensCampanhaConcedidas PersonagemCampanhaProficiencia[]
 }
 
 model PersonagemBaseProficiencia {
@@ -2050,8 +2068,8 @@ model ResistenciaTipo {
   descricao String? @db.Text
 
   // ✅ ATUALIZADO: Agora suporta PersonagemBase E PersonagemCampanha
-  resistenciasPersonagemBase     PersonagemBaseResistencia[]
-  resistenciasPersonagemCampanha PersonagemCampanhaResistencia[]
+  resistenciasPersonagemBase      PersonagemBaseResistencia[]
+  resistenciasPersonagemCampanha  PersonagemCampanhaResistencia[]
   modificadoresPersonagemCampanha PersonagemCampanhaModificador[]
 }
 
@@ -2068,7 +2086,7 @@ model PersonagemCampanhaResistencia {
 }
 
 model PersonagemCampanhaProficiencia {
-  id                   Int @id @default(autoincrement())
+  id                   Int      @id @default(autoincrement())
   personagemCampanhaId Int
   proficienciaId       Int
   criadoPorId          Int
@@ -2084,11 +2102,11 @@ model PersonagemCampanhaProficiencia {
 }
 
 model PersonagemCampanhaHabilidadePersonalizada {
-  id                   Int @id @default(autoincrement())
+  id                   Int      @id @default(autoincrement())
   campanhaId           Int
   personagemCampanhaId Int
-  nome                 String @db.VarChar(120)
-  descricao            String @db.Text
+  nome                 String   @db.VarChar(120)
+  descricao            String   @db.Text
   criadoPorId          Int
   criadoEm             DateTime @default(now())
 
@@ -2640,14 +2658,14 @@ model InventarioItemCampanha {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  @@index([personagemCampanhaId])
   @@unique([personagemCampanhaId, itemBaseOrigemId])
+  @@index([personagemCampanhaId])
   @@index([equipamentoId])
   @@map("inventario_item_campanha")
 }
 
 model InventarioItemCampanhaBaseSuprimido {
-  id                   Int @id @default(autoincrement())
+  id                   Int      @id @default(autoincrement())
   personagemCampanhaId Int
   itemBaseOrigemId     Int
   criadoEm             DateTime @default(now())
@@ -2911,10 +2929,13 @@ model HabilidadeTecnica {
   dtResistencia String? @db.Text // Ex: "10 + Limite PE/EA + INT", "CD 15 fixa"
 
   // ✅ Custos base
-  custoPE            Int  @default(0)
-  custoEA            Int  @default(0)
-  custoSustentacaoEA Int?
-  custoSustentacaoPE Int?
+  custoPE                         Int   @default(0)
+  custoEA                         Int   @default(0)
+  custoSustentacaoEA              Int?
+  custoSustentacaoPE              Int?
+  escalonamentoCustoSustentacaoEA Int   @default(0)
+  escalonamentoCustoSustentacaoPE Int   @default(0)
+  mecanicasSessao                 Json?
 
   // ✅ Teste exigido (perícias necessárias)
   testesExigidos Json? // Ex: ["Atletismo", "Acrobacia"]
@@ -2975,11 +2996,14 @@ model VariacaoHabilidade {
   descricao String @db.Text
 
   // ✅ Custos (SOBRESCREVE custos base se definido, senão ADICIONA)
-  substituiCustos    Boolean @default(false) // true = substitui, false = adiciona
-  custoPE            Int?
-  custoEA            Int?
-  custoSustentacaoEA Int?
-  custoSustentacaoPE Int?
+  substituiCustos                 Boolean @default(false) // true = substitui, false = adiciona
+  custoPE                         Int?
+  custoEA                         Int?
+  custoSustentacaoEA              Int?
+  custoSustentacaoPE              Int?
+  escalonamentoCustoSustentacaoEA Int?
+  escalonamentoCustoSustentacaoPE Int?
+  mecanicasSessao                 Json?
 
   // ✅ Execução (opcional - sobrescreve se definido)
   execucao TipoExecucao?

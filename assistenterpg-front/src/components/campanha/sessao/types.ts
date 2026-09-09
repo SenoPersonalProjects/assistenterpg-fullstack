@@ -24,7 +24,7 @@ export type NpcEditavel = {
   notasCena: string;
 };
 
-export type CampoAjusteRecursoNpc = 'pv' | 'san' | 'ea';
+export type CampoAjusteRecursoNpc = 'pv' | 'san' | 'ea' | 'pe';
 export type AjustesRecursosNpc = Record<CampoAjusteRecursoNpc, string>;
 
 export type AcaoControleTurno = 'AVANCAR' | 'VOLTAR' | 'PULAR';

@@ -95,6 +95,20 @@ export class AdicionarNpcSessaoDto {
   @IsInt()
   @Min(0)
   @Max(99999)
+  peAtual?: number | null;
+
+  @IsOptional()
+  @Transform(({ value }) => toNullableInt(value))
+  @IsInt()
+  @Min(0)
+  @Max(99999)
+  peMax?: number | null;
+
+  @IsOptional()
+  @Transform(({ value }) => toNullableInt(value))
+  @IsInt()
+  @Min(0)
+  @Max(99999)
   machucado?: number | null;
 
   @IsOptional()

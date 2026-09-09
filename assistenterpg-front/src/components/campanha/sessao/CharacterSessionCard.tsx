@@ -90,6 +90,7 @@ type CharacterSessionCardProps = {
     habilidadeTecnicaId: number,
     variacaoHabilidadeId?: number,
     acumulos?: number,
+    gastoPE?: number,
   ) => void;
   onUsarHabilidadeClasse: (
     personagemSessaoId: number,

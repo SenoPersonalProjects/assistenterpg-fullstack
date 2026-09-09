@@ -27,7 +27,7 @@ export async function validarGrausTreinamento(
   if (!grausTreinamento || grausTreinamento.length === 0) return;
 
   // Níveis que concedem grau de treinamento
-  const niveisValidos = [3, 7, 11, 16];
+  const niveisValidos = [3, 8, 11, 16];
   const niveisDisponiveis = niveisValidos.filter((n) => nivel >= n);
 
   // Validar que todos os níveis informados são válidos
@@ -95,8 +95,8 @@ export async function validarGrausTreinamento(
       if (melhoria.grauNovo === 10 && nivel < 3) {
         throw new GrauTreinamentoNivelMinimoException('Graduado', 10, 3);
       }
-      if (melhoria.grauNovo === 15 && nivel < 9) {
-        throw new GrauTreinamentoNivelMinimoException('Veterano', 15, 9);
+      if (melhoria.grauNovo === 15 && nivel < 8) {
+        throw new GrauTreinamentoNivelMinimoException('Veterano', 15, 8);
       }
       if (melhoria.grauNovo === 20 && nivel < 16) {
         throw new GrauTreinamentoNivelMinimoException('Expert', 20, 16);

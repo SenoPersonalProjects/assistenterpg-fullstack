@@ -39,7 +39,7 @@ type LinhaRecursoNpc = {
   label: string;
   atual: number;
   maximo: number;
-  tone: 'pv' | 'san' | 'ea';
+  tone: 'pv' | 'san' | 'ea' | 'pe';
 };
 
 type MetaItem = {
@@ -224,8 +224,18 @@ export function NpcSessionCard({
       tone: 'ea',
     });
   }
+  if (typeof npc.peAtual === 'number' && typeof npc.peMax === 'number') {
+    linhasRecursos.push({
+      key: 'pe',
+      label: 'Energia física',
+      atual: npc.peAtual,
+      maximo: npc.peMax,
+      tone: 'pe',
+    });
+  }
 
   const podeAjustar = podeControlarSessao && npc.podeEditar;
+  const podeOperar = Boolean(npc.podeControlar) || podeAjustar;
   const iniciativaTexto =
     typeof iniciativaValor === 'number' ? String(iniciativaValor) : '--';
   const condicoesColor = npc.condicoesAtivas.length > 0 ? 'yellow' : 'gray';
@@ -235,7 +245,7 @@ export function NpcSessionCard({
 
   const socialRealmenteAtivo = socialAtivo && Boolean(alvoSocial);
   const mostrarRecursos = !recursosRecolhidos && !socialAtivo;
-  const abaAtivaEfetiva = podeAjustar ? abaAtiva : 'RESUMO';
+  const abaAtivaEfetiva = podeOperar ? abaAtiva : 'RESUMO';
 
   const mudouCampo = (
     valorDraft: string | undefined,
@@ -456,7 +466,7 @@ export function NpcSessionCard({
               typeof acao.custoEA === 'number' ? acao.custoEA : null;
             const expressaoTeste = extrairExpressaoDice(acao.teste);
             const expressaoDano = extrairExpressaoDice(acao.dano);
-            const podeRolarAcao = podeControlarSessao;
+            const podeRolarAcao = podeOperar;
 
             return (
               <div
@@ -969,7 +979,7 @@ export function NpcSessionCard({
                     style={{ width: `${clampPercentual(linha.atual, linha.maximo)}%` }}
                   />
                 </div>
-                {podeAjustar ? (
+                {podeOperar ? (
                   <div className="session-resource-actions">
                     <div className="session-resource-actions__quick">
                       <Button

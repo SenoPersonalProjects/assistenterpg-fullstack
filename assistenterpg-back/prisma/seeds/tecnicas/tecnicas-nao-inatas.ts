@@ -51,6 +51,9 @@ type SeedVariacaoTecnica = {
   custoEA?: number | null;
   custoSustentacaoEA?: number | null;
   custoSustentacaoPE?: number | null;
+  escalonamentoCustoSustentacaoEA?: number | null;
+  escalonamentoCustoSustentacaoPE?: number | null;
+  mecanicasSessao?: Prisma.InputJsonValue | null;
   execucao?: TipoExecucao | null;
   area?: AreaEfeito | null;
   alcance?: string | null;
@@ -82,6 +85,9 @@ type SeedHabilidadeTecnica = {
   custoEA?: number;
   custoSustentacaoEA?: number | null;
   custoSustentacaoPE?: number | null;
+  escalonamentoCustoSustentacaoEA?: number;
+  escalonamentoCustoSustentacaoPE?: number;
+  mecanicasSessao?: Prisma.InputJsonValue | null;
   efeito: string;
   requisitos?: Prisma.InputJsonValue | null;
   escalonaPorGrau?: boolean;
@@ -294,6 +300,75 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
               danoExtremo: '4d12 + consequencia do mestre',
             },
             ordem: 40,
+          },
+        ],
+      },
+      {
+        codigo: 'NAOINATA_PRODUCAO_ENERGIA_AMALDICOADA',
+        nome: 'Produção de Energia Amaldiçoada',
+        descricao:
+          'Acelera a produção de energia amaldiçoada para adaptar-se à situação.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        alcance: 'Pessoal',
+        alvo: 'Você',
+        duracao: 'Sustentado',
+        custoPE: 3,
+        custoSustentacaoPE: 1,
+        escalonamentoCustoSustentacaoPE: 2,
+        efeito:
+          'Produz 1 EA por turno por acúmulo. Cada acúmulo adicional aumenta a sustentação em 2 PE.',
+        requisitos: {
+          graus: [{ tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 2 }],
+        },
+        escalonaPorGrau: true,
+        grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
+        escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
+        escalonamentoEfeito: { descricaoPorAcumulo: '+1 EA produzido por turno' },
+        mecanicasSessao: {
+          tipo: 'CONDICAO_SUSTENTADA',
+          condicaoCodigo: 'PRODUCAO_ACELERADA',
+          fonteCodigo: 'PRODUCAO_ENERGIA_AMALDICOADA',
+        },
+        ordem: 55,
+        variacoes: [
+          {
+            nome: 'Produção Concentrada',
+            descricao:
+              'Concentra a produção para gerar 2 EA por acúmulo a cada turno.',
+            substituiCustos: true,
+            execucao: TipoExecucao.ACAO_COMPLETA,
+            duracao: 'Sustentado (requer concentração)',
+            custoPE: 4,
+            custoSustentacaoPE: 2,
+            escalonamentoCustoSustentacaoPE: 3,
+            requisitos: {
+              graus: [{ tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 3 }],
+            },
+            escalonaPorGrau: true,
+            escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
+            escalonamentoEfeito: { descricaoPorAcumulo: '+2 EA produzidos por turno' },
+            mecanicasSessao: {
+              tipo: 'CONDICAO_SUSTENTADA',
+              condicaoCodigo: 'PRODUCAO_ACELERADA',
+              fonteCodigo: 'PRODUCAO_ENERGIA_AMALDICOADA_CONCENTRADA',
+              multiplicadorAcumulos: 2,
+            },
+            ordem: 10,
+          },
+          {
+            nome: 'Produção Instantânea',
+            descricao:
+              'Queima PE para produzir imediatamente metade desse valor em EA.',
+            substituiCustos: true,
+            execucao: TipoExecucao.ACAO_COMPLETA,
+            duracao: 'Instantaneo',
+            custoPE: 0,
+            mecanicasSessao: {
+              tipo: 'CONVERTER_PE_EM_EA',
+              somentePares: true,
+              divisor: 2,
+            },
+            ordem: 20,
           },
         ],
       },
@@ -968,6 +1043,11 @@ function mapHabilidadeData(
     custoEA: habilidade.custoEA ?? 0,
     custoSustentacaoEA: custosSustentacao.custoSustentacaoEA,
     custoSustentacaoPE: custosSustentacao.custoSustentacaoPE,
+    escalonamentoCustoSustentacaoEA:
+      habilidade.escalonamentoCustoSustentacaoEA ?? 0,
+    escalonamentoCustoSustentacaoPE:
+      habilidade.escalonamentoCustoSustentacaoPE ?? 0,
+    mecanicasSessao: jsonOrNull(habilidade.mecanicasSessao ?? null),
     efeito: habilidade.efeito,
     escalonaPorGrau: habilidade.escalonaPorGrau ?? false,
     grauTipoGrauCodigo: habilidade.grauTipoGrauCodigo ?? null,
@@ -1001,6 +1081,11 @@ function mapVariacaoData(
     custoEA: variacao.custoEA ?? null,
     custoSustentacaoEA: custosSustentacao.custoSustentacaoEA,
     custoSustentacaoPE: custosSustentacao.custoSustentacaoPE,
+    escalonamentoCustoSustentacaoEA:
+      variacao.escalonamentoCustoSustentacaoEA ?? null,
+    escalonamentoCustoSustentacaoPE:
+      variacao.escalonamentoCustoSustentacaoPE ?? null,
+    mecanicasSessao: jsonOrNull(variacao.mecanicasSessao ?? null),
     execucao: variacao.execucao ?? null,
     area: variacao.area ?? null,
     alcance: variacao.alcance ?? null,

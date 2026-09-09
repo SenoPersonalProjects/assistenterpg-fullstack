@@ -57,6 +57,7 @@ export type UsarHabilidadeSessaoCampanhaPayload = {
   habilidadeTecnicaId: number;
   variacaoHabilidadeId?: number;
   acumulos?: number;
+  gastoPE?: number;
 };
 
 export type UsarHabilidadeClasseSessaoCampanhaPayload = {
@@ -967,6 +968,31 @@ export async function apiAdicionarPersonagemSessaoCampanha(
   return data;
 }
 
+export async function apiAtualizarElencoSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  elencoControladoPeloMestre: boolean,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/elenco`,
+    { elencoControladoPeloMestre },
+  );
+  return data;
+}
+
+export async function apiAtualizarControladorPersonagemSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  personagemSessaoId: number,
+  controladorUsuarioId: number | null,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/personagens/${personagemSessaoId}/controlador`,
+    { controladorUsuarioId },
+  );
+  return data;
+}
+
 export async function apiRemoverPersonagemSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
@@ -1022,6 +1048,19 @@ export async function apiRemoverNpcSessaoCampanha(
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.delete(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/npcs/${npcSessaoId}`,
+  );
+  return data;
+}
+
+export async function apiAtualizarControladorNpcSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  npcSessaoId: number,
+  controladorUsuarioId: number | null,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/npcs/${npcSessaoId}/controlador`,
+    { controladorUsuarioId },
   );
   return data;
 }

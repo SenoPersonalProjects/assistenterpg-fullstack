@@ -57,7 +57,7 @@ function clamp(n: number, min: number, max: number) {
 }
 
 function calcularGrausLivresMaxFallback(nivel: number): number {
-  const marcos = [2, 8, 14, 18];
+  const marcos = [2, 7, 14, 18];
   return marcos.filter((m) => nivel >= m).length;
 }
 

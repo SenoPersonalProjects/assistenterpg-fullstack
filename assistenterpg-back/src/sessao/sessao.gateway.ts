@@ -63,7 +63,9 @@ type EventoSessaoAtualizada = {
     | 'ENCONTRO_SOCIAL_ATUALIZADO'
     | 'ESCALADA_DADOS_ATUALIZADA'
     | 'INICIATIVA_ALTERNADA_ATUALIZADA'
-    | 'CONSUMIVEL_USADO';
+    | 'CONSUMIVEL_USADO'
+    | 'ELENCO_ATUALIZADO'
+    | 'CONTROLE_PARTICIPANTE_ATUALIZADO';
   em: string;
   atualizacao?: AtualizacaoIncrementalSessao;
 };

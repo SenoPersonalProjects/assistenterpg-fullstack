@@ -174,6 +174,7 @@ export const condicoesSeed: SeedCondicao[] = [
       'É considerado desprevenido, sofre -10 na Defesa, falha automaticamente em Reflexos e pode sofrer golpe de misericórdia.',
   },
   {
+    codigo: 'CURA_ACELERADA',
     nome: 'Cura Acelerada',
     descricao:
     'No início de cada turno do alvo, recupera PV igual ao valor atual de acúmulos desta condição. Não possui limite global; limites podem ser definidos por fonte.',
@@ -216,6 +217,7 @@ export const condicoesSeed: SeedCondicao[] = [
     descricao: 'Fica Inconsciente e recebe resistência a dano 10.',
   },
   {
+    codigo: 'PRODUCAO_ACELERADA',
     nome: 'Produção Acelerada',
     descricao:
     'No início de cada turno do alvo, recupera EA igual ao valor atual de acúmulos desta condição. Pela fonte Kokusen, acumula até Produção Acelerada 5.',
@@ -274,7 +276,7 @@ export async function seedCondicoes(prisma: PrismaClient) {
     const icone = data.icone ?? CONDICOES_ICONES[data.nome] ?? 'status';
     await prisma.condicao.upsert({
       where: { nome: data.nome },
-      update: { descricao: data.descricao, icone },
+      update: { codigo: data.codigo ?? null, descricao: data.descricao, icone },
       create: { ...data, icone },
     });
   }

@@ -27,6 +27,7 @@ type UseSessaoHabilidadesReturn = {
     habilidadeTecnicaId: number,
     variacaoHabilidadeId?: number,
     acumulos?: number,
+    gastoPE?: number,
   ) => Promise<void>;
   handleUsarHabilidadeClasse: (
     personagemSessaoId: number,
@@ -77,6 +78,7 @@ export function useSessaoHabilidades({
       habilidadeTecnicaId: number,
       variacaoHabilidadeId?: number,
       acumulos?: number,
+      gastoPE?: number,
     ) => {
       if (sessaoEncerrada || acaoHabilidadePendente) return;
 
@@ -115,6 +117,12 @@ export function useSessaoHabilidades({
               const normalizado = Math.trunc(acumulos);
               if (normalizado <= 0) return undefined;
               return Math.max(1, normalizado);
+            })(),
+            gastoPE: (() => {
+              if (typeof gastoPE !== 'number' || !Number.isFinite(gastoPE)) {
+                return undefined;
+              }
+              return Math.max(1, Math.trunc(gastoPE));
             })(),
           },
         );

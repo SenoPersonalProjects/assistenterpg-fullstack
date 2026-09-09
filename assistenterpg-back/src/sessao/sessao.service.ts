@@ -53,6 +53,8 @@ import { AtualizarValorIniciativaSessaoDto } from './dto/atualizar-valor-iniciat
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
 import { UsarHabilidadeClasseSessaoDto } from './dto/usar-habilidade-classe-sessao.dto';
 import { AtualizarRecursosPersonagemSessaoDto } from './dto/atualizar-recursos-personagem-sessao.dto';
+import { AtualizarElencoSessaoDto } from './dto/atualizar-elenco-sessao.dto';
+import { AtualizarControladorSessaoDto } from './dto/atualizar-controlador-sessao.dto';
 import {
   ConcederMaldicaoControladaSessaoDto,
   InvocarEntidadeVinculadaSessaoDto,
@@ -447,6 +449,8 @@ type SnapshotNpcSessao = {
   defesa: number;
   pontosVidaAtual: number;
   pontosVidaMax: number;
+  peAtual: number | null;
+  peMax: number | null;
   sanAtual: number | null;
   sanMax: number | null;
   eaAtual: number | null;
@@ -558,6 +562,9 @@ type VariacaoTecnicaSessaoResumo = {
   custoEA: number | null;
   custoSustentacaoEA: number | null;
   custoSustentacaoPE: number | null;
+  escalonamentoCustoSustentacaoEA: number | null;
+  escalonamentoCustoSustentacaoPE: number | null;
+  mecanicasSessao: Prisma.JsonValue | null;
   execucao: string | null;
   area: string | null;
   alcance: string | null;
@@ -603,6 +610,9 @@ type HabilidadeTecnicaSessaoResumo = {
   custoEA: number;
   custoSustentacaoEA: number | null;
   custoSustentacaoPE: number | null;
+  escalonamentoCustoSustentacaoEA: number;
+  escalonamentoCustoSustentacaoPE: number;
+  mecanicasSessao: Prisma.JsonValue | null;
   escalonaPorGrau: boolean;
   grauTipoGrauCodigo: string | null;
   acumulosMaximos: number;
@@ -639,6 +649,10 @@ type CustoHabilidadeResolvido = {
   isSustentada: boolean;
   custoSustentacaoEA: number | null;
   custoSustentacaoPE: number | null;
+  custoEscalonamentoSustentacaoEA: number;
+  custoEscalonamentoSustentacaoPE: number;
+  mecanicasSessao: Prisma.JsonValue | null;
+  producaoEAInstantanea: number;
   acumulosSolicitados: number;
   acumulosAplicados: number;
   acumulosMaximos: number;
@@ -662,6 +676,9 @@ type VariacaoTecnicaSessaoRaw = {
   custoEA: number | null;
   custoSustentacaoEA: number | null;
   custoSustentacaoPE: number | null;
+  escalonamentoCustoSustentacaoEA: number | null;
+  escalonamentoCustoSustentacaoPE: number | null;
+  mecanicasSessao: Prisma.JsonValue | null;
   execucao: string | null;
   area: string | null;
   alcance: string | null;
@@ -706,6 +723,9 @@ type HabilidadeTecnicaSessaoRaw = {
   custoEA: number;
   custoSustentacaoEA: number | null;
   custoSustentacaoPE: number | null;
+  escalonamentoCustoSustentacaoEA: number;
+  escalonamentoCustoSustentacaoPE: number;
+  mecanicasSessao: Prisma.JsonValue | null;
   escalonaPorGrau: boolean;
   grauTipoGrauCodigo: string | null;
   escalonamentoCustoEA: number;
@@ -1000,6 +1020,7 @@ export class SessaoService {
           id: true,
           campanhaId: true,
           status: true,
+          elencoControladoPeloMestre: true,
           cenas: {
             select: { id: true },
             orderBy: { id: 'desc' },
@@ -1085,6 +1106,9 @@ export class SessaoService {
         personagens: {
           orderBy: { id: 'asc' },
           include: {
+            controladorUsuario: {
+              select: { id: true, apelido: true },
+            },
             personagemCampanha: {
               select: {
                 id: true,
@@ -1467,6 +1491,9 @@ export class SessaoService {
             id: 'asc',
           },
           include: {
+            controladorUsuario: {
+              select: { id: true, apelido: true },
+            },
             entidadeVinculada: {
               select: {
                 id: true,
@@ -1490,6 +1517,7 @@ export class SessaoService {
               select: {
                 id: true,
                 personagemCampanhaId: true,
+                controladorUsuarioId: true,
               },
             },
             npcAmeaca: {
@@ -1770,6 +1798,7 @@ export class SessaoService {
       campanhaId: sessao.campanhaId,
       titulo: sessao.titulo,
       status: sessao.status,
+      elencoControladoPeloMestre: sessao.elencoControladoPeloMestre,
       rodadaAtual: controleTurnosAtivo ? sessao.rodadaAtual : null,
       indiceTurnoAtual: controleTurnosAtivo ? indiceTurno : null,
       cenaAtual: {
@@ -1819,7 +1848,9 @@ export class SessaoService {
       participantes: this.mapearParticipantesCampanha(acesso.campanha),
       cards: personagensOrdenados.map((personagem) => {
         const podeEditar =
-          acesso.ehMestre || personagem.personagemCampanha.donoId === usuarioId;
+          acesso.ehMestre ||
+          personagem.personagemCampanha.donoId === usuarioId ||
+          personagem.controladorUsuarioId === usuarioId;
         const visibilidade = podeEditar ? 'completa' : 'resumida';
         const aprimoramentosTemporarios =
           this.listarAprimoramentosTemporariosAtivos(
@@ -1987,6 +2018,10 @@ export class SessaoService {
           personagemCampanhaId: personagem.personagemCampanha.id,
           personagemBaseId: personagem.personagemCampanha.personagemBaseId,
           donoId: personagem.personagemCampanha.donoId,
+          controladorUsuarioId: personagem.controladorUsuarioId,
+          controlador: personagem.controladorUsuario
+            ? { id: personagem.controladorUsuario.id, apelido: personagem.controladorUsuario.apelido }
+            : null,
           nomeJogador: personagem.personagemCampanha.dono.apelido,
           nomePersonagem: personagem.personagemCampanha.nome,
           podeEditar,
@@ -2118,6 +2153,21 @@ export class SessaoService {
         };
       }),
       npcs: npcsVisiveisCenaAtual.map((npc) => {
+        const podeControlarNpc =
+          acesso.ehMestre ||
+          npc.controladorUsuarioId === usuarioId ||
+          npc.personagemDono?.donoId === usuarioId ||
+          npc.personagemControladorSessao?.controladorUsuarioId === usuarioId;
+        if (!podeControlarNpc) {
+          return {
+            npcSessaoId: npc.id,
+            nome: npc.nomeExibicao,
+            fichaTipo: npc.fichaTipo,
+            tipo: npc.tipo,
+            visibilidade: 'resumida' as const,
+            ocultoJogadores: npc.ocultoJogadores,
+          };
+        }
         const atributosNpc = npc.npcAmeaca
           ? this.montarAtributosNpc(npc.npcAmeaca)
           : this.montarAtributosNpcSessao(npc);
@@ -2312,6 +2362,10 @@ export class SessaoService {
           entidadeVinculadaId: npc.entidadeVinculadaId,
           personagemDonoId: npc.personagemDonoId,
           personagemControladorSessaoId: npc.personagemControladorSessaoId,
+          controladorUsuarioId: npc.controladorUsuarioId,
+          controlador: npc.controladorUsuario
+            ? { id: npc.controladorUsuario.id, apelido: npc.controladorUsuario.apelido }
+            : null,
           tipoVinculo: npc.tipoVinculo,
           vinculo: npc.entidadeVinculada
             ? {
@@ -2342,6 +2396,8 @@ export class SessaoService {
           sanMax: npc.sanMax,
           eaAtual: npc.eaAtual,
           eaMax: npc.eaMax,
+          peAtual: npc.peAtual,
+          peMax: npc.peMax,
           machucado: npc.machucado,
           deslocamentoMetros: npc.deslocamentoMetros,
           notasCena: npc.notasCena,
@@ -2355,7 +2411,9 @@ export class SessaoService {
           passivas: this.mapearListaObjeto(npc.passivasGuia),
           acoes: this.mapearListaObjeto(npc.acoesGuia),
           condicoesAtivas: this.mapearCondicoesAtivasSessao(npc.condicoes),
+          visibilidade: 'completa' as const,
           podeEditar: acesso.ehMestre,
+          podeControlar: podeControlarNpc,
           ocultoJogadores: npc.ocultoJogadores,
         };
       }),
@@ -2383,6 +2441,7 @@ export class SessaoService {
       },
       select: {
         personagemCampanhaId: true,
+        controladorUsuarioId: true,
         personagemCampanha: {
           select: {
             donoId: true,
@@ -2445,7 +2504,8 @@ export class SessaoService {
     }
     if (
       !acesso.ehMestre &&
-      personagem.personagemCampanha.donoId !== usuarioId
+      personagem.personagemCampanha.donoId !== usuarioId &&
+      personagem.controladorUsuarioId !== usuarioId
     ) {
       throw new CampanhaPersonagemEdicaoNegadaException(
         campanhaId,
@@ -3053,6 +3113,9 @@ export class SessaoService {
       dto.eaAtual !== undefined && dto.eaAtualEsperado === undefined
         ? 'eaAtual'
         : null,
+      dto.peAtual !== undefined && dto.peAtualEsperado === undefined
+        ? 'peAtual'
+        : null,
       dto.sanAtual !== undefined && dto.sanAtualEsperado === undefined
         ? 'sanAtual'
         : null,
@@ -3140,7 +3203,8 @@ export class SessaoService {
 
           if (
             !acesso.ehMestre &&
-            personagemSessao.personagemCampanha.donoId !== usuarioId
+            personagemSessao.personagemCampanha.donoId !== usuarioId &&
+            personagemSessao.controladorUsuarioId !== usuarioId
           ) {
             throw new CampanhaPersonagemEdicaoNegadaException(
               campanhaId,
@@ -3804,6 +3868,7 @@ export class SessaoService {
       },
       select: {
         personagemCampanhaId: true,
+        controladorUsuarioId: true,
         personagemCampanha: { select: { donoId: true } },
       },
     });
@@ -3816,7 +3881,8 @@ export class SessaoService {
     }
     if (
       !acesso.ehMestre &&
-      personagemInicial.personagemCampanha.donoId !== usuarioId
+      personagemInicial.personagemCampanha.donoId !== usuarioId &&
+      personagemInicial.controladorUsuarioId !== usuarioId
     ) {
       throw new CampanhaPersonagemEdicaoNegadaException(
         campanhaId,
@@ -4092,6 +4158,7 @@ export class SessaoService {
       },
       select: {
         personagemCampanhaId: true,
+        controladorUsuarioId: true,
         personagemCampanha: { select: { donoId: true } },
       },
     });
@@ -4104,7 +4171,8 @@ export class SessaoService {
     }
     if (
       !acesso.ehMestre &&
-      personagemInicial.personagemCampanha.donoId !== usuarioId
+      personagemInicial.personagemCampanha.donoId !== usuarioId &&
+      personagemInicial.controladorUsuarioId !== usuarioId
     ) {
       throw new CampanhaPersonagemEdicaoNegadaException(
         campanhaId,
@@ -4460,6 +4528,7 @@ export class SessaoService {
       },
       select: {
         personagemCampanhaId: true,
+        controladorUsuarioId: true,
         personagemCampanha: { select: { donoId: true } },
       },
     });
@@ -4472,7 +4541,8 @@ export class SessaoService {
     }
     if (
       !acesso.ehMestre &&
-      personagemInicial.personagemCampanha.donoId !== usuarioId
+      personagemInicial.personagemCampanha.donoId !== usuarioId &&
+      personagemInicial.controladorUsuarioId !== usuarioId
     ) {
       throw new CampanhaPersonagemEdicaoNegadaException(
         campanhaId,
@@ -4980,6 +5050,7 @@ export class SessaoService {
       },
       select: {
         personagemCampanhaId: true,
+        controladorUsuarioId: true,
         personagemCampanha: { select: { donoId: true } },
       },
     });
@@ -4992,7 +5063,8 @@ export class SessaoService {
     }
     if (
       !acesso.ehMestre &&
-      personagemInicial.personagemCampanha.donoId !== usuarioId
+      personagemInicial.personagemCampanha.donoId !== usuarioId &&
+      personagemInicial.controladorUsuarioId !== usuarioId
     ) {
       throw new CampanhaPersonagemEdicaoNegadaException(
         campanhaId,
@@ -5254,7 +5326,6 @@ export class SessaoService {
       sessaoId,
       usuarioId,
     );
-    this.assertMestre(acesso, descricaoAcao);
 
     const visibilidadeSolicitada = dto.visibilidade ?? 'PUBLICA';
     const intencao = this.montarIntencaoRolagemNpc(dto, visibilidadeSolicitada);
@@ -5330,6 +5401,8 @@ export class SessaoService {
               tx,
               campanhaId,
               sessaoId,
+              usuarioId,
+              acesso.ehMestre,
               dto,
             );
             const payload = rolarDadosServidor(rolagem.expressao);
@@ -6214,6 +6287,13 @@ export class SessaoService {
         sessaoId,
         'alterar ordem de iniciativa',
       );
+      if (sessao.elencoControladoPeloMestre && !acesso.ehMestre) {
+        throw new BusinessException(
+          'Esta sessao possui elenco definido pelo mestre.',
+          'SESSAO_ELENCO_CONTROLADO_PELO_MESTRE',
+          { sessaoId },
+        );
+      }
 
       const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
       const participantesPadrao = await this.carregarParticipantesIniciativa(
@@ -6423,6 +6503,153 @@ export class SessaoService {
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
   }
 
+  async atualizarElencoSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: AtualizarElencoSessaoDto,
+  ) {
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'atualizar elenco da sessao',
+    );
+    this.assertMestre(acesso, 'atualizar o elenco da sessao');
+
+    await this.prisma.$transaction(async (tx) => {
+      const sessao = await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'atualizar elenco da sessao',
+      );
+      const anterior = (sessao as { elencoControladoPeloMestre?: boolean })
+        .elencoControladoPeloMestre ?? false;
+      await tx.sessao.update({
+        where: { id: sessaoId },
+        data: { elencoControladoPeloMestre: dto.elencoControladoPeloMestre },
+      });
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          tipoEvento: 'ELENCO_SESSAO_ATUALIZADO',
+          dados: {
+            elencoControladoPeloMestreAnterior: anterior,
+            elencoControladoPeloMestreAtual: dto.elencoControladoPeloMestre,
+            atualizadoPorId: usuarioId,
+          },
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async atualizarControladorPersonagemSessao(
+    campanhaId: number,
+    sessaoId: number,
+    personagemSessaoId: number,
+    usuarioId: number,
+    dto: AtualizarControladorSessaoDto,
+  ) {
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'delegar controle de personagem',
+    );
+    this.assertMestre(acesso, 'delegar controle de personagem');
+    this.validarControladorDelegado(acesso, dto.controladorUsuarioId);
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'delegar controle de personagem',
+      );
+      const personagem = await tx.personagemSessao.findFirst({
+        where: { id: personagemSessaoId, sessaoId, personagemCampanha: { campanhaId } },
+        select: { id: true, controladorUsuarioId: true, personagemCampanha: { select: { nome: true } } },
+      });
+      if (!personagem) {
+        throw new PersonagemSessaoNaoEncontradoException(personagemSessaoId, sessaoId, campanhaId);
+      }
+      await tx.personagemSessao.update({
+        where: { id: personagemSessaoId },
+        data: { controladorUsuarioId: dto.controladorUsuarioId },
+      });
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          tipoEvento: 'CONTROLE_PARTICIPANTE_ATUALIZADO',
+          dados: {
+            participanteTipo: 'PERSONAGEM',
+            participanteId: personagemSessaoId,
+            nome: personagem.personagemCampanha.nome,
+            controladorUsuarioIdAnterior: personagem.controladorUsuarioId,
+            controladorUsuarioIdAtual: dto.controladorUsuarioId,
+            atualizadoPorId: usuarioId,
+          },
+        },
+      });
+    });
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async atualizarControladorNpcSessao(
+    campanhaId: number,
+    sessaoId: number,
+    npcSessaoId: number,
+    usuarioId: number,
+    dto: AtualizarControladorSessaoDto,
+  ) {
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'delegar controle de NPC',
+    );
+    this.assertMestre(acesso, 'delegar controle de NPC');
+    this.validarControladorDelegado(acesso, dto.controladorUsuarioId);
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(tx, campanhaId, sessaoId, 'delegar controle de NPC');
+      const npc = await tx.npcAmeacaSessao.findFirst({
+        where: { id: npcSessaoId, sessaoId },
+        select: { id: true, nomeExibicao: true, entidadeVinculadaId: true, controladorUsuarioId: true },
+      });
+      if (!npc) throw new NpcSessaoNaoEncontradoException(npcSessaoId, sessaoId, campanhaId);
+      if (npc.entidadeVinculadaId) {
+        throw new BusinessException(
+          'Entidades vinculadas seguem automaticamente o controlador do personagem de origem.',
+          'SESSAO_NPC_VINCULADO_CONTROLE_HERDADO',
+          { npcSessaoId },
+        );
+      }
+      await tx.npcAmeacaSessao.update({
+        where: { id: npcSessaoId },
+        data: { controladorUsuarioId: dto.controladorUsuarioId },
+      });
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          tipoEvento: 'CONTROLE_PARTICIPANTE_ATUALIZADO',
+          dados: {
+            participanteTipo: 'NPC',
+            participanteId: npcSessaoId,
+            nome: npc.nomeExibicao,
+            controladorUsuarioIdAnterior: npc.controladorUsuarioId,
+            controladorUsuarioIdAtual: dto.controladorUsuarioId,
+            atualizadoPorId: usuarioId,
+          },
+        },
+      });
+    });
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
   async adicionarPersonagemSessao(
     campanhaId: number,
     sessaoId: number,
@@ -6443,6 +6670,7 @@ export class SessaoService {
           id: true,
           campanhaId: true,
           status: true,
+          elencoControladoPeloMestre: true,
         },
       });
 
@@ -6455,6 +6683,13 @@ export class SessaoService {
         sessaoId,
         'adicionar participante',
       );
+      if (sessao.elencoControladoPeloMestre && !acesso.ehMestre) {
+        throw new BusinessException(
+          'Esta sessao possui elenco definido pelo mestre.',
+          'SESSAO_ELENCO_CONTROLADO_PELO_MESTRE',
+          { sessaoId },
+        );
+      }
 
       const personagemCampanha = await tx.personagemCampanha.findFirst({
         where: {
@@ -6547,6 +6782,7 @@ export class SessaoService {
           id: true,
           campanhaId: true,
           status: true,
+          elencoControladoPeloMestre: true,
         },
       });
 
@@ -6554,6 +6790,13 @@ export class SessaoService {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
       assertSessaoMutavel(sessao, campanhaId, sessaoId, 'remover participante');
+      if (sessao.elencoControladoPeloMestre && !acesso.ehMestre) {
+        throw new BusinessException(
+          'Esta sessao possui elenco definido pelo mestre.',
+          'SESSAO_ELENCO_CONTROLADO_PELO_MESTRE',
+          { sessaoId },
+        );
+      }
 
       const personagemSessao = await tx.personagemSessao.findFirst({
         where: {
@@ -6637,14 +6880,17 @@ export class SessaoService {
       );
 
       if (dto.tipoParticipante === 'NPC') {
-        this.assertMestre(acesso, 'editar iniciativa do NPC');
-
         const npc = await tx.npcAmeacaSessao.findFirst({
           where: {
             id: dto.id,
             sessaoId,
           },
-          select: { id: true },
+          select: {
+            id: true,
+            controladorUsuarioId: true,
+            personagemControladorSessao: { select: { controladorUsuarioId: true } },
+            personagemDono: { select: { donoId: true } },
+          },
         });
 
         if (!npc) {
@@ -6652,6 +6898,18 @@ export class SessaoService {
             dto.id,
             sessaoId,
             campanhaId,
+          );
+        }
+        const podeEditarNpc =
+          acesso.ehMestre ||
+          npc.controladorUsuarioId === usuarioId ||
+          npc.personagemDono?.donoId === usuarioId ||
+          npc.personagemControladorSessao?.controladorUsuarioId === usuarioId;
+        if (!podeEditarNpc) {
+          throw new BusinessException(
+            'Você não pode editar a iniciativa deste NPC.',
+            'SESSAO_NPC_EDICAO_NEGADA',
+            { npcSessaoId: dto.id },
           );
         }
 
@@ -6690,7 +6948,8 @@ export class SessaoService {
 
       if (
         !acesso.ehMestre &&
-        personagemSessao.personagemCampanha.donoId !== usuarioId
+        personagemSessao.personagemCampanha.donoId !== usuarioId &&
+        personagemSessao.controladorUsuarioId !== usuarioId
       ) {
         throw new CampanhaPersonagemEdicaoNegadaException(
           campanhaId,
@@ -6775,6 +7034,12 @@ export class SessaoService {
         null,
         null,
       );
+      const energiaFisica = this.resolverRecursoOpcional(
+        dto.peAtual,
+        dto.peMax,
+        npcBase.peMax ?? null,
+        npcBase.peMax ?? null,
+      );
       const nomeExibicao = dto.nomeExibicao?.trim() || npcBase.nome;
       const notasCena = dto.notasCena?.trim() || null;
 
@@ -6796,6 +7061,8 @@ export class SessaoService {
           sanMax: sanidade.max,
           eaAtual: energiaAmaldicoada.atual,
           eaMax: energiaAmaldicoada.max,
+          peAtual: energiaFisica.atual,
+          peMax: energiaFisica.max,
           machucado:
             dto.machucado === undefined ? npcBase.machucado : dto.machucado,
           deslocamentoMetros:
@@ -6884,6 +7151,12 @@ export class SessaoService {
         null,
         null,
       );
+      const energiaFisica = this.resolverRecursoOpcional(
+        dto.peAtual,
+        dto.peMax,
+        null,
+        null,
+      );
 
       const npcSessao = await tx.npcAmeacaSessao.create({
         data: {
@@ -6904,6 +7177,8 @@ export class SessaoService {
           sanMax: sanidade.max,
           eaAtual: energiaAmaldicoada.atual,
           eaMax: energiaAmaldicoada.max,
+          peAtual: energiaFisica.atual,
+          peMax: energiaFisica.max,
           machucado: dto.machucado ?? null,
           deslocamentoMetros: dto.deslocamentoMetros ?? 6,
           agilidade: dto.agilidade ?? null,
@@ -6963,7 +7238,37 @@ export class SessaoService {
       usuarioId,
       'editar NPC ou ameaça',
     );
-    this.assertMestre(acesso, 'editar NPC/Ameaça da cena');
+    const camposRestritosAoMestre = [
+      'nomeExibicao', 'vd', 'fichaTipo', 'tipo', 'tamanho', 'defesa',
+      'pontosVidaMax', 'sanMax', 'eaMax', 'peMax', 'machucado',
+      'deslocamentoMetros', 'agilidade', 'forca', 'intelecto', 'presenca',
+      'vigor', 'percepcao', 'iniciativa', 'fortitude', 'reflexos',
+      'vontade', 'luta', 'jujutsu', 'notasCena', 'ocultoJogadores',
+    ] as const;
+    if (!acesso.ehMestre) {
+      const npcControle = await this.prisma.npcAmeacaSessao.findFirst({
+        where: { id: npcSessaoId, sessaoId },
+        select: {
+          controladorUsuarioId: true,
+          personagemDono: { select: { donoId: true } },
+          personagemControladorSessao: { select: { controladorUsuarioId: true } },
+        },
+      });
+      const podeControlar =
+        npcControle?.controladorUsuarioId === usuarioId ||
+        npcControle?.personagemDono?.donoId === usuarioId ||
+        npcControle?.personagemControladorSessao?.controladorUsuarioId === usuarioId;
+      const tentouEditarFicha = camposRestritosAoMestre.some(
+        (campo) => dto[campo] !== undefined,
+      );
+      if (!podeControlar || tentouEditarFicha) {
+        throw new BusinessException(
+          'Você só pode ajustar recursos e iniciativa do NPC sob seu controle.',
+          'SESSAO_NPC_EDICAO_NEGADA',
+          { npcSessaoId },
+        );
+      }
+    }
 
     const camposSemPrecondicao = [
       dto.pontosVidaAtual !== undefined &&
@@ -7027,7 +7332,10 @@ export class SessaoService {
           dto.sanAtualEsperado !== npcSessaoAtual.sanAtual) ||
         (dto.eaAtual !== undefined &&
           dto.eaAtualEsperado !== undefined &&
-          dto.eaAtualEsperado !== npcSessaoAtual.eaAtual);
+          dto.eaAtualEsperado !== npcSessaoAtual.eaAtual) ||
+        (dto.peAtual !== undefined &&
+          dto.peAtualEsperado !== undefined &&
+          dto.peAtualEsperado !== npcSessaoAtual.peAtual);
       if (recursoObsoleto) {
         throw new BusinessException(
           'Os recursos do NPC foram alterados. Sincronize a sessao e tente novamente.',
@@ -7053,6 +7361,12 @@ export class SessaoService {
         dto.eaMax,
         npcSessaoAtual.eaAtual,
         npcSessaoAtual.eaMax,
+      );
+      const energiaFisica = this.resolverRecursoOpcional(
+        dto.peAtual,
+        dto.peMax,
+        npcSessaoAtual.peAtual,
+        npcSessaoAtual.peMax,
       );
 
       const data: Prisma.NpcAmeacaSessaoUpdateInput = {
@@ -7080,6 +7394,10 @@ export class SessaoService {
       if (dto.eaAtual !== undefined || dto.eaMax !== undefined) {
         data.eaAtual = energiaAmaldicoada.atual;
         data.eaMax = energiaAmaldicoada.max;
+      }
+      if (dto.peAtual !== undefined || dto.peMax !== undefined) {
+        data.peAtual = energiaFisica.atual;
+        data.peMax = energiaFisica.max;
       }
       if (dto.deslocamentoMetros !== undefined) {
         data.deslocamentoMetros = dto.deslocamentoMetros;
@@ -7315,16 +7633,6 @@ export class SessaoService {
             { campanhaId, vinculadoId },
           );
         }
-        if (
-          !acesso.ehMestre &&
-          entidade.personagemCampanha.donoId !== usuarioId
-        ) {
-          throw new BusinessException(
-            'Voce nao pode invocar este vinculado',
-            'ENTIDADE_ACESSO_NEGADO',
-            { vinculadoId },
-          );
-        }
         const estadosIndisponiveis: EstadoEntidadeVinculadaPersonagem[] = [
           EstadoEntidadeVinculadaPersonagem.DESTRUIDO,
           EstadoEntidadeVinculadaPersonagem.SELADO,
@@ -7346,13 +7654,24 @@ export class SessaoService {
             sessaoId,
             personagemCampanhaId: entidade.personagemCampanhaId,
           },
-          select: { id: true },
+          select: { id: true, controladorUsuarioId: true },
         });
         if (!personagemSessao) {
           throw new BusinessException(
             'Personagem dono precisa estar na sessao para usar o vinculado',
             'ENTIDADE_DONO_FORA_DA_SESSAO',
             { personagemCampanhaId: entidade.personagemCampanhaId, sessaoId },
+          );
+        }
+        if (
+          !acesso.ehMestre &&
+          entidade.personagemCampanha.donoId !== usuarioId &&
+          personagemSessao.controladorUsuarioId !== usuarioId
+        ) {
+          throw new BusinessException(
+            'Voce nao pode invocar este vinculado',
+            'ENTIDADE_ACESSO_NEGADO',
+            { vinculadoId },
           );
         }
 
@@ -7835,7 +8154,8 @@ export class SessaoService {
 
           if (
             !acesso.ehMestre &&
-            personagemSessao.personagemCampanha.donoId !== usuarioId
+            personagemSessao.personagemCampanha.donoId !== usuarioId &&
+            personagemSessao.controladorUsuarioId !== usuarioId
           ) {
             throw new CampanhaPersonagemEdicaoNegadaException(
               campanhaId,
@@ -7854,6 +8174,7 @@ export class SessaoService {
             select: {
               peAtual: true,
               eaAtual: true,
+              eaMax: true,
               limitePeEaPorTurno: true,
             },
           });
@@ -7900,7 +8221,7 @@ export class SessaoService {
             );
           }
 
-          const custo = this.resolverCustoUsoHabilidade(
+          let custo = this.resolverCustoUsoHabilidade(
             habilidade,
             grausMapEfetivo,
             dto.variacaoHabilidadeId,
@@ -7910,6 +8231,30 @@ export class SessaoService {
               habilidade.id,
             ),
           );
+          const mecanicaSessao = this.extrairRegistro(custo.mecanicasSessao);
+          const ehConversaoPeEmEa =
+            mecanicaSessao.tipo === 'CONVERTER_PE_EM_EA';
+          if (ehConversaoPeEmEa) {
+            const gastoPE = Math.trunc(dto.gastoPE ?? 0);
+            const divisor = Math.max(
+              1,
+              Math.trunc(Number(mecanicaSessao.divisor) || 2),
+            );
+            if (gastoPE < 2 || gastoPE % 2 !== 0) {
+              throw new BusinessException(
+                'A conversÃ£o instantÃ¢nea exige um gasto positivo e par de PE',
+                'SESSAO_CONVERSAO_PEEA_GASTO_INVALIDO',
+                { gastoPE },
+              );
+            }
+            custo = {
+              ...custo,
+              custoPE: custo.custoPE + gastoPE,
+              custoPEOriginal: custo.custoPEOriginal + gastoPE,
+              producaoEAInstantanea: Math.trunc(gastoPE / divisor),
+              isUsoBaseSemEscalonamento: false,
+            };
+          }
 
           if (custo.isSustentada) {
             const sustentacaoExistente =
@@ -7934,6 +8279,14 @@ export class SessaoService {
                   motivoDesativacao:
                     'Substituída por nova ativação com configuração atualizada.',
                 },
+              });
+              await this.desativarCondicoesDaSustentacaoTx(tx, {
+                sessaoId,
+                cenaId: cenaAtual.id,
+                personagemSessaoId,
+                sustentacaoId: sustentacaoExistente.id,
+                motivo:
+                  'SustentaÃ§Ã£o substituÃ­da por nova ativaÃ§Ã£o com configuraÃ§Ã£o atualizada.',
               });
             }
           }
@@ -8009,7 +8362,12 @@ export class SessaoService {
           await tx.personagemCampanha.update({
             where: { id: personagemSessao.personagemCampanha.id },
             data: {
-              eaAtual: recursosAtuais.eaAtual - custo.custoEA,
+              eaAtual: Math.min(
+                recursosAtuais.eaMax,
+                recursosAtuais.eaAtual -
+                  custo.custoEA +
+                  custo.producaoEAInstantanea,
+              ),
               peAtual: recursosAtuais.peAtual - custo.custoPE,
             },
           });
@@ -8019,7 +8377,8 @@ export class SessaoService {
             ((custo.custoSustentacaoEA ?? 0) > 0 ||
               (custo.custoSustentacaoPE ?? 0) > 0)
           ) {
-            await tx.personagemSessaoHabilidadeSustentada.create({
+            const sustentacaoCriada =
+              await tx.personagemSessaoHabilidadeSustentada.create({
               data: {
                 sessaoId,
                 personagemSessaoId,
@@ -8034,6 +8393,16 @@ export class SessaoService {
                 ultimaCobrancaRodada: sessao.rodadaAtual,
                 criadaPorUsuarioId: usuarioId,
               },
+            });
+            await this.criarCondicaoDaSustentacaoTx(tx, {
+              sessaoId,
+              cenaId: cenaAtual.id,
+              personagemSessaoId,
+              sustentacaoId: sustentacaoCriada.id,
+              habilidade,
+              custo,
+              rodadaAtual: sessao.rodadaAtual,
+              usuarioId,
             });
           }
 
@@ -8065,6 +8434,12 @@ export class SessaoService {
                     custoEscalonamentoPE: custo.custoEscalonamentoPE,
                     custoEscalonamentoTotalEA: custo.custoEscalonamentoTotalEA,
                     custoEscalonamentoTotalPE: custo.custoEscalonamentoTotalPE,
+                    custoEscalonamentoSustentacaoEA:
+                      custo.custoEscalonamentoSustentacaoEA,
+                    custoEscalonamentoSustentacaoPE:
+                      custo.custoEscalonamentoSustentacaoPE,
+                    gastoPE: ehConversaoPeEmEa ? dto.gastoPE : null,
+                    eaProduzida: custo.producaoEAInstantanea || null,
                     escalonamentoTipo: custo.escalonamentoTipo,
                     escalonamentoEfeito: custo.escalonamentoEfeito,
                     resumoEscalonamento: custo.resumoEscalonamento,
@@ -8264,7 +8639,8 @@ export class SessaoService {
 
           if (
             !acesso.ehMestre &&
-            personagemSessao.personagemCampanha.donoId !== usuarioId
+            personagemSessao.personagemCampanha.donoId !== usuarioId &&
+            personagemSessao.controladorUsuarioId !== usuarioId
           ) {
             throw new CampanhaPersonagemEdicaoNegadaException(
               campanhaId,
@@ -8671,6 +9047,8 @@ export class SessaoService {
               ativo: true,
               personagemSessaoId: alvo.personagemSessaoId,
               npcSessaoId: alvo.npcSessaoId,
+              sustentacaoHabilidadeId: null,
+              ...(fonteCodigo ? { fonteCodigo } : { fonteCodigo: null }),
             },
           });
 
@@ -8900,6 +9278,21 @@ export class SessaoService {
               motivoRemocao: motivoLimpo,
             },
           });
+          if (condicaoSessao.sustentacaoHabilidadeId) {
+            await tx.personagemSessaoHabilidadeSustentada.updateMany({
+              where: {
+                id: condicaoSessao.sustentacaoHabilidadeId,
+                ativa: true,
+              },
+              data: {
+                ativa: false,
+                desativadaEm: new Date(),
+                desativadaPorUsuarioId: usuarioId,
+                motivoDesativacao:
+                  motivoLimpo || 'CondiÃ§Ã£o vinculada removida manualmente.',
+              },
+            });
+          }
 
           await tx.eventoSessao.create({
             data: {
@@ -9001,6 +9394,7 @@ export class SessaoService {
             },
             select: {
               id: true,
+              controladorUsuarioId: true,
               personagemCampanha: {
                 select: {
                   id: true,
@@ -9024,7 +9418,8 @@ export class SessaoService {
 
           if (
             !acesso.ehMestre &&
-            personagemSessao.personagemCampanha.donoId !== usuarioId
+            personagemSessao.personagemCampanha.donoId !== usuarioId &&
+            personagemSessao.controladorUsuarioId !== usuarioId
           ) {
             throw new CampanhaPersonagemEdicaoNegadaException(
               campanhaId,
@@ -9083,6 +9478,13 @@ export class SessaoService {
           });
 
           const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+          await this.desativarCondicoesDaSustentacaoTx(tx, {
+            sessaoId,
+            cenaId: cenaAtual.id,
+            personagemSessaoId,
+            sustentacaoId: sustentacao.id,
+            motivo: motivoLimpo ?? 'SustentaÃ§Ã£o encerrada manualmente.',
+          });
           await tx.eventoSessao.create({
             data: {
               sessaoId,
@@ -9970,7 +10372,15 @@ export class SessaoService {
           }
           if (
             !acesso.ehMestre &&
-            item.personagemCampanha.donoId !== usuarioId
+            item.personagemCampanha.donoId !== usuarioId &&
+            (await tx.personagemSessao.findFirst({
+              where: {
+                sessaoId,
+                personagemCampanhaId: item.personagemCampanha.id,
+                controladorUsuarioId: usuarioId,
+              },
+              select: { id: true },
+            })) === null
           ) {
             throw new CampanhaPersonagemEdicaoNegadaException(
               campanhaId,
@@ -11219,6 +11629,8 @@ export class SessaoService {
     tx: Prisma.TransactionClient,
     campanhaId: number,
     sessaoId: number,
+    usuarioId: number,
+    ehMestre: boolean,
     dto: CriarRolagemMecanicaNpcSessaoDto,
   ): Promise<{
     npcAmeacaId: number | null;
@@ -11243,6 +11655,9 @@ export class SessaoService {
         nomeExibicao: true,
         npcAmeacaId: true,
         entidadeVinculadaId: true,
+        controladorUsuarioId: true,
+        personagemDono: { select: { donoId: true } },
+        personagemControladorSessao: { select: { controladorUsuarioId: true } },
         ocultoJogadores: true,
         agilidade: true,
         forca: true,
@@ -11291,6 +11706,18 @@ export class SessaoService {
         dto.npcSessaoId,
         sessaoId,
         campanhaId,
+      );
+    }
+    if (
+      !ehMestre &&
+      npc.controladorUsuarioId !== usuarioId &&
+      npc.personagemDono?.donoId !== usuarioId &&
+      npc.personagemControladorSessao?.controladorUsuarioId !== usuarioId
+    ) {
+      throw new BusinessException(
+        'Voce nao pode realizar rolagens para este NPC.',
+        'SESSAO_NPC_EDICAO_NEGADA',
+        { npcSessaoId: dto.npcSessaoId },
       );
     }
 
@@ -12925,6 +13352,131 @@ export class SessaoService {
     });
   }
 
+  private async criarCondicaoDaSustentacaoTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      sessaoId: number;
+      cenaId: number;
+      personagemSessaoId: number;
+      sustentacaoId: number;
+      habilidade: HabilidadeTecnicaSessaoResumo;
+      custo: CustoHabilidadeResolvido;
+      rodadaAtual: number;
+      usuarioId: number;
+    },
+  ): Promise<void> {
+    const mecanica = this.extrairRegistro(args.custo.mecanicasSessao);
+    if (mecanica.tipo !== 'CONDICAO_SUSTENTADA') return;
+
+    const condicaoCodigo = this.lerTextoOpcionalRegistro(
+      mecanica,
+      'condicaoCodigo',
+    );
+    const fonteCodigo = this.lerTextoOpcionalRegistro(
+      mecanica,
+      'fonteCodigo',
+    );
+    if (!condicaoCodigo || !fonteCodigo) return;
+
+    const condicao = await tx.condicao.findUnique({
+      where: { codigo: condicaoCodigo },
+      select: { id: true, nome: true },
+    });
+    if (!condicao) {
+      throw new BusinessException(
+        'CondiÃ§Ã£o configurada para a habilidade nÃ£o encontrada',
+        'SESSAO_CONDICAO_HABILIDADE_NOT_FOUND',
+        { habilidadeTecnicaId: args.habilidade.id, condicaoCodigo },
+      );
+    }
+
+    const multiplicador = Math.max(
+      1,
+      this.lerInteiroOpcionalRegistro(mecanica, 'multiplicadorAcumulos') ?? 1,
+    );
+    const acumulos = Math.max(1, args.custo.acumulosAplicados || 1) * multiplicador;
+    const limiteFonte = Math.max(1, args.custo.acumulosMaximos || 1) * multiplicador;
+    const criada = await tx.condicaoPersonagemSessao.create({
+      data: {
+        sessaoId: args.sessaoId,
+        personagemSessaoId: args.personagemSessaoId,
+        condicaoId: condicao.id,
+        cenaId: args.cenaId,
+        turnoAplicacao: args.rodadaAtual,
+        duracaoModo: CONDICAO_DURACAO_MODOS.ATE_REMOVER,
+        ativo: true,
+        automatica: false,
+        contadorTurnos: 0,
+        acumulos,
+        fonteCodigo,
+        limiteFonte,
+        origemDescricao: args.habilidade.nome,
+        observacao: `Gerada pela sustentaÃ§Ã£o #${args.sustentacaoId}.`,
+        sustentacaoHabilidadeId: args.sustentacaoId,
+      },
+    });
+    await tx.eventoSessao.create({
+      data: {
+        sessaoId: args.sessaoId,
+        cenaId: args.cenaId,
+        personagemAtorId: args.personagemSessaoId,
+        tipoEvento: 'CONDICAO_APLICADA',
+        dados: this.jsonParaPersistencia({
+          condicaoSessaoId: criada.id,
+          condicaoId: condicao.id,
+          condicaoNome: condicao.nome,
+          personagemSessaoId: args.personagemSessaoId,
+          sustentacaoId: args.sustentacaoId,
+          fonteCodigo,
+          acumulos,
+          limiteFonte,
+          modoOperacao: 'CRIADA_POR_SUSTENTACAO',
+          aplicadoPorId: args.usuarioId,
+        }),
+      },
+    });
+  }
+
+  private async desativarCondicoesDaSustentacaoTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      sessaoId: number;
+      cenaId: number;
+      personagemSessaoId: number;
+      sustentacaoId: number;
+      motivo: string;
+    },
+  ): Promise<void> {
+    if (!tx.condicaoPersonagemSessao) return;
+    const condicoes = await tx.condicaoPersonagemSessao.findMany({
+      where: { sustentacaoHabilidadeId: args.sustentacaoId, ativo: true },
+      select: { id: true, condicaoId: true, acumulos: true, fonteCodigo: true },
+    });
+    if (!condicoes.length) return;
+    await tx.condicaoPersonagemSessao.updateMany({
+      where: { id: { in: condicoes.map((condicao) => condicao.id) } },
+      data: { ativo: false, removidaEm: new Date(), motivoRemocao: args.motivo },
+    });
+    for (const condicao of condicoes) {
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId: args.sessaoId,
+          cenaId: args.cenaId,
+          personagemAtorId: args.personagemSessaoId,
+          tipoEvento: 'CONDICAO_REMOVIDA',
+          dados: this.jsonParaPersistencia({
+            condicaoSessaoId: condicao.id,
+            condicaoId: condicao.condicaoId,
+            sustentacaoId: args.sustentacaoId,
+            fonteCodigo: condicao.fonteCodigo,
+            acumulos: condicao.acumulos,
+            motivo: args.motivo,
+          }),
+        },
+      });
+    }
+  }
+
   private async cobrarSustentacoesAtivasRodadaTx(
     tx: Prisma.TransactionClient,
     args: {
@@ -13050,6 +13602,13 @@ export class SessaoService {
             desativadaPorUsuarioId: null,
             motivoDesativacao: motivoSistema,
           },
+        });
+        await this.desativarCondicoesDaSustentacaoTx(tx, {
+          sessaoId: args.sessaoId,
+          cenaId: args.cenaId,
+          personagemSessaoId: sustentacao.personagemSessaoId,
+          sustentacaoId: sustentacao.id,
+          motivo: motivoSistema,
         });
 
         await tx.eventoSessao.create({
@@ -13558,6 +14117,8 @@ export class SessaoService {
         nomeExibicao: true,
         pontosVidaAtual: true,
         pontosVidaMax: true,
+        peAtual: true,
+        peMax: true,
         sanAtual: true,
         sanMax: true,
         eaAtual: true,
@@ -13603,8 +14164,8 @@ export class SessaoService {
   }
 
   private camposRecursoNpc(recurso: EfeitoConsumoRecurso['recurso']): {
-    atual: 'pontosVidaAtual' | 'eaAtual' | 'sanAtual';
-    maximo: 'pontosVidaMax' | 'eaMax' | 'sanMax';
+    atual: 'pontosVidaAtual' | 'peAtual' | 'eaAtual' | 'sanAtual';
+    maximo: 'pontosVidaMax' | 'peMax' | 'eaMax' | 'sanMax';
   } {
     switch (recurso) {
       case 'EA':
@@ -13612,10 +14173,7 @@ export class SessaoService {
       case 'SAN':
         return { atual: 'sanAtual', maximo: 'sanMax' };
       case 'PE':
-        throw new BusinessException(
-          'NPCs nao possuem PE automatizado para consumo.',
-          'SESSAO_CONSUMO_RECURSO_NPC_INDISPONIVEL',
-        );
+        return { atual: 'peAtual', maximo: 'peMax' };
       default:
         return { atual: 'pontosVidaAtual', maximo: 'pontosVidaMax' };
     }
@@ -13844,6 +14402,7 @@ export class SessaoService {
         status: true,
         cenaAtualTipo: true,
         rodadaAtual: true,
+        elencoControladoPeloMestre: true,
       },
     });
 
@@ -14413,6 +14972,11 @@ export class SessaoService {
           custoEA: variacao.custoEA,
           custoSustentacaoEA: variacao.custoSustentacaoEA,
           custoSustentacaoPE: variacao.custoSustentacaoPE,
+          escalonamentoCustoSustentacaoEA:
+            variacao.escalonamentoCustoSustentacaoEA,
+          escalonamentoCustoSustentacaoPE:
+            variacao.escalonamentoCustoSustentacaoPE,
+          mecanicasSessao: variacao.mecanicasSessao,
           execucao: variacao.execucao,
           area: variacao.area,
           alcance: variacao.alcance,
@@ -14468,6 +15032,11 @@ export class SessaoService {
       custoEA: habilidade.custoEA,
       custoSustentacaoEA: habilidade.custoSustentacaoEA,
       custoSustentacaoPE: habilidade.custoSustentacaoPE,
+      escalonamentoCustoSustentacaoEA:
+        habilidade.escalonamentoCustoSustentacaoEA,
+      escalonamentoCustoSustentacaoPE:
+        habilidade.escalonamentoCustoSustentacaoPE,
+      mecanicasSessao: habilidade.mecanicasSessao,
       escalonaPorGrau: habilidade.escalonaPorGrau,
       grauTipoGrauCodigo: tipoGrauEscalonamento,
       acumulosMaximos: acumulosMaximosHabilidadeEfetivo,
@@ -14689,6 +15258,11 @@ export class SessaoService {
     let duracao = habilidade.duracao;
     let custoSustentacaoEA = habilidade.custoSustentacaoEA;
     let custoSustentacaoPE = habilidade.custoSustentacaoPE;
+    let escalonamentoCustoSustentacaoEA =
+      habilidade.escalonamentoCustoSustentacaoEA;
+    let escalonamentoCustoSustentacaoPE =
+      habilidade.escalonamentoCustoSustentacaoPE;
+    let mecanicasSessao = habilidade.mecanicasSessao;
     let escalonaPorGrau = habilidade.escalonaPorGrau;
     let escalonamentoCustoEA = habilidade.escalonamentoCustoEA;
     let escalonamentoCustoPE = habilidade.escalonamentoCustoPE;
@@ -14720,6 +15294,17 @@ export class SessaoService {
       }
       if (variacaoSelecionada.custoSustentacaoPE !== null) {
         custoSustentacaoPE = variacaoSelecionada.custoSustentacaoPE;
+      }
+      if (variacaoSelecionada.escalonamentoCustoSustentacaoEA !== null) {
+        escalonamentoCustoSustentacaoEA =
+          variacaoSelecionada.escalonamentoCustoSustentacaoEA;
+      }
+      if (variacaoSelecionada.escalonamentoCustoSustentacaoPE !== null) {
+        escalonamentoCustoSustentacaoPE =
+          variacaoSelecionada.escalonamentoCustoSustentacaoPE;
+      }
+      if (variacaoSelecionada.mecanicasSessao !== null) {
+        mecanicasSessao = variacaoSelecionada.mecanicasSessao;
       }
       if (typeof variacaoSelecionada.escalonaPorGrau === 'boolean') {
         escalonaPorGrau = variacaoSelecionada.escalonaPorGrau;
@@ -14824,11 +15409,25 @@ export class SessaoService {
     let custoSustentacaoEANormalizado = isSustentada
       ? this.normalizarCustoPositivo(custoSustentacaoEA, 0)
       : null;
-    const custoSustentacaoPENormalizado = isSustentada
+    let custoSustentacaoPENormalizado = isSustentada
       ? this.normalizarCustoPositivo(custoSustentacaoPE, 0)
       : null;
     if (isSustentada && !custoSustentacaoDefinido) {
       custoSustentacaoEANormalizado = 1;
+    }
+    const custoEscalonamentoSustentacaoEA = isSustentada
+      ? this.normalizarCustoPositivo(escalonamentoCustoSustentacaoEA, 0)
+      : 0;
+    const custoEscalonamentoSustentacaoPE = isSustentada
+      ? this.normalizarCustoPositivo(escalonamentoCustoSustentacaoPE, 0)
+      : 0;
+    if (isSustentada && acumulosExtras > 0) {
+      custoSustentacaoEANormalizado =
+        (custoSustentacaoEANormalizado ?? 0) +
+        custoEscalonamentoSustentacaoEA * acumulosExtras;
+      custoSustentacaoPENormalizado =
+        (custoSustentacaoPENormalizado ?? 0) +
+        custoEscalonamentoSustentacaoPE * acumulosExtras;
     }
     if (isSustentada) {
       const eaSustentacao = custoSustentacaoEANormalizado ?? 0;
@@ -14872,6 +15471,10 @@ export class SessaoService {
       isSustentada,
       custoSustentacaoEA: custoSustentacaoEANormalizado,
       custoSustentacaoPE: custoSustentacaoPENormalizado,
+      custoEscalonamentoSustentacaoEA,
+      custoEscalonamentoSustentacaoPE,
+      mecanicasSessao,
+      producaoEAInstantanea: 0,
       acumulosSolicitados: acumulosNormalizados,
       acumulosAplicados: acumulosNormalizados,
       acumulosMaximos: acumulosMaximosEfetivo,
@@ -15033,6 +15636,23 @@ export class SessaoService {
     });
   }
 
+  private validarControladorDelegado(
+    acesso: AcessoCampanha,
+    controladorUsuarioId: number | null,
+  ): void {
+    if (controladorUsuarioId === null) return;
+    const membro = acesso.campanha.membros.find(
+      (item) => item.usuarioId === controladorUsuarioId,
+    );
+    if (!membro || membro.papel !== 'JOGADOR') {
+      throw new BusinessException(
+        'O controlador deve ser um jogador ativo da campanha.',
+        'SESSAO_CONTROLADOR_INVALIDO',
+        { controladorUsuarioId },
+      );
+    }
+  }
+
   private clampNumero(valor: number, min: number, max: number): number {
     if (valor < min) return min;
     if (valor > max) return max;
@@ -15161,6 +15781,7 @@ export class SessaoService {
     personagens: Array<{
       id: number;
       iniciativaValor: number | null;
+      controladorUsuarioId: number | null;
       personagemCampanha: {
         id: number;
         nome: string;
@@ -15174,6 +15795,8 @@ export class SessaoService {
       id: number;
       nomeExibicao: string;
       iniciativaValor: number | null;
+      controladorUsuarioId: number | null;
+      personagemControladorSessao?: { controladorUsuarioId: number | null } | null;
     }>,
     ehMestre: boolean,
     usuarioId: number,
@@ -15182,7 +15805,9 @@ export class SessaoService {
       (personagem) => {
         const token = this.criarTokenParticipante('PERSONAGEM', personagem.id);
         const podeEditar =
-          ehMestre || personagem.personagemCampanha.donoId === usuarioId;
+          ehMestre ||
+          personagem.personagemCampanha.donoId === usuarioId ||
+          personagem.controladorUsuarioId === usuarioId;
 
         return {
           tipoParticipante: 'PERSONAGEM',
@@ -15208,7 +15833,10 @@ export class SessaoService {
       donoId: null,
       nomeJogador: null,
       nomePersonagem: npc.nomeExibicao,
-      podeEditar: ehMestre,
+      podeEditar:
+        ehMestre ||
+        npc.controladorUsuarioId === usuarioId ||
+        npc.personagemControladorSessao?.controladorUsuarioId === usuarioId,
       iniciativaValor: npc.iniciativaValor ?? null,
     }));
 
@@ -15322,6 +15950,7 @@ export class SessaoService {
         select: {
           id: true,
           iniciativaValor: true,
+          controladorUsuarioId: true,
           personagemCampanha: {
             select: {
               id: true,
@@ -15348,6 +15977,10 @@ export class SessaoService {
           id: true,
           nomeExibicao: true,
           iniciativaValor: true,
+          controladorUsuarioId: true,
+          personagemControladorSessao: {
+            select: { controladorUsuarioId: true },
+          },
         },
       }),
     ]);
@@ -17834,6 +18467,8 @@ export class SessaoService {
     const defesa = this.lerInteiroRegistro(bruto, 'defesa');
     const pontosVidaAtual = this.lerInteiroRegistro(bruto, 'pontosVidaAtual');
     const pontosVidaMax = this.lerInteiroRegistro(bruto, 'pontosVidaMax');
+    const peAtual = this.lerInteiroOpcionalRegistro(bruto, 'peAtual');
+    const peMax = this.lerInteiroOpcionalRegistro(bruto, 'peMax');
     const deslocamentoMetros = this.lerInteiroRegistro(
       bruto,
       'deslocamentoMetros',
@@ -17872,6 +18507,8 @@ export class SessaoService {
       defesa,
       pontosVidaAtual,
       pontosVidaMax,
+      peAtual,
+      peMax,
       sanAtual,
       sanMax,
       eaAtual,
@@ -18011,6 +18648,8 @@ export class SessaoService {
     defesa: number;
     pontosVidaAtual: number;
     pontosVidaMax: number;
+    peAtual: number | null;
+    peMax: number | null;
     sanAtual: number | null;
     sanMax: number | null;
     eaAtual: number | null;
@@ -18033,6 +18672,8 @@ export class SessaoService {
       defesa: npc.defesa,
       pontosVidaAtual: npc.pontosVidaAtual,
       pontosVidaMax: npc.pontosVidaMax,
+      peAtual: npc.peAtual,
+      peMax: npc.peMax,
       sanAtual: npc.sanAtual,
       sanMax: npc.sanMax,
       eaAtual: npc.eaAtual,
@@ -18064,6 +18705,8 @@ export class SessaoService {
       sanMax: dados.sanMax,
       eaAtual: dados.eaAtual,
       eaMax: dados.eaMax,
+      peAtual: dados.peAtual,
+      peMax: dados.peMax,
       machucado: dados.machucado,
       deslocamentoMetros: dados.deslocamentoMetros,
       notasCena: dados.notasCena,

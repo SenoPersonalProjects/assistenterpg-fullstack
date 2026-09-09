@@ -602,8 +602,8 @@ rolagem de dano daquele ataque.
 | 4 | Aumento de atributo |
 | 5 | Ataque especial (3 PE, \+10), Profciiência |
 | 6 | Poder genérico |
-| 7 | Grau de treinamento, Aumento de Atributo |
-| 8 | Habilidade de trilha, Grau de Aprimoramento |
+| 7 | Grau de Aprimoramento, Aumento de Atributo |
+| 8 | Habilidade de trilha, Grau de treinamento |
 | 9 | Poder genérico |
 | 10 | Aumento de atributo |
 | 11 | Ataque especial (4 PE, \+15), Grau de treinamento |
@@ -665,8 +665,8 @@ Conforme o nível aumenta, pode-se gastar mais PE para ganhar mais graus tempor�
 | 4 | Aumento de atributo |
 | 5 | Aprimorado (3 PE, \+2 grau de aprimoramento temporário) |
 | 6 | Poder genérico |
-| 7 | Grau de treinamento, Aumento de Atributo |
-| 8 | Habilidade de trilha, Grau de Aprimoramento |
+| 7 | Grau de Aprimoramento, Aumento de Atributo |
+| 8 | Habilidade de trilha, Grau de treinamento |
 | 9 | Poder genérico |
 | 10 | Aumento de atributo |
 | 11 | Aprimorado (4 PE, \+3 grau de aprimoramento temporário), Grau de treinamento |
@@ -727,8 +727,8 @@ A cada melhoria de Perito, o personagem passa a poder escolher a nova versão da
 | 4 | Aumento de atributo |
 | 5 | Perito (3 PE, \+1d8) |
 | 6 | Poder genérico |
-| 7 | Grau de treinamento, Aumento de Atributo |
-| 8 | Habilidade de trilha, Grau de Aprimoramento |
+| 7 | Grau de Aprimoramento, Aumento de Atributo |
+| 8 | Habilidade de trilha, Grau de treinamento |
 | 9 | Poder genérico |
 | 10 | Aumento de atributo |
 | 11 | Perito (4 PE, \+1d10), Grau de treinamento |
@@ -769,8 +769,8 @@ Os poderes especiais são talentos que qualquer classe pode adquirir quando a ta
 Abaixo estão os poderes padrões recebidos em níveis específicos, que não são selecionáveis:
 
 * Aumento de Atributo: Nos níveis 4, 7, 10, 13, 16 e 19 recebe um ponto para distribuir à vontade nos atributos. Não pode passar de 7 pontos em um atributo dessa forma.  
-* Grau de Aprimoramento: Nos níveis 2, 8, 14 e 18 recebe um ponto para distribuir nas técnicas amaldiçoadas não inatas (técnica amaldiçoada, técnica amaldiçoada reversa, técnica de barreira, etc). Pode chegar até 5 pontos de grau de aprimoramento em cada técnica.  
-* Grau de Treinamento: Nos níveis 3, 7, 11 e 16 escolhe um número de até 2+INT de perícias treinadas para receber mais um grau de treinamento nelas, aumento em um. Por exemplo, de Treinado para Graduado (a partir do nível 3), Graduado para Veterano (a partir do nível 9\) e de Veterano para Expert (a partir do nível 16).
+* Grau de Aprimoramento: Nos níveis 2, 7, 14 e 18 recebe um ponto para distribuir nas técnicas amaldiçoadas não inatas (técnica amaldiçoada, técnica amaldiçoada reversa, técnica de barreira, etc). Pode chegar até 5 pontos de grau de aprimoramento em cada técnica.  
+* Grau de Treinamento: Nos níveis 3, 8, 11 e 16 escolhe um número de até 2+INT de perícias treinadas para receber mais um grau de treinamento nelas, aumento em um. Por exemplo, de Treinado para Graduado (a partir do nível 3), Graduado para Veterano (a partir do nível 8\) e de Veterano para Expert (a partir do nível 16).
 
 Abaixo, seguem os poderes especiais selecionáveis quando a tabela indicar “Poder Genérico”:
 
@@ -846,7 +846,7 @@ gastar 1 PE para usar Força ou Agilidade no lugar do atributo-base da perícia;
 * Tiro de Cobertura: Você pode gastar uma ação padrão e 1 PE para disparar na direção de um ser no alcance, forçando-o a se proteger; faça um teste de Pontaria contra a Vontade do alvo e, se vencer, até o início do seu próximo turno o alvo não pode sair do lugar onde está e sofre \-5 em testes de ataque (efeito de medo).  
 * Treinamento em Perícia: Escolha 2 perícias para aumentar o grau de treinamento delas se não for treinado. A partir do nível 1 pode obter \+5 (Treinado); a partir do
 
-nível 3 pode obter \+10 (Graduado); a partir do 9 pode \+15 (Veterano); e a partir do 16 pode \+20 (Expert). Precisa passar pelas etapas de cada grau de treinamento para ir pro próximo. Esse poder pode ser escolhido várias vezes.
+nível 3 pode obter \+10 (Graduado); a partir do 8 pode \+15 (Veterano); e a partir do 16 pode \+20 (Expert). Precisa passar pelas etapas de cada grau de treinamento para ir pro próximo. Esse poder pode ser escolhido várias vezes.
 
 * Treinamento Específico: Recebe \+1 grau de aprimoramento em uma técnica à escolha, respeitando limites definidos pelo mestre. Esse poder pode ser escolhido várias vezes.
 
@@ -1686,6 +1686,27 @@ Votos vinculativos são extremamente flexíveis e devem ser negociados com o mes
 Emitir ou disparar energia amaldiçoada como projéteis, lasers ou ondas destrutivas para exorcizar maldições ou causar dano.
 
 * Disparar Energia Amaldiçoada ○ Execução: ação padrão. ○ Alcance: Curto. ○ Alvo: 1 ser ou objeto. ○ Duração: Instantâneo. ○ Custo: 1 EA. ○ Efeito: Causa 1d3 de dano de energia amaldiçoada por acúmulo. Acumulável até 5 vezes conforme grau de aprimoramento. Teste de ataque com Jujutsu contra Defesa do alvo.
+
+#### ***7.2.3.6. Produção de Energia Amaldiçoada***
+
+Acelerar sua produção de energia amaldiçoada para se adaptar a uma situação é uma capacidade de Jujutsu para feiticeiros experientes.
+
+* Pré-requisitos: Grau de Aprimoramento 2 em Técnicas Amaldiçoadas.
+* Execução: ação padrão.
+* Alcance: pessoal.
+* Alvo: você.
+* Duração: sustentado.
+* Custo: 3 PE.
+* Efeito: você recebe Produção Acelerada 1 e produz 1 EA por turno. Pode acumular até 5 vezes conforme seu grau de aprimoramento. A sustentação custa 1 PE, mais 2 PE por acúmulo extra. Não exige concentração.
+
+* Variação — Produção concentrada. Pré-requisitos: Grau de Aprimoramento 3 em Técnicas Amaldiçoadas. Execução: completa. Duração: sustentada. Custo: 4 PE. Você produz 2 EA por turno por acúmulo. Pode acumular até 5 vezes conforme seu grau de aprimoramento. A sustentação custa 2 PE, mais 3 PE por acúmulo extra, e exige concentração.
+
+* Variação — Produção instantânea. Execução: completa. Duração: instantânea. Custo: varia. Você pode gastar uma quantidade par de PE, até seu limite de PE/EA por turno, para produzir imediatamente metade desse valor em EA, sem ultrapassar sua EA máxima. Não exige concentração.
+
+#### ***Condições aceleradas***
+
+* Cura Acelerada: o personagem recupera, no início de cada um de seus turnos, uma quantidade de PV igual ao número da condição.
+* Produção Acelerada: o personagem recupera, no início de cada um de seus turnos, uma quantidade de EA igual ao número da condição. Fontes distintas são cumulativas e cada fonte respeita seu próprio limite.
 
 ### **7.2.4. Técnicas de Barreira**
 

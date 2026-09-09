@@ -155,6 +155,13 @@ export function useSessaoNpc({
           eaAtualEsperado: npc.eaAtual,
         };
       }
+      if (campo === 'pe') {
+        if (npc.peAtual === null || npc.peAtual === undefined || npc.peMax === null || npc.peMax === undefined) return null;
+        return {
+          peAtual: clampEntre(npc.peAtual + deltaInteiro, 0, npc.peMax),
+          peAtualEsperado: npc.peAtual,
+        };
+      }
       return null;
     },
     [],
@@ -502,7 +509,7 @@ export function useSessaoNpc({
 
   const handleAlternarVisibilidadeNpc = useCallback(
     async (npc: NpcSessaoCampanha) => {
-      if (!npc.podeEditar || sessaoEncerrada) return;
+      if (!(npc.podeControlar || npc.podeEditar) || sessaoEncerrada) return;
 
       setSalvandoNpcId(npc.npcSessaoId);
       setErro(null);

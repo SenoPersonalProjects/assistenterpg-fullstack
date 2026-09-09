@@ -341,6 +341,13 @@ export class CreateNpcAmeacaDto {
   @IsInt()
   @Min(0)
   @Max(99999)
+  peMax?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(99999)
   machucado?: number | null;
 
   @IsOptional()

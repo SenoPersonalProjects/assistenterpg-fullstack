@@ -21,6 +21,9 @@ import {
   apiGetMeusNpcsAmeacas,
   apiListarPersonagensCampanha,
   apiAdicionarPersonagemSessaoCampanha,
+  apiAtualizarElencoSessaoCampanha,
+  apiAtualizarControladorPersonagemSessaoCampanha,
+  apiAtualizarControladorNpcSessaoCampanha,
   apiAtualizarNucleoPersonagemCampanha,
   apiCriarRolagemFormulaSessaoCampanha,
   apiCriarRolagemAtaquePersonagemSessaoCampanha,
@@ -92,6 +95,7 @@ import { SessionSidebarPanel } from '@/components/campanha/sessao/SessionSidebar
 import { SessionOptionalMechanicsPanel } from '@/components/campanha/sessao/SessionOptionalMechanicsPanel';
 import { SessionNpcsPanel } from '@/components/campanha/sessao/SessionNpcsPanel';
 import { SessionPlayerSummaryPanel } from '@/components/campanha/sessao/SessionPlayerSummaryPanel';
+import { SessionRosterControlPanel } from '@/components/campanha/sessao/SessionRosterControlPanel';
 import { SessionSceneRosterPanel } from '@/components/campanha/sessao/SessionSceneRosterPanel';
 import { AddNpcModal } from '@/components/campanha/sessao/modals/AddNpcModal';
 import { AddSimpleNpcModal } from '@/components/campanha/sessao/modals/AddSimpleNpcModal';
@@ -203,6 +207,7 @@ const AJUSTE_RECURSO_NPC_PADRAO: AjustesRecursosNpc = {
   pv: '0',
   san: '0',
   ea: '0',
+  pe: '0',
 };
 
 type PericiaRollModalState = {
@@ -423,6 +428,7 @@ export default function SessaoCampanhaPage() {
   const [carregandoPersonagensDisponiveis, setCarregandoPersonagensDisponiveis] =
     useState(false);
   const [adicionandoPersonagem, setAdicionandoPersonagem] = useState(false);
+  const [atualizandoElenco, setAtualizandoElenco] = useState(false);
   const [personagemSelecionadoId, setPersonagemSelecionadoId] = useState('');
   const [personagemIniciativaValor, setPersonagemIniciativaValor] = useState('');
   const [removendoPersonagemSessaoId, setRemovendoPersonagemSessaoId] =
@@ -672,6 +678,7 @@ export default function SessaoCampanhaPage() {
       setEdicaoNpcs((estadoAtual) => {
         const proximoEstado = { ...estadoAtual };
         for (const npc of proximoDetalhe.npcs) {
+          if (npc.visibilidade === 'resumida') continue;
           proximoEstado[npc.npcSessaoId] = montarEdicaoNpcBase(npc);
         }
         return proximoEstado;
@@ -936,6 +943,56 @@ export default function SessaoCampanhaPage() {
     sincronizarEstadosDerivados,
     usuario,
   ]);
+
+  const handleAtualizarElencoControlado = useCallback(
+    async (ativo: boolean) => {
+      if (!idsValidos || !usuario) return;
+      setAtualizandoElenco(true);
+      setErroCards(null);
+      try {
+        const atualizado = await apiAtualizarElencoSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          ativo,
+        );
+        setDetalhe(atualizado);
+        sincronizarEstadosDerivados(atualizado);
+        showToast(
+          ativo ? 'Elenco controlado pelo mestre ativado.' : 'Entrada livre de personagens restaurada.',
+          'success',
+        );
+      } catch (error) {
+        setErroCards(criarErroUsuario(error));
+      } finally {
+        setAtualizandoElenco(false);
+      }
+    },
+    [campanhaId, idsValidos, sessaoId, showToast, sincronizarEstadosDerivados, usuario],
+  );
+
+  const handleAtualizarControladorParticipante = useCallback(
+    async (
+      alvo: { tipo: 'PERSONAGEM' | 'NPC'; id: number; nome: string },
+      controladorUsuarioId: number | null,
+    ) => {
+      if (!idsValidos || !usuario) return;
+      setAtualizandoElenco(true);
+      setErroCards(null);
+      try {
+        const atualizado = alvo.tipo === 'PERSONAGEM'
+          ? await apiAtualizarControladorPersonagemSessaoCampanha(campanhaId, sessaoId, alvo.id, controladorUsuarioId)
+          : await apiAtualizarControladorNpcSessaoCampanha(campanhaId, sessaoId, alvo.id, controladorUsuarioId);
+        setDetalhe(atualizado);
+        sincronizarEstadosDerivados(atualizado);
+        showToast(`Controle de ${alvo.nome} atualizado.`, 'success');
+      } catch (error) {
+        setErroCards(criarErroUsuario(error));
+      } finally {
+        setAtualizandoElenco(false);
+      }
+    },
+    [campanhaId, idsValidos, sessaoId, showToast, sincronizarEstadosDerivados, usuario],
+  );
 
   const handleRemoverPersonagemDaCena = useCallback(
     async (card: SessaoCampanhaDetalhe['cards'][number]) => {
@@ -3233,7 +3290,10 @@ export default function SessaoCampanhaPage() {
         .map((alvo) => alvo.npcSessaoId)
         .filter((id): id is number => typeof id === 'number'),
     );
-    return npcs.filter((npc) => idsAlvos.has(npc.npcSessaoId));
+    return npcs.filter(
+      (npc) =>
+        npc.visibilidade !== 'resumida' && idsAlvos.has(npc.npcSessaoId),
+    );
   }, [alvosSociais, npcs]);
   const rolagens = useMemo(
     () =>
@@ -3316,12 +3376,16 @@ export default function SessaoCampanhaPage() {
     return mapa;
   }, [iniciativaOrdem]);
   const meuCard = useMemo(
-    () => cards.find((card) => card.donoId === usuario?.id) ?? null,
+    () => cards.find((card) => card.donoId === usuario?.id || card.controladorUsuarioId === usuario?.id) ?? null,
     [cards, usuario?.id],
   );
   const iniciativaMeuCard = meuCard
     ? iniciativaPorPersonagemSessao.get(meuCard.personagemSessaoId) ?? null
     : null;
+  const npcsSobMeuControle = useMemo(
+    () => npcs.filter((npc) => npc.visibilidade !== 'resumida' && npc.podeControlar),
+    [npcs],
+  );
   const ajustesMeuCard = meuCard
     ? obterAjustesRecursosCard(meuCard.personagemCampanhaId)
     : AJUSTE_RECURSO_PADRAO;
@@ -3550,12 +3614,13 @@ export default function SessaoCampanhaPage() {
       onToggleTecnicasNaoInatas={atualizarTecnicasNaoInatasAbertas}
       acumulosHabilidade={acumulosHabilidade}
       onAtualizarAcumulosHabilidade={atualizarAcumuloHabilidade}
-      onUsarHabilidade={(personagemSessaoId, habilidadeTecnicaId, variacaoId, acumulos) =>
+      onUsarHabilidade={(personagemSessaoId, habilidadeTecnicaId, variacaoId, acumulos, gastoPE) =>
         void handleUsarHabilidade(
           personagemSessaoId,
           habilidadeTecnicaId,
           variacaoId,
           acumulos,
+          gastoPE,
         )
       }
       onUsarHabilidadeClasse={(personagemSessaoId, payload) =>
@@ -3947,7 +4012,10 @@ export default function SessaoCampanhaPage() {
                   sessaoEncerrada={sessaoEncerrada}
                   ajustesRecursos={ajustesMeuCard}
                   camposRecursosPendentesCard={camposRecursosPendentesMeuCard}
-                  podeAdicionar={!sessaoEncerrada}
+                  podeAdicionar={
+                    !sessaoEncerrada &&
+                    (!detalhe.elencoControladoPeloMestre || podeControlarSessao)
+                  }
                   onAbrirAdicionar={() => setModalAdicionarPersonagemAberto(true)}
                   onAlternarExpandido={() => {
                     if (!meuCard) return;
@@ -3975,12 +4043,13 @@ export default function SessaoCampanhaPage() {
                   acaoHabilidadePendente={acaoHabilidadePendente}
                   acumulosHabilidade={acumulosHabilidade}
                   onAtualizarAcumulosHabilidade={atualizarAcumuloHabilidade}
-                  onUsarHabilidade={(personagemSessaoId, habilidadeTecnicaId, variacaoId, acumulos) =>
+                  onUsarHabilidade={(personagemSessaoId, habilidadeTecnicaId, variacaoId, acumulos, gastoPE) =>
                     void handleUsarHabilidade(
                       personagemSessaoId,
                       habilidadeTecnicaId,
                       variacaoId,
                       acumulos,
+                      gastoPE,
                     )
                   }
                   onUsarHabilidadeClasse={(personagemSessaoId, payload) =>
@@ -4066,6 +4135,17 @@ export default function SessaoCampanhaPage() {
           ) : null}
 
           <section className="space-y-3">
+            {podeControlarSessao ? (
+              <SessionRosterControlPanel
+                elencoControladoPeloMestre={Boolean(detalhe.elencoControladoPeloMestre)}
+                participantes={detalhe.participantes}
+                personagens={cards}
+                npcs={npcs}
+                atualizando={atualizandoElenco}
+                onAtualizarElenco={handleAtualizarElencoControlado}
+                onAtualizarControlador={handleAtualizarControladorParticipante}
+              />
+            ) : null}
             {podeControlarSessao ? renderCardsSessao() : null}
 
             {!podeControlarSessao && socialAtivo && npcsAlvosSociais.length > 0 ? (
@@ -4107,6 +4187,40 @@ export default function SessaoCampanhaPage() {
                 onAdicionarAlvoSocial={handleAdicionarAlvoSocial}
                 onRemoverAlvoSocial={handleRemoverAlvoSocial}
                 onAtualizarAlvoSocial={handleAtualizarAlvoSocial}
+              />
+            ) : null}
+
+            {!podeControlarSessao && npcsSobMeuControle.length > 0 ? (
+              <SessionNpcsPanel
+                npcs={npcsSobMeuControle}
+                podeControlarSessao={false}
+                sessaoEncerrada={sessaoEncerrada}
+                npcsDisponiveis={[]}
+                iniciativaPorNpcSessao={iniciativaPorNpcSessao}
+                edicaoNpcs={edicaoNpcs}
+                ajustesRecursosNpc={ajustesRecursosNpc}
+                salvandoNpcId={salvandoNpcId}
+                campoRecursoPendente={campoRecursoNpcPendente}
+                removendoNpcId={removendoNpcId}
+                erro={erroNpcs}
+                onAbrirAdicionar={() => undefined}
+                onAbrirAdicionarNpcSimples={() => undefined}
+                onAtualizarCampo={atualizarCampoEdicaoNpc}
+                onAtualizarAjustePersonalizado={(npc, campo, valor) =>
+                  atualizarAjusteRecursoNpc(npc.npcSessaoId, campo, valor)
+                }
+                onAplicarDeltaRecurso={(npc, campo, delta) =>
+                  void handleAplicarDeltaRecursoNpc(npc, campo, delta)
+                }
+                onAplicarAjustePersonalizado={(npc, campo) =>
+                  void handleAplicarAjustePersonalizadoRecursoNpc(npc, campo)
+                }
+                onSalvarNpc={(npc) => void handleSalvarNpc(npc)}
+                onSolicitarRemoverNpc={(npc) => setNpcRemocaoConfirmacao(npc)}
+                onRolarPericia={handleRolarPericia}
+                onRolarAtaqueAcao={handleRolarAtaqueNpcAcao}
+                onRolarDanoAcao={handleRolarDanoNpcAcao}
+                renderPainelCondicoes={renderPainelCondicoes}
               />
             ) : null}
 
