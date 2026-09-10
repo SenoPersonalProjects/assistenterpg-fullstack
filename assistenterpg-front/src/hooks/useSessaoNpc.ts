@@ -1,4 +1,9 @@
-import { useCallback, useState } from 'react';
+import {
+  useCallback,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import {
   apiAdicionarNpcSimplesSessaoCampanha,
   apiAdicionarNpcSessaoCampanha,
@@ -23,6 +28,10 @@ import {
   parseRecurso,
   parseRecursoOpcional,
 } from '@/lib/campanha/sessao-utils';
+import {
+  aplicarAtualizacaoOtimistaRecursosNpc,
+  type ValoresRecursosNpcSessao,
+} from '@/lib/campanha/sessao-atualizacoes';
 
 type UseSessaoNpcParams = {
   campanhaId: number;
@@ -30,8 +39,11 @@ type UseSessaoNpcParams = {
   sessaoEncerrada: boolean;
   edicaoNpcs: Record<number, NpcEditavel>;
   obterAjustesRecursosNpc: (npcSessaoId: number) => AjustesRecursosNpc;
-  setDetalhe: (detalhe: SessaoCampanhaDetalhe) => void;
+  setDetalhe: Dispatch<SetStateAction<SessaoCampanhaDetalhe | null>>;
   sincronizarEstadosDerivados: (detalhe: SessaoCampanhaDetalhe) => void;
+  sincronizarCompleto: () => void | Promise<void>;
+  iniciarMutacaoRecurso: (chave: string) => void;
+  finalizarMutacaoRecurso: (chave: string) => void;
   setErro: (mensagem: UserErrorState | null) => void;
   showToast: (mensagem: string, tipo?: 'success' | 'error' | 'warning' | 'info') => void;
   onNpcAdicionado?: () => void;
@@ -110,6 +122,9 @@ export function useSessaoNpc({
   obterAjustesRecursosNpc,
   setDetalhe,
   sincronizarEstadosDerivados,
+  sincronizarCompleto,
+  iniciarMutacaoRecurso,
+  finalizarMutacaoRecurso,
   setErro,
   showToast,
   onNpcAdicionado,
@@ -420,15 +435,37 @@ export function useSessaoNpc({
       campo: CampoAjusteRecursoNpc,
       delta: number,
     ) => {
-      if (!npc.podeEditar || sessaoEncerrada) return;
+      if (!npc.podeControlar || sessaoEncerrada) return;
 
       const payload = montarPayloadAjustadoNpc(npc, campo, delta);
       if (!payload) return;
       const chaveCampo = `${npc.npcSessaoId}:${campo}` as const;
+      const campoApiPorCampo = {
+        pv: 'pontosVidaAtual',
+        san: 'sanAtual',
+        ea: 'eaAtual',
+        pe: 'peAtual',
+      } as const;
+      const campoApi = campoApiPorCampo[campo];
+      const valoresOtimistas: ValoresRecursosNpcSessao = {
+        [campoApi]: payload[campoApi],
+      };
+      const chaveMutacao = `npc:${npc.npcSessaoId}:${campoApi}`;
 
       setSalvandoNpcId(npc.npcSessaoId);
       setCampoRecursoPendente(chaveCampo);
+      iniciarMutacaoRecurso(chaveMutacao);
       setErro(null);
+      setDetalhe((atual) =>
+        atual
+          ? aplicarAtualizacaoOtimistaRecursosNpc(
+              atual,
+              npc.npcSessaoId,
+              valoresOtimistas,
+            )
+          : atual,
+      );
+      let deveReconciliar = false;
       try {
         const atualizado = await apiAtualizarNpcSessaoCampanha(
           campanhaId,
@@ -439,20 +476,33 @@ export function useSessaoNpc({
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
       } catch (error) {
+        setDetalhe((atual) =>
+          atual
+            ? aplicarAtualizacaoOtimistaRecursosNpc(atual, npc.npcSessaoId, {
+                [campoApi]: npc[campoApi],
+              })
+            : atual,
+        );
         setErro(criarErroUsuario(error));
+        deveReconciliar = true;
       } finally {
+        finalizarMutacaoRecurso(chaveMutacao);
         setSalvandoNpcId(null);
         setCampoRecursoPendente(null);
       }
+      if (deveReconciliar) void sincronizarCompleto();
     },
     [
       campanhaId,
+      finalizarMutacaoRecurso,
+      iniciarMutacaoRecurso,
       montarPayloadAjustadoNpc,
       sessaoEncerrada,
       sessaoId,
       setDetalhe,
       setErro,
       sincronizarEstadosDerivados,
+      sincronizarCompleto,
     ],
   );
 
@@ -509,7 +559,7 @@ export function useSessaoNpc({
 
   const handleAlternarVisibilidadeNpc = useCallback(
     async (npc: NpcSessaoCampanha) => {
-      if (!(npc.podeControlar || npc.podeEditar) || sessaoEncerrada) return;
+      if (!npc.podeEditar || sessaoEncerrada) return;
 
       setSalvandoNpcId(npc.npcSessaoId);
       setErro(null);

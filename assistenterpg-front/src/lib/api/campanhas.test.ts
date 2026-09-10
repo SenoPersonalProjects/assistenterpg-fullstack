@@ -413,7 +413,12 @@ describe('campanhas api cache and dedupe', () => {
     const sessao = await apiGetSessaoCampanha(44, 13);
 
     expect(mockedApiClient.get).toHaveBeenCalledWith('/campanhas/44/sessoes/13');
-    expect(sessao).toEqual({ id: 13, titulo: 'Sessão teste' });
+    expect(sessao).toEqual({
+      id: 13,
+      titulo: 'Sessão teste',
+      cards: [],
+      npcs: [],
+    });
   });
 
   it('updates session scene', async () => {

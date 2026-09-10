@@ -312,6 +312,37 @@ describe('SessaoService', () => {
     expect(warning).not.toContain('SEGREDO_NAO_DEVE_SER_LOGADO');
   });
 
+  it('reconhece controlador direto e herdado para operar NPCs sem liberar terceiros', () => {
+    const podeControlar = (npc: {
+      controladorUsuarioId: number | null;
+      personagemDono?: { donoId: number } | null;
+      personagemControladorSessao?: { controladorUsuarioId: number | null } | null;
+    }) =>
+      (service as any).podeControlarNpcSessao(false, 10, npc);
+
+    expect(
+      podeControlar({
+        controladorUsuarioId: 10,
+        personagemDono: null,
+        personagemControladorSessao: null,
+      }),
+    ).toBe(true);
+    expect(
+      podeControlar({
+        controladorUsuarioId: null,
+        personagemDono: { donoId: 99 },
+        personagemControladorSessao: { controladorUsuarioId: 10 },
+      }),
+    ).toBe(true);
+    expect(
+      podeControlar({
+        controladorUsuarioId: null,
+        personagemDono: { donoId: 99 },
+        personagemControladorSessao: { controladorUsuarioId: 11 },
+      }),
+    ).toBe(false);
+  });
+
   it('rejeita UUID reutilizado em mutacao com intencao diferente', async () => {
     (prisma as any).eventoSessao.findFirst = jest.fn().mockResolvedValue({
       dados: {
@@ -547,7 +578,7 @@ describe('SessaoService', () => {
     ).toBe(false);
   });
 
-  it('recusa ajuste manual de NPC baseado em snapshot obsoleto', async () => {
+  it('recusa ajuste manual de NPC, incluindo PE, baseado em snapshot obsoleto', async () => {
     jest
       .spyOn(service as any, 'obterSessaoMutavelComAcesso')
       .mockResolvedValue({
@@ -564,6 +595,8 @@ describe('SessaoService', () => {
       sanMax: null,
       eaAtual: null,
       eaMax: null,
+      peAtual: 8,
+      peMax: 20,
     };
     (prisma as any).npcAmeacaSessao = {
       findFirst: jest.fn().mockResolvedValue(npcAtual),
@@ -576,8 +609,8 @@ describe('SessaoService', () => {
 
     await expect(
       service.atualizarNpcSessao(7, 21, 71, 99, {
-        pontosVidaAtual: 7,
-        pontosVidaAtualEsperado: 10,
+        peAtual: 7,
+        peAtualEsperado: 10,
       }),
     ).rejects.toMatchObject({ code: 'SESSAO_RECURSOS_DESATUALIZADOS' });
     expect((prisma as any).npcAmeacaSessao.update).not.toHaveBeenCalled();
@@ -602,6 +635,7 @@ describe('SessaoService', () => {
       service.atualizarNpcSessao(7, 21, 71, 99, {
         pontosVidaAtual: 7,
         sanAtual: 4,
+        peAtual: 3,
         nomeExibicao: 'NPC editado',
       }),
     ).resolves.toEqual({ id: 21 });
@@ -613,7 +647,7 @@ describe('SessaoService', () => {
       campanhaId: 7,
       sessaoId: 21,
       usuarioId: 99,
-      camposSemPrecondicao: ['pontosVidaAtual', 'sanAtual'],
+      camposSemPrecondicao: ['pontosVidaAtual', 'sanAtual', 'peAtual'],
     });
 
     loggerWarn.mockClear();
@@ -1343,7 +1377,7 @@ describe('SessaoService', () => {
   });
 
   it('bloqueia jogador comum ao rolar dano de NPC', async () => {
-    configurarRolagemNpcAutoritativa({ ehMestre: false });
+    const mocks = configurarRolagemNpcAutoritativa({ ehMestre: false });
 
     await expect(
       service.criarRolagemSessao(7, 21, 10, {
@@ -1353,12 +1387,12 @@ describe('SessaoService', () => {
         acaoIndice: 0,
         clientRequestId: '4949bfb3-1a44-4ef8-99ce-65a7c42504e8',
       }),
-    ).rejects.toMatchObject({ code: 'CAMPANHA_APENAS_MESTRE' });
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    ).rejects.toMatchObject({ code: 'SESSAO_NPC_EDICAO_NEGADA' });
+    expect(mocks.criarEvento).not.toHaveBeenCalled();
   });
 
   it('bloqueia jogador comum inclusive para entidade vinculada', async () => {
-    configurarRolagemNpcAutoritativa({
+    const mocks = configurarRolagemNpcAutoritativa({
       ehMestre: false,
       entidadeVinculadaId: 101,
       npcAmeacaId: null,
@@ -1371,8 +1405,8 @@ describe('SessaoService', () => {
         periciaCodigo: 'LUTA',
         clientRequestId: '940f50a7-f7f0-4127-a884-03b28efccbc0',
       }),
-    ).rejects.toMatchObject({ code: 'CAMPANHA_APENAS_MESTRE' });
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    ).rejects.toMatchObject({ code: 'SESSAO_NPC_EDICAO_NEGADA' });
+    expect(mocks.criarEvento).not.toHaveBeenCalled();
   });
 
   it('restringe ataque de NPC as pericias permitidas', async () => {

@@ -2153,11 +2153,11 @@ export class SessaoService {
         };
       }),
       npcs: npcsVisiveisCenaAtual.map((npc) => {
-        const podeControlarNpc =
-          acesso.ehMestre ||
-          npc.controladorUsuarioId === usuarioId ||
-          npc.personagemDono?.donoId === usuarioId ||
-          npc.personagemControladorSessao?.controladorUsuarioId === usuarioId;
+        const podeControlarNpc = this.podeControlarNpcSessao(
+          acesso.ehMestre,
+          usuarioId,
+          npc,
+        );
         if (!podeControlarNpc) {
           return {
             npcSessaoId: npc.id,
@@ -3112,9 +3112,6 @@ export class SessaoService {
         : null,
       dto.eaAtual !== undefined && dto.eaAtualEsperado === undefined
         ? 'eaAtual'
-        : null,
-      dto.peAtual !== undefined && dto.peAtualEsperado === undefined
-        ? 'peAtual'
         : null,
       dto.sanAtual !== undefined && dto.sanAtualEsperado === undefined
         ? 'sanAtual'
@@ -7225,6 +7222,27 @@ export class SessaoService {
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
   }
 
+  private podeControlarNpcSessao(
+    ehMestre: boolean,
+    usuarioId: number,
+    npc:
+      | {
+          controladorUsuarioId: number | null;
+          personagemDono?: { donoId: number } | null;
+          personagemControladorSessao?: {
+            controladorUsuarioId: number | null;
+          } | null;
+        }
+      | null,
+  ): boolean {
+    return Boolean(
+      ehMestre ||
+        npc?.controladorUsuarioId === usuarioId ||
+        npc?.personagemDono?.donoId === usuarioId ||
+        npc?.personagemControladorSessao?.controladorUsuarioId === usuarioId,
+    );
+  }
+
   async atualizarNpcSessao(
     campanhaId: number,
     sessaoId: number,
@@ -7254,10 +7272,11 @@ export class SessaoService {
           personagemControladorSessao: { select: { controladorUsuarioId: true } },
         },
       });
-      const podeControlar =
-        npcControle?.controladorUsuarioId === usuarioId ||
-        npcControle?.personagemDono?.donoId === usuarioId ||
-        npcControle?.personagemControladorSessao?.controladorUsuarioId === usuarioId;
+      const podeControlar = this.podeControlarNpcSessao(
+        false,
+        usuarioId,
+        npcControle,
+      );
       const tentouEditarFicha = camposRestritosAoMestre.some(
         (campo) => dto[campo] !== undefined,
       );
@@ -7280,6 +7299,9 @@ export class SessaoService {
         : null,
       dto.eaAtual !== undefined && dto.eaAtualEsperado === undefined
         ? 'eaAtual'
+        : null,
+      dto.peAtual !== undefined && dto.peAtualEsperado === undefined
+        ? 'peAtual'
         : null,
     ].filter((campo): campo is string => campo !== null);
     if (camposSemPrecondicao.length > 0) {
@@ -11718,12 +11740,7 @@ export class SessaoService {
         campanhaId,
       );
     }
-    if (
-      !ehMestre &&
-      npc.controladorUsuarioId !== usuarioId &&
-      npc.personagemDono?.donoId !== usuarioId &&
-      npc.personagemControladorSessao?.controladorUsuarioId !== usuarioId
-    ) {
+    if (!this.podeControlarNpcSessao(ehMestre, usuarioId, npc)) {
       throw new BusinessException(
         'Voce nao pode realizar rolagens para este NPC.',
         'SESSAO_NPC_EDICAO_NEGADA',

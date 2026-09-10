@@ -1,7 +1,7 @@
 // lib/api/campanhas.ts
 import { apiClient } from './axios-client';
 import { normalizeListResult, type ListResult } from './pagination';
-import { normalizarDetalheSessao } from '@/lib/campanha/sessao-atualizacoes';
+import { normalizarDetalheSessao } from '../campanha/sessao-atualizacoes';
 import type {
   CampanhaResumo,
   ConviteCampanha,

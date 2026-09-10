@@ -2,8 +2,16 @@ import type {
   AtualizacaoIncrementalSessaoCampanha,
   AtualizacaoRecursosSessaoCampanha,
   CampoRecursoSessaoCampanha,
+  NpcSessaoCampanha,
   SessaoCampanhaDetalhe,
 } from '@/lib/types';
+
+export type ValoresRecursosNpcSessao = Partial<
+  Pick<
+    NpcSessaoCampanha,
+    'pontosVidaAtual' | 'sanAtual' | 'eaAtual' | 'peAtual'
+  >
+>;
 
 /**
  * Compatibiliza snapshots parciais de sessão com o contrato consumido pela UI.
@@ -92,6 +100,22 @@ export function aplicarAtualizacaoIncrementalSessao(
         },
       },
     },
+  };
+}
+
+export function aplicarAtualizacaoOtimistaRecursosNpc(
+  detalhe: SessaoCampanhaDetalhe,
+  npcSessaoId: number,
+  valores: ValoresRecursosNpcSessao,
+): SessaoCampanhaDetalhe {
+  const detalheNormalizado = normalizarDetalheSessao(detalhe);
+  return {
+    ...detalheNormalizado,
+    npcs: detalheNormalizado.npcs.map((npc) =>
+      npc.npcSessaoId === npcSessaoId
+        ? { ...npc, ...valores }
+        : npc,
+    ),
   };
 }
 

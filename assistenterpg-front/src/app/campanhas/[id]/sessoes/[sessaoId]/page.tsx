@@ -503,6 +503,8 @@ export default function SessaoCampanhaPage() {
   const operationalBarRef = useRef<HTMLElement | null>(null);
   const chatRef = useRef<MensagemChatSessao[]>([]);
   const detalheRef = useRef<SessaoCampanhaDetalhe | null>(null);
+  const versaoRecursosLocaisRef = useRef(0);
+  const recursosPendentesRef = useRef(new Set<string>());
   const fimChatRef = useRef<HTMLDivElement | null>(null);
   const sincronizandoTempoRealRef = useRef(false);
   const abaPainelDireitoAtivaRef = useRef('chat');
@@ -765,11 +767,33 @@ export default function SessaoCampanhaPage() {
     }
   }, []);
 
+  const iniciarMutacaoRecurso = useCallback((chave: string) => {
+    recursosPendentesRef.current.add(chave);
+    // Snapshots iniciados antes desta mutação não podem restaurar valores
+    // antigos depois que a interface já confirmou a intenção do jogador.
+    versaoRecursosLocaisRef.current += 1;
+  }, []);
+
+  const finalizarMutacaoRecurso = useCallback((chave: string) => {
+    recursosPendentesRef.current.delete(chave);
+  }, []);
+
   const aplicarAtualizacaoAutoritativa = useCallback(
     (atualizacao: AtualizacaoIncrementalSessaoCampanha): boolean => {
       if (
         atualizacao.campanhaId !== campanhaId ||
         atualizacao.sessaoId !== sessaoId
+      ) {
+        return false;
+      }
+
+      if (
+        atualizacao.tipo === 'RECURSO_AJUSTADO' &&
+        Object.keys(atualizacao.valores).some((campo) =>
+          recursosPendentesRef.current.has(
+            `personagem:${atualizacao.personagemSessaoId}:${campo}`,
+          ),
+        )
       ) {
         return false;
       }
@@ -831,6 +855,7 @@ export default function SessaoCampanhaPage() {
     }
 
     sincronizandoTempoRealRef.current = true;
+    const versaoRecursosNoInicio = versaoRecursosLocaisRef.current;
     try {
       const afterId = chatRef.current.length
         ? chatRef.current[chatRef.current.length - 1].id
@@ -847,6 +872,13 @@ export default function SessaoCampanhaPage() {
             incluirChat: false,
           })
         : null;
+
+      if (
+        versaoRecursosNoInicio !== versaoRecursosLocaisRef.current ||
+        recursosPendentesRef.current.size > 0
+      ) {
+        return;
+      }
 
       setDetalhe(detalheAtual);
       detalheRef.current = detalheAtual;
@@ -1327,6 +1359,8 @@ export default function SessaoCampanhaPage() {
       setErro: setErroCards,
       obterAjustesRecursosCard,
       registrarMutacaoLocal,
+      iniciarMutacaoRecurso,
+      finalizarMutacaoRecurso,
       aplicarAtualizacaoAutoritativa,
       sincronizarCompleto: sincronizarTempoReal,
     });
@@ -1380,8 +1414,11 @@ export default function SessaoCampanhaPage() {
     sessaoEncerrada,
     edicaoNpcs,
     obterAjustesRecursosNpc,
-    setDetalhe: (atualizado) => setDetalhe(atualizado),
+    setDetalhe,
     sincronizarEstadosDerivados,
+    sincronizarCompleto: sincronizarTempoReal,
+    iniciarMutacaoRecurso,
+    finalizarMutacaoRecurso,
     setErro: setErroNpcs,
     showToast,
     onNpcAdicionado: () => {

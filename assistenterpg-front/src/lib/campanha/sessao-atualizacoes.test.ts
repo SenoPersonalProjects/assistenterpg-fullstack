@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { SessaoCampanhaDetalhe } from '@/lib/types';
 import {
   aplicarAtualizacaoIncrementalSessao,
+  aplicarAtualizacaoOtimistaRecursosNpc,
   chavesOrdenacaoAtualizacaoSessao,
   normalizarDetalheSessao,
 } from './sessao-atualizacoes';
@@ -110,6 +111,26 @@ describe('atualizações incrementais de sessão', () => {
       atualizado.regrasOpcionais?.INSPIRACAO.estado.pontosPorPersonagem['41'],
     ).toBe(0);
     expect(atualizado.cards).toBe(detalhe.cards);
+  });
+
+  it('atualiza otimisticamente apenas o recurso do NPC alvo', () => {
+    const detalhe = {
+      ...detalheBase(),
+      npcs: [
+        { npcSessaoId: 51, pontosVidaAtual: 12, peAtual: 5, condicoesAtivas: [] },
+        { npcSessaoId: 52, pontosVidaAtual: 9, peAtual: 2, condicoesAtivas: [] },
+      ],
+    } as unknown as SessaoCampanhaDetalhe;
+
+    const atualizado = aplicarAtualizacaoOtimistaRecursosNpc(detalhe, 51, {
+      pontosVidaAtual: 8,
+      peAtual: 3,
+    });
+
+    expect(atualizado.npcs[0].pontosVidaAtual).toBe(8);
+    expect(atualizado.npcs[0].peAtual).toBe(3);
+    expect(atualizado.npcs[1].pontosVidaAtual).toBe(9);
+    expect(detalhe.npcs[0].pontosVidaAtual).toBe(12);
   });
 
   it('gera chaves independentes para ordenação por campo e inspiração', () => {

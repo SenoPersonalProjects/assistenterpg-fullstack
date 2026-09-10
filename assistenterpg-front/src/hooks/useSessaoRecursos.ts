@@ -50,6 +50,8 @@ type UseSessaoRecursosParams = {
   setErro: (mensagem: UserErrorState | null) => void;
   obterAjustesRecursosCard: (personagemCampanhaId: number) => AjustesRecursos;
   registrarMutacaoLocal: (mutacaoId: string) => void;
+  iniciarMutacaoRecurso: (chave: string) => void;
+  finalizarMutacaoRecurso: (chave: string) => void;
   aplicarAtualizacaoAutoritativa: (
     atualizacao: AtualizacaoRecursosSessaoCampanha,
   ) => void;
@@ -77,6 +79,8 @@ export function useSessaoRecursos({
   setErro,
   obterAjustesRecursosCard,
   registrarMutacaoLocal,
+  iniciarMutacaoRecurso,
+  finalizarMutacaoRecurso,
   aplicarAtualizacaoAutoritativa,
   sincronizarCompleto,
 }: UseSessaoRecursosParams): UseSessaoRecursosReturn {
@@ -137,6 +141,7 @@ export function useSessaoRecursos({
       const mutacaoId = criarClientRequestIdRolagem();
       registrarMutacaoLocal(mutacaoId);
       atualizarPendencia(chaveCampo, true);
+      iniciarMutacaoRecurso(`personagem:${card.personagemSessaoId}:${ajuste.campoApi}`);
       setErro(null);
       setDetalhe((atual) =>
         atual
@@ -155,6 +160,7 @@ export function useSessaoRecursos({
           : atual,
       );
 
+      let deveReconciliar = false;
       try {
         const atualizacao =
           await apiAtualizarRecursosPersonagemSessaoCampanha(
@@ -167,6 +173,9 @@ export function useSessaoRecursos({
               [`${ajuste.campoApi}Esperado`]: ajuste.anterior,
             },
           );
+        finalizarMutacaoRecurso(
+          `personagem:${card.personagemSessaoId}:${ajuste.campoApi}`,
+        );
         aplicarAtualizacaoAutoritativa(atualizacao);
       } catch (error) {
         setDetalhe((atual) =>
@@ -186,9 +195,20 @@ export function useSessaoRecursos({
             : atual,
         );
         setErro(criarErroUsuario(error));
-        await sincronizarCompleto();
+        deveReconciliar = true;
       } finally {
+        finalizarMutacaoRecurso(
+          `personagem:${card.personagemSessaoId}:${ajuste.campoApi}`,
+        );
         atualizarPendencia(chaveCampo, false);
+      }
+
+      // Um conflito CAS ou uma falha de rede precisa reconciliar o valor
+      // autoritativo, mas somente depois de liberar o bloqueio do snapshot.
+      // Assim a própria sincronização não sobrescreve o rollback otimista.
+      if (deveReconciliar) {
+        // A chamada é silenciosa em caso de indisponibilidade e não bloqueia a UI.
+        void sincronizarCompleto();
       }
     },
     [
@@ -196,6 +216,8 @@ export function useSessaoRecursos({
       atualizarPendencia,
       calcularValorAjustado,
       campanhaId,
+      finalizarMutacaoRecurso,
+      iniciarMutacaoRecurso,
       registrarMutacaoLocal,
       sessaoEncerrada,
       sessaoId,
