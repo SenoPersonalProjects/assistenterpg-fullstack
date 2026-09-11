@@ -5,10 +5,6 @@ import { useRouter } from 'next/navigation';
 import { PendingNotificationsPanel } from '@/components/notificacoes/PendingNotificationsPanel';
 import { Icon } from '@/components/ui/Icon';
 import { Portal } from '@/components/ui/Portal';
-import {
-  getNotificationsPopoverPosition,
-  type NotificationsPopoverPosition,
-} from './notificationsPopover.helpers';
 
 type Props = {
   pendingNotifications?: number;
@@ -26,13 +22,8 @@ export function NotificationsButton({
   onPendingNotificationsChange,
 }: Props) {
   const router = useRouter();
-  const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<NotificationsPopoverPosition | null>(
-    null,
-  );
   const panelId = useId();
   const badgeLabel =
     pendingNotifications > 9 ? '9+' : String(pendingNotifications);
@@ -45,26 +36,8 @@ export function NotificationsButton({
     [onPendingNotificationsChange],
   );
 
-  const updatePosition = useCallback(() => {
-    const trigger = triggerRef.current;
-    if (!trigger || typeof window === 'undefined') return;
-
-    const triggerRect = trigger.getBoundingClientRect();
-    const panelRect = panelRef.current?.getBoundingClientRect();
-    setPosition(
-      getNotificationsPopoverPosition({
-        viewport: { width: window.innerWidth, height: window.innerHeight },
-        trigger: triggerRect,
-        content: panelRect
-          ? { width: panelRect.width, height: panelRect.height }
-          : undefined,
-      }),
-    );
-  }, []);
-
   const closePanel = useCallback((restoreFocus = true) => {
     setOpen(false);
-    setPosition(null);
 
     if (restoreFocus) {
       window.requestAnimationFrame(() => triggerRef.current?.focus());
@@ -74,41 +47,18 @@ export function NotificationsButton({
   useEffect(() => {
     if (!open) return;
 
-    const frame = window.requestAnimationFrame(updatePosition);
-
-    function handlePointerDown(event: PointerEvent) {
-      const target = event.target as Node;
-      if (
-        !rootRef.current?.contains(target) &&
-        !panelRef.current?.contains(target)
-      ) {
-        closePanel();
-      }
-    }
-
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         closePanel();
       }
     }
 
-    function handleViewportChange() {
-      updatePosition();
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('resize', handleViewportChange);
-    window.addEventListener('scroll', handleViewportChange, true);
 
     return () => {
-      window.cancelAnimationFrame(frame);
-      document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('resize', handleViewportChange);
-      window.removeEventListener('scroll', handleViewportChange, true);
     };
-  }, [closePanel, open, updatePosition]);
+  }, [closePanel, open]);
 
   function togglePanel() {
     if (open) {
@@ -116,7 +66,6 @@ export function NotificationsButton({
       return;
     }
 
-    setPosition(null);
     setOpen(true);
   }
 
@@ -127,50 +76,51 @@ export function NotificationsButton({
 
   const panel = open ? (
     <Portal>
-      <div
-        ref={panelRef}
-        id={panelId}
-        role="dialog"
-        aria-label="Notificações pendentes"
-        className="fixed z-[1000] overflow-y-auto rounded-2xl border border-app-border bg-app-surface p-4 shadow-2xl shadow-black/20 backdrop-blur-xl"
-        style={{
-          left: position?.left ?? 0,
-          maxHeight: position?.maxHeight,
-          top: position?.top ?? 0,
-          visibility: position ? 'visible' : 'hidden',
-          width: position?.width ?? 0,
-        }}
-      >
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-bold text-app-fg">Notificações</p>
-            <p className="text-xs text-app-muted">
-              Convites e pedidos de amizade.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="rounded-lg p-2 text-app-muted transition-colors hover:bg-app-muted-surface hover:text-app-fg"
-            onClick={() => closePanel()}
-            aria-label="Fechar notificações"
-          >
-            <Icon name="close" className="h-4 w-4" />
-          </button>
-        </div>
-
-        <PendingNotificationsPanel
-          compact
-          feedback="toast"
-          showViewAllAction
-          onTotalsChange={handleTotalsChange}
-          onViewAll={goToNotifications}
+      <div className="fixed inset-x-0 bottom-0 top-14 z-[1000]">
+        <button
+          type="button"
+          className="absolute inset-0 cursor-default bg-transparent"
+          onClick={() => closePanel()}
+          aria-label="Fechar notificações"
         />
+
+        <div
+          id={panelId}
+          role="dialog"
+          aria-label="Notificações pendentes"
+          className="absolute right-3 top-2 z-10 w-[calc(100vw-1.5rem)] max-h-[calc(100dvh-5rem)] max-w-[26rem] overflow-y-auto rounded-2xl border border-app-border bg-app-surface p-4 shadow-2xl shadow-black/20 backdrop-blur-xl"
+        >
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-app-fg">Notificações</p>
+              <p className="text-xs text-app-muted">
+                Convites e pedidos de amizade.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="rounded-lg p-2 text-app-muted transition-colors hover:bg-app-muted-surface hover:text-app-fg"
+              onClick={() => closePanel()}
+              aria-label="Fechar notificações"
+            >
+              <Icon name="close" className="h-4 w-4" />
+            </button>
+          </div>
+
+          <PendingNotificationsPanel
+            compact
+            feedback="toast"
+            showViewAllAction
+            onTotalsChange={handleTotalsChange}
+            onViewAll={goToNotifications}
+          />
+        </div>
       </div>
     </Portal>
   ) : null;
 
   return (
-    <div ref={rootRef} className="relative">
+    <div className="relative">
       <button
         ref={triggerRef}
         type="button"
