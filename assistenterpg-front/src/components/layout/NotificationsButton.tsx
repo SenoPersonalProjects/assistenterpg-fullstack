@@ -1,9 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PendingNotificationsPanel } from '@/components/notificacoes/PendingNotificationsPanel';
 import { Icon } from '@/components/ui/Icon';
+import { Portal } from '@/components/ui/Portal';
+import {
+  getNotificationsPopoverPosition,
+  type NotificationsPopoverPosition,
+} from './notificationsPopover.helpers';
 
 type Props = {
   pendingNotifications?: number;
@@ -22,7 +27,13 @@ export function NotificationsButton({
 }: Props) {
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<NotificationsPopoverPosition | null>(
+    null,
+  );
+  const panelId = useId();
   const badgeLabel =
     pendingNotifications > 9 ? '9+' : String(pendingNotifications);
   const highlighted = active || open;
@@ -34,38 +45,134 @@ export function NotificationsButton({
     [onPendingNotificationsChange],
   );
 
+  const updatePosition = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger || typeof window === 'undefined') return;
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const panelRect = panelRef.current?.getBoundingClientRect();
+    setPosition(
+      getNotificationsPopoverPosition({
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        trigger: triggerRect,
+        content: panelRect
+          ? { width: panelRect.width, height: panelRect.height }
+          : undefined,
+      }),
+    );
+  }, []);
+
+  const closePanel = useCallback((restoreFocus = true) => {
+    setOpen(false);
+    setPosition(null);
+
+    if (restoreFocus) {
+      window.requestAnimationFrame(() => triggerRef.current?.focus());
+    }
+  }, []);
+
   useEffect(() => {
     if (!open) return;
 
-    function handlePointerDown(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
+    const frame = window.requestAnimationFrame(updatePosition);
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (
+        !rootRef.current?.contains(target) &&
+        !panelRef.current?.contains(target)
+      ) {
+        closePanel();
       }
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setOpen(false);
+        closePanel();
       }
     }
 
-    document.addEventListener('mousedown', handlePointerDown);
+    function handleViewportChange() {
+      updatePosition();
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
 
     return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
     };
-  }, [open]);
+  }, [closePanel, open, updatePosition]);
+
+  function togglePanel() {
+    if (open) {
+      closePanel(false);
+      return;
+    }
+
+    setPosition(null);
+    setOpen(true);
+  }
 
   function goToNotifications() {
-    setOpen(false);
+    closePanel(false);
     router.push('/notificacoes');
   }
+
+  const panel = open ? (
+    <Portal>
+      <div
+        ref={panelRef}
+        id={panelId}
+        role="dialog"
+        aria-label="Notificações pendentes"
+        className="fixed z-[1000] overflow-y-auto rounded-2xl border border-app-border bg-app-surface p-4 shadow-2xl shadow-black/20 backdrop-blur-xl"
+        style={{
+          left: position?.left ?? 0,
+          maxHeight: position?.maxHeight,
+          top: position?.top ?? 0,
+          visibility: position ? 'visible' : 'hidden',
+          width: position?.width ?? 0,
+        }}
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-app-fg">Notificações</p>
+            <p className="text-xs text-app-muted">
+              Convites e pedidos de amizade.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="rounded-lg p-2 text-app-muted transition-colors hover:bg-app-muted-surface hover:text-app-fg"
+            onClick={() => closePanel()}
+            aria-label="Fechar notificações"
+          >
+            <Icon name="close" className="h-4 w-4" />
+          </button>
+        </div>
+
+        <PendingNotificationsPanel
+          compact
+          feedback="toast"
+          showViewAllAction
+          onTotalsChange={handleTotalsChange}
+          onViewAll={goToNotifications}
+        />
+      </div>
+    </Portal>
+  ) : null;
 
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         className={`
           inline-flex items-center transition-colors
@@ -77,10 +184,11 @@ export function NotificationsButton({
           }
           ${className}
         `}
-        onClick={() => setOpen((current) => !current)}
+        onClick={togglePanel}
         title="Notificações"
         aria-haspopup="dialog"
         aria-expanded={open}
+        aria-controls={open ? panelId : undefined}
         aria-label={`Notificações${
           pendingNotifications > 0 ? ` (${badgeLabel})` : ''
         }`}
@@ -105,44 +213,7 @@ export function NotificationsButton({
         {showLabel && <span className="text-xs text-app-muted">Notificações</span>}
       </button>
 
-      {open && (
-        <div
-          role="dialog"
-          aria-label="Notificações pendentes"
-          className="
-            fixed left-4 right-4 top-20 z-[70]
-            max-h-[calc(100vh-6rem)] overflow-y-auto rounded-2xl
-            border border-app-border bg-app-surface p-4 shadow-2xl
-            shadow-black/20 backdrop-blur-xl
-            sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3 sm:w-[26rem]
-          "
-        >
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-bold text-app-fg">Notificações</p>
-              <p className="text-xs text-app-muted">
-                Convites e pedidos de amizade.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="rounded-lg p-2 text-app-muted transition-colors hover:bg-app-muted-surface hover:text-app-fg"
-              onClick={() => setOpen(false)}
-              aria-label="Fechar notificações"
-            >
-              <Icon name="close" className="h-4 w-4" />
-            </button>
-          </div>
-
-          <PendingNotificationsPanel
-            compact
-            feedback="toast"
-            showViewAllAction
-            onTotalsChange={handleTotalsChange}
-            onViewAll={goToNotifications}
-          />
-        </div>
-      )}
+      {panel}
     </div>
   );
 }
