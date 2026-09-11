@@ -5,6 +5,7 @@ import type {
   AplicarModificacaoInventarioCampanhaDto,
   InventarioCampanhaCompletoDto,
   ItemInventarioDto,
+  EquipamentoCatalogo,
 } from '@/lib/types';
 
 export async function apiGetInventarioCampanhaCompleto(
@@ -15,6 +16,16 @@ export async function apiGetInventarioCampanhaCompleto(
     `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/inventario`,
   );
   return data;
+}
+
+export async function apiGetCatalogoInventarioCampanha(
+  campanhaId: number,
+  personagemCampanhaId: number,
+): Promise<EquipamentoCatalogo[]> {
+  const { data } = await apiClient.get(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/inventario/catalogo`,
+  );
+  return Array.isArray(data) ? data : [];
 }
 
 export async function apiAdicionarItemInventarioCampanha(

@@ -12,6 +12,8 @@ import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { StatusPublicacao } from "@/lib/types/homebrew-enums";
 import { ApiError } from "@/lib/api/axios-client";
+import { apiGetGuiaImportacaoHomebrewJson } from '@/lib/api/homebrews';
+import type { JsonImportGuideReferenceRow } from '@/lib/types';
 
 import type {
   TipoHomebrewConteudo,
@@ -120,6 +122,13 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
   } = useHomebrewForm({ initialValues });
 
   const [tagsInput, setTagsInput] = useState(() => tags.join(", "));
+  const [referencias, setReferencias] = useState<Record<string, JsonImportGuideReferenceRow[]>>({});
+
+  useEffect(() => {
+    void apiGetGuiaImportacaoHomebrewJson()
+      .then((guia) => setReferencias(Object.fromEntries(guia.referencias.map((item) => [item.key, item.rows]))))
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     setTagsInput(tags.join(", "));
@@ -289,9 +298,9 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
           icon={TIPO_ICONS[tipo]}
         />
 
-        {tipo === "CLA" && <ClaFormFields dados={dados} onChange={updateDados} />}
-        {tipo === "ORIGEM" && <OrigemFormFields dados={dados} onChange={updateDados} />}
-        {tipo === "TRILHA" && <TrilhaFormFields dados={dados} onChange={updateDados} />}
+        {tipo === "CLA" && <ClaFormFields dados={dados} onChange={updateDados} tecnicas={referencias.tecnicas ?? []} />}
+        {tipo === "ORIGEM" && <OrigemFormFields dados={dados} onChange={updateDados} pericias={referencias.pericias ?? []} />}
+        {tipo === "TRILHA" && <TrilhaFormFields dados={dados} onChange={updateDados} classes={referencias.classes ?? []} />}
         {tipo === "CAMINHO" && <CaminhoFormFields dados={dados} onChange={updateDados} />}
         {tipo === "EQUIPAMENTO" && <EquipamentoFormFields dados={dados} onChange={updateDados} />}
         {tipo === "PODER_GENERICO" && (

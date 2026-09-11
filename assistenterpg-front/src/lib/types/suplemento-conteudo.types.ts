@@ -359,7 +359,7 @@ export type HabilidadeTecnicaCatalogo = {
 
 export type CreateHabilidadeTecnicaPayload = {
   tecnicaId: number;
-  codigo: string;
+  codigo?: string;
   nome: string;
   descricao: string;
   requisitos?: unknown;

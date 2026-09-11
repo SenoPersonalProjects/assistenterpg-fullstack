@@ -121,47 +121,66 @@ export function MestreShieldGuide() {
   const [escudo, setEscudo] = useState<MestreShieldGuidePayload | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(false);
+  const [consultaRecebida, setConsultaRecebida] = useState('');
 
   useEffect(() => {
     let ativo = true;
+    const consulta = busca.trim();
+    const consultaNoCompendio = consulta.length >= 3 ? consulta : '';
 
     async function carregarEscudo() {
       setCarregando(true);
       setErro(false);
 
-      const dados = await apiBuscarEscudoMestre();
+      const dados = await apiBuscarEscudoMestre(consultaNoCompendio || undefined);
       if (!ativo) return;
 
       setEscudo(dados);
+      setConsultaRecebida(consultaNoCompendio);
       setErro(!dados);
       setCarregando(false);
     }
 
-    carregarEscudo().catch(() => {
-      if (!ativo) return;
-      setEscudo(null);
-      setErro(true);
-      setCarregando(false);
-    });
+    const timeout = window.setTimeout(
+      () => {
+        carregarEscudo().catch(() => {
+          if (!ativo) return;
+          setEscudo(null);
+          setErro(true);
+          setCarregando(false);
+        });
+      },
+      consultaNoCompendio ? 300 : 0,
+    );
 
     return () => {
+      window.clearTimeout(timeout);
       ativo = false;
     };
-  }, []);
+  }, [busca]);
+
+  const consultaNoCompendio = busca.trim().length >= 3;
+  const aguardandoConsulta =
+    consultaNoCompendio && consultaRecebida !== busca.trim();
 
   const secoesFiltradas = useMemo(() => {
-    return filtrarMestreShieldGuides(escudo?.secoes ?? [], busca);
-  }, [busca, escudo?.secoes]);
+    const secoes = escudo?.secoes ?? [];
+    if (consultaNoCompendio) return secoes;
+    return filtrarMestreShieldGuides(secoes, busca);
+  }, [busca, consultaNoCompendio, escudo?.secoes]);
+
+  const estaCarregando = carregando || aguardandoConsulta;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="flex-1">
           <Input
-            label="Busca rápida no guia"
+            label="Buscar no compêndio"
             value={busca}
             onChange={(event) => setBusca(event.target.value)}
             placeholder="Ex.: condições, domínio, morte..."
+            helperText="A partir de 3 caracteres, busca nos títulos, termos e textos publicados."
             className="font-bold"
             icon="search"
           />
@@ -193,11 +212,13 @@ export function MestreShieldGuide() {
       ) : null}
 
       <div className="max-h-[500px] overflow-y-auto space-y-3 pr-2 scrollbar-none">
-        {carregando ? (
+        {estaCarregando ? (
           <div className="flex flex-col items-center justify-center py-12 text-center opacity-70">
             <Icon name="book" className="mb-4 h-12 w-12 text-app-muted" />
             <p className="text-xs font-bold text-app-muted">
-              Carregando referências do compêndio...
+              {consultaNoCompendio
+                ? 'Buscando nos textos do compêndio...'
+                : 'Carregando referências do compêndio...'}
             </p>
           </div>
         ) : erro ? (

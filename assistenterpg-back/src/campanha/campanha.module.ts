@@ -25,12 +25,14 @@ import { CampanhaGateway } from './campanha.gateway';
 import { CampanhaConcessoesService } from './campanha.concessoes.service';
 import { AmizadesModule } from 'src/amizades/amizades.module';
 import { SessaoCondicoesAutomaticasModule } from 'src/sessao-condicoes-automaticas/sessao-condicoes-automaticas.module';
+import { EquipamentosModule } from '../equipamentos/equipamentos.module';
 
 @Module({
   imports: [
     PrismaModule,
     SessaoCondicoesAutomaticasModule,
     InventarioModule,
+    EquipamentosModule,
     TecnicasAmaldicoadasModule,
     AmizadesModule,
     ConfigModule,

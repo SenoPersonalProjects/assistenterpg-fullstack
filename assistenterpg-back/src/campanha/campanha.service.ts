@@ -486,6 +486,18 @@ export class CampanhaService {
     );
   }
 
+  async listarCatalogoInventarioPersonagemCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+  ) {
+    return this.inventarioService.listarCatalogoDisponivelCampanha(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+    );
+  }
+
   async adicionarItemInventarioCampanha(
     campanhaId: number,
     personagemCampanhaId: number,

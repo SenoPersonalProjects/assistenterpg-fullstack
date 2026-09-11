@@ -26,6 +26,7 @@ describe('CampanhaController', () => {
     aplicarModificadorPersonagemCampanha: jest.fn(),
     desfazerModificadorPersonagemCampanha: jest.fn(),
     listarHistoricoPersonagemCampanha: jest.fn(),
+    listarCatalogoInventarioPersonagemCampanha: jest.fn(),
     criarConvite: jest.fn(),
     listarConvitesPendentesPorUsuario: jest.fn(),
     aceitarConvite: jest.fn(),
@@ -200,6 +201,18 @@ describe('CampanhaController', () => {
       nome: 'Maldição',
       descricao: 'Teste',
     });
+  });
+
+  it('deve encaminhar o catálogo contextual de inventário para o service', async () => {
+    campanhaServiceMock.listarCatalogoInventarioPersonagemCampanha.mockResolvedValue([]);
+
+    await controller.listarCatalogoInventarioPersonagemCampanha(2, 9, {
+      user: { id: 10 },
+    });
+
+    expect(
+      campanhaServiceMock.listarCatalogoInventarioPersonagemCampanha,
+    ).toHaveBeenCalledWith(2, 9, 10);
   });
 
   it('deve encaminhar listagem de modificadores com filtros de sessão e cena', async () => {

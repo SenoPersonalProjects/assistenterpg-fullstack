@@ -227,6 +227,22 @@ export class EquipamentosService {
     return equipamentos.map((eq) => this.mapResumo(eq));
   }
 
+  /**
+   * Reutilizado por contextos que já calcularam a permissão de conteúdo.
+   * A projeção é a mesma do catálogo público para não expor dados adicionais.
+   */
+  async listarResumoPorFiltro(
+    where: Prisma.EquipamentoCatalogoWhereInput,
+  ): Promise<EquipamentoResumoDto[]> {
+    const equipamentos = await this.prisma.equipamentoCatalogo.findMany({
+      where,
+      orderBy: [{ categoria: 'asc' }, { nome: 'asc' }],
+      select: equipamentoResumoSelect,
+    });
+
+    return equipamentos.map((equipamento) => this.mapResumo(equipamento));
+  }
+
   async buscarPorId(id: number): Promise<EquipamentoDetalhadoDto> {
     const equipamento = await this.prisma.equipamentoCatalogo.findUnique({
       where: { id },

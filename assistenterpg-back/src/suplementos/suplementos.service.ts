@@ -46,6 +46,32 @@ export class SuplementosService {
     return tags.filter((tag): tag is string => typeof tag === 'string');
   }
 
+  private normalizarCodigo(nome: string): string {
+    const base = nome
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    return `SUPL_${base || 'SEM_NOME'}`;
+  }
+
+  private async gerarCodigoDisponivel(nome: string): Promise<string> {
+    const base = this.normalizarCodigo(nome);
+    let candidato = base;
+    let sufixo = 2;
+    while (
+      await this.prisma.suplemento.findUnique({
+        where: { codigo: candidato },
+        select: { id: true },
+      })
+    ) {
+      candidato = `${base}_${sufixo}`;
+      sufixo += 1;
+    }
+    return candidato;
+  }
+
   async findAll(
     filtros: FiltrarSuplementosDto,
     usuarioId?: number,
@@ -179,17 +205,18 @@ export class SuplementosService {
 
   async create(dto: CreateSuplementoDto): Promise<SuplementoCatalogoDto> {
     try {
+      const codigo = dto.codigo?.trim() || (await this.gerarCodigoDisponivel(dto.nome));
       const existe = await this.prisma.suplemento.findUnique({
-        where: { codigo: dto.codigo },
+        where: { codigo },
       });
 
       if (existe) {
-        throw new SuplementoCodigoDuplicadoException(dto.codigo);
+        throw new SuplementoCodigoDuplicadoException(codigo);
       }
 
       const suplemento = await this.prisma.suplemento.create({
         data: {
-          codigo: dto.codigo,
+          codigo,
           nome: dto.nome,
           descricao: dto.descricao ?? null,
           versao: dto.versao ?? '1.0.0',

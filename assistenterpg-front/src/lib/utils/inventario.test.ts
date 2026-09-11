@@ -1,5 +1,8 @@
 ﻿import { describe, expect, it } from 'vitest';
-import { filtrarModificacoesCompativeis } from './inventario';
+import {
+  categorizarEquipamentosPorCategoria,
+  filtrarModificacoesCompativeis,
+} from './inventario';
 import type { EquipamentoCatalogo, ModificacaoCatalogo } from '@/lib/types';
 
 function criarProtecao(
@@ -114,5 +117,34 @@ describe('filtrarModificacoesCompativeis', () => {
 
     expect(escudo).toEqual([]);
     expect(semTipoProtecao).toEqual([]);
+  });
+});
+
+describe('categorizarEquipamentosPorCategoria', () => {
+  it('mantém a mesma classificação para catálogo base, amaldiçoado e homebrew', () => {
+    const categorias = categorizarEquipamentosPorCategoria([
+      criarProtecao({ id: 1, nome: 'Proteção' }),
+      {
+        ...criarProtecao({ id: 2, nome: 'Arma amaldiçoada' }),
+        tipo: 'FERRAMENTA_AMALDICOADA',
+        armaAmaldicoada: { id: 2, tipoBase: 'ARMA' },
+        complexidadeMaldicao: 'COMPLEXA',
+      },
+      {
+        ...criarProtecao({ id: 3, nome: 'Item homebrew' }),
+        fonte: 'HOMEBREW',
+      },
+      {
+        ...criarProtecao({ id: 4, nome: 'Lanterna' }),
+        tipo: 'ITEM_OPERACIONAL',
+      },
+    ]);
+
+    expect(categorias.PROTECOES.map((item) => item.nome)).toEqual(['Proteção']);
+    expect(categorias.ARMAS_AMALDICOADAS_COMPLEXAS.map((item) => item.nome)).toEqual([
+      'Arma amaldiçoada',
+    ]);
+    expect(categorias.HOMEBREW.map((item) => item.nome)).toEqual(['Item homebrew']);
+    expect(categorias.UTILITARIOS.map((item) => item.nome)).toEqual(['Lanterna']);
   });
 });

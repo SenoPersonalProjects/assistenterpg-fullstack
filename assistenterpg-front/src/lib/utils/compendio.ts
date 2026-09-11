@@ -564,14 +564,18 @@ export async function apiListarDestaques(
   }
 }
 
-export async function apiBuscarEscudoMestre(): Promise<MestreShieldGuidePayload | null> {
+export async function apiBuscarEscudoMestre(
+  query?: string,
+): Promise<MestreShieldGuidePayload | null> {
   try {
+    const busca = query?.trim();
+    const params = busca ? `?q=${encodeURIComponent(busca)}` : '';
     return await fetchJson<MestreShieldGuidePayload>(
-      '/compendio/escudo-mestre',
+      `/compendio/escudo-mestre${params}`,
       'Falha ao carregar Escudo do Mestre',
       {
-        cache: 'default',
-        next: { revalidate: 300 },
+        cache: busca ? 'no-store' : 'default',
+        ...(busca ? {} : { next: { revalidate: 300 } }),
         timeoutMs: COMPENDIO_PUBLIC_FETCH_TIMEOUT_MS,
       },
     );

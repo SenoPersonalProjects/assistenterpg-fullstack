@@ -30,8 +30,8 @@ export class CompendioController {
   constructor(private readonly compendioService: CompendioService) {}
 
   @Get('escudo-mestre')
-  async buscarEscudoMestre() {
-    return this.compendioService.buscarEscudoMestre();
+  async buscarEscudoMestre(@Query('q') query?: string) {
+    return this.compendioService.buscarEscudoMestre(query);
   }
 
   // ==================== LIVROS ====================

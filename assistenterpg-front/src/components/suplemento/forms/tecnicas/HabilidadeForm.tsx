@@ -164,11 +164,6 @@ export function HabilidadeForm({
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-app-fg">{nomeExibido}</span>
-              {habilidade.codigo && (
-                <Badge color="blue" size="sm">
-                  {habilidade.codigo}
-                </Badge>
-              )}
             </div>
             {habilidade.custoPE > 0 || habilidade.custoEA > 0 ? (
               <p className="text-xs text-app-muted">
@@ -218,13 +213,6 @@ export function HabilidadeForm({
         <div className="p-4 space-y-4">
           {/* Identificação */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <Input
-              label="Código *"
-              value={habilidade.codigo}
-              onChange={(e) => onChange({ codigo: e.target.value })}
-              placeholder="Ex: MANIPULACAO_SANGUE_CONVERGENCIA"
-              required
-            />
 
             <Input
               label="Nome *"

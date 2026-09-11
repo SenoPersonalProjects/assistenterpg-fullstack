@@ -18,9 +18,9 @@ import {
   apiAplicarModificacaoInventarioCampanha,
   apiAtualizarItemInventarioCampanha,
   apiGetCatalogosBasicos,
+  apiGetCatalogoInventarioCampanha,
   apiGetInventarioCampanhaCompleto,
   apiGetModificacoesCompativeis,
-  apiGetTodosEquipamentos,
   apiRemoverItemInventarioCampanha,
   apiRemoverModificacaoInventarioCampanha,
   criarErroUsuario,
@@ -43,7 +43,7 @@ import {
   getIconeTipo,
   equipamentoUsaPericiaPersonalizada,
   listarPericiasElegiveisItemPersonalizado,
-  CATEGORIAS_LABELS,
+  categorizarEquipamentosPorCategoria,
   type CategoriaEquipamento,
 } from '@/lib/utils/inventario';
 
@@ -74,7 +74,7 @@ type SessionCharacterInventoryTabProps = {
   }) => Promise<void>;
 };
 
-type EtapaAdicionar = 'SELECIONAR' | 'DETALHES';
+type EtapaAdicionar = 'CATEGORIA' | 'EQUIPAMENTO' | 'DETALHES';
 type ModoConsumo = 'NORMAL' | 'COM_CALMA';
 
 type ModalConsumoState = {
@@ -168,7 +168,7 @@ export function SessionCharacterInventoryTab({
   const [modalAdicionarAberto, setModalAdicionarAberto] = useState(false);
   const [inventarioExpandido, setInventarioExpandido] = useState(true);
   const [categoriaAdicionar, setCategoriaAdicionar] = useState<CategoriaEquipamento>('ARMAS');
-  const [etapaAdicionar, setEtapaAdicionar] = useState<EtapaAdicionar>('SELECIONAR');
+  const [etapaAdicionar, setEtapaAdicionar] = useState<EtapaAdicionar>('CATEGORIA');
   const [buscaEquipamento, setBuscaEquipamento] = useState('');
   const [equipamentoSelecionado, setEquipamentoSelecionado] =
     useState<EquipamentoCatalogo | null>(null);
@@ -228,7 +228,7 @@ export function SessionCharacterInventoryTab({
     setCarregandoCatalogos(true);
     try {
       const [lista, catalogosBasicos] = await Promise.all([
-        apiGetTodosEquipamentos(),
+        apiGetCatalogoInventarioCampanha(campanhaId, personagemCampanhaId),
         apiGetCatalogosBasicos(),
       ]);
       setEquipamentos(lista);
@@ -238,22 +238,11 @@ export function SessionCharacterInventoryTab({
     } finally {
       setCarregandoCatalogos(false);
     }
-  }, [equipamentos.length, pericias.length]);
+  }, [campanhaId, equipamentos.length, personagemCampanhaId, pericias.length]);
 
   const equipamentosFiltrados = useMemo(() => {
-    const porCategoria = equipamentos.filter((equip) => {
-      if (equip.fonte === 'HOMEBREW') return categoriaAdicionar === 'HOMEBREW';
-      if (equip.tipo === 'ARMA') return categoriaAdicionar === 'ARMAS';
-      if (equip.tipo === 'MUNICAO') return categoriaAdicionar === 'MUNICOES';
-      if (equip.tipo === 'PROTECAO') return categoriaAdicionar === 'PROTECOES';
-      if (equip.tipo === 'FERRAMENTA_AMALDICOADA' || equip.tipo === 'ITEM_AMALDICOADO') {
-        if (equip.armaAmaldicoada) return categoriaAdicionar === (equip.complexidadeMaldicao === 'COMPLEXA' ? 'ARMAS_AMALDICOADAS_COMPLEXAS' : 'ARMAS_AMALDICOADAS_SIMPLES');
-        if (equip.protecaoAmaldicoada) return categoriaAdicionar === (equip.complexidadeMaldicao === 'COMPLEXA' ? 'PROTECOES_AMALDICOADAS_COMPLEXAS' : 'PROTECOES_AMALDICOADAS_SIMPLES');
-        if (equip.artefatoAmaldicoado) return categoriaAdicionar === 'ARTEFATOS_AMALDICOADOS';
-        return categoriaAdicionar === 'ITENS_AMALDICOADOS';
-      }
-      return categoriaAdicionar === 'UTILITARIOS';
-    });
+    const porCategoria =
+      categorizarEquipamentosPorCategoria(equipamentos)[categoriaAdicionar] ?? [];
     if (!buscaEquipamento.trim()) return porCategoria;
     const termo = buscaEquipamento.trim().toLowerCase();
     return porCategoria.filter(
@@ -264,22 +253,7 @@ export function SessionCharacterInventoryTab({
   }, [buscaEquipamento, categoriaAdicionar, equipamentos]);
 
   const equipamentosPorCategoria = useMemo(() => {
-    const resultado = Object.fromEntries(
-      Object.keys(CATEGORIAS_LABELS).map((categoria) => [categoria, equipamentos.filter((equipamento) => {
-        if (equipamento.fonte === 'HOMEBREW') return categoria === 'HOMEBREW';
-        if (equipamento.tipo === 'ARMA') return categoria === 'ARMAS';
-        if (equipamento.tipo === 'MUNICAO') return categoria === 'MUNICOES';
-        if (equipamento.tipo === 'PROTECAO') return categoria === 'PROTECOES';
-        if (equipamento.tipo === 'FERRAMENTA_AMALDICOADA' || equipamento.tipo === 'ITEM_AMALDICOADO') {
-          if (equipamento.artefatoAmaldicoado) return categoria === 'ARTEFATOS_AMALDICOADOS';
-          if (equipamento.armaAmaldicoada) return categoria === (equipamento.complexidadeMaldicao === 'COMPLEXA' ? 'ARMAS_AMALDICOADAS_COMPLEXAS' : 'ARMAS_AMALDICOADAS_SIMPLES');
-          if (equipamento.protecaoAmaldicoada) return categoria === (equipamento.complexidadeMaldicao === 'COMPLEXA' ? 'PROTECOES_AMALDICOADAS_COMPLEXAS' : 'PROTECOES_AMALDICOADAS_SIMPLES');
-          return categoria === 'ITENS_AMALDICOADOS';
-        }
-        return categoria === 'UTILITARIOS';
-      })]),
-    ) as Record<CategoriaEquipamento, EquipamentoCatalogo[]>;
-    return resultado;
+    return categorizarEquipamentosPorCategoria(equipamentos);
   }, [equipamentos]);
 
   const resumoEspacos = inventario?.espacos;
@@ -301,7 +275,7 @@ export function SessionCharacterInventoryTab({
       : [];
 
   const abrirModalAdicionar = () => {
-    setEtapaAdicionar('SELECIONAR');
+    setEtapaAdicionar('CATEGORIA');
     setCategoriaAdicionar('ARMAS');
     setEquipamentoSelecionado(null);
     setBuscaEquipamento('');
@@ -384,6 +358,13 @@ export function SessionCharacterInventoryTab({
 
   const fecharModalAdicionar = () => {
     setModalAdicionarAberto(false);
+  };
+
+  const selecionarCategoriaAdicionar = (categoria: CategoriaEquipamento) => {
+    setCategoriaAdicionar(categoria);
+    setBuscaEquipamento('');
+    setEquipamentoSelecionado(null);
+    setEtapaAdicionar('EQUIPAMENTO');
   };
 
   const avancarEtapaAdicionar = async () => {
@@ -899,17 +880,28 @@ export function SessionCharacterInventoryTab({
         size="xl"
       >
         <div className="space-y-4">
-          {etapaAdicionar === 'SELECIONAR' ? (
+          {erro ? <ErrorAlert message={erro} /> : null}
+
+          {etapaAdicionar === 'CATEGORIA' ? (
             <>
               <InventarioModalCategoria
                 categoriaAtiva={categoriaAdicionar}
                 equipamentosPorCategoria={equipamentosPorCategoria}
-                onSelectCategoria={setCategoriaAdicionar}
+                onSelectCategoria={selecionarCategoriaAdicionar}
               />
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="ghost" onClick={fecharModalAdicionar}>
+                  Cancelar
+                </Button>
+              </div>
+            </>
+          ) : etapaAdicionar === 'EQUIPAMENTO' ? (
+            <>
               {carregandoCatalogos ? (
-                <p className="text-xs text-app-muted">Carregando catalogo...</p>
+                <p className="text-xs text-app-muted">Carregando catálogo...</p>
               ) : (
                 <InventarioModalEquipamento
+                  key={`equipamentos-${categoriaAdicionar}`}
                   busca={buscaEquipamento}
                   onBuscaChange={setBuscaEquipamento}
                   equipamentosFiltrados={equipamentosFiltrados}
@@ -917,16 +909,21 @@ export function SessionCharacterInventoryTab({
                   onSelectEquipamento={setEquipamentoSelecionado}
                 />
               )}
-              <div className="flex items-center justify-end gap-2">
-                <Button variant="ghost" onClick={fecharModalAdicionar}>
-                  Cancelar
+              <div className="flex items-center justify-between gap-2">
+                <Button variant="ghost" onClick={() => setEtapaAdicionar('CATEGORIA')}>
+                  Voltar às categorias
                 </Button>
-                <Button
-                  onClick={() => void avancarEtapaAdicionar()}
-                  disabled={!equipamentoSelecionado}
-                >
-                  Continuar
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" onClick={fecharModalAdicionar}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={() => void avancarEtapaAdicionar()}
+                    disabled={!equipamentoSelecionado || carregandoCatalogos}
+                  >
+                    Continuar
+                  </Button>
+                </div>
               </div>
             </>
           ) : (
@@ -966,9 +963,9 @@ export function SessionCharacterInventoryTab({
               <div className="flex items-center justify-between gap-2">
                 <Button
                   variant="ghost"
-                  onClick={() => setEtapaAdicionar('SELECIONAR')}
+                  onClick={() => setEtapaAdicionar('EQUIPAMENTO')}
                 >
-                  Voltar
+                  Voltar aos itens
                 </Button>
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" onClick={fecharModalAdicionar}>

@@ -3,24 +3,26 @@
 'use client';
 
 import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/Textarea';
+import type { JsonImportGuideReferenceRow } from '@/lib/types';
+import { CatalogReferenceSelect } from './CatalogReferenceSelect';
+import { HabilidadesEstruturadasEditor, type HabilidadeEstruturada } from './HabilidadesEstruturadasEditor';
 import type { HomebrewFormDados } from '../hooks/useHomebrewForm';
 
 type Props = {
   dados: HomebrewFormDados;
   onChange: (dados: Partial<HomebrewFormDados>) => void;
+  classes: JsonImportGuideReferenceRow[];
 };
 
-export function TrilhaFormFields({ dados, onChange }: Props) {
+export function TrilhaFormFields({ dados, onChange, classes }: Props) {
   return (
     <div className="space-y-4">
-      <Input
-        label="ID da classe *"
-        type="number"
-        min={1}
-        value={dados.classeId ?? ''}
-        onChange={(e) => onChange({ classeId: e.target.value ? Number(e.target.value) : undefined })}
-        placeholder="Ex: 1 = Feiticeiro, 2 = Xamã..."
+      <CatalogReferenceSelect
+        label="Classe *"
+        helperText="A trilha ficará disponível somente para personagens desta classe."
+        value={dados.classeId}
+        rows={classes}
+        onChange={(classeId) => onChange({ classeId })}
         required
       />
 
@@ -34,36 +36,15 @@ export function TrilhaFormFields({ dados, onChange }: Props) {
         placeholder="1"
       />
 
-      <Textarea
-        label="Habilidades da trilha (JSON array) *"
-        value={
-          Array.isArray(dados.habilidades)
-            ? JSON.stringify(dados.habilidades, null, 2)
-            : dados.habilidades || '[]'
-        }
-        onChange={(e) => {
-          try {
-            const parsed = JSON.parse(e.target.value);
-            onChange({ habilidades: Array.isArray(parsed) ? parsed : [] });
-          } catch {
-            onChange({ habilidades: e.target.value });
-          }
-        }}
-        placeholder='Ex: [{"nível": 3, "nome": "Foco Elemental", "descrição": "..."}]'
-        rows={8}
+      <HabilidadesEstruturadasEditor
+        label="Habilidades da trilha"
+        incluirNivel
         required
+        value={Array.isArray(dados.habilidades) ? dados.habilidades as HabilidadeEstruturada[] : []}
+        onChange={(habilidades) => onChange({ habilidades })}
       />
 
-      <div className="p-3 border border-app-border rounded-lg bg-app-muted-surface">
-        <p className="text-xs text-app-muted">
-          <strong>Estrutura esperada:</strong>
-        </p>
-        <ul className="text-xs text-app-muted mt-2 space-y-1">
-          <li>• <strong>classeId:</strong> ID numérico da classe (obrigatório)</li>
-          <li>• <strong>nivelRequisito:</strong> Nível mínimo para escolher a trilha (padrão: 1)</li>
-          <li>• <strong>habilidades:</strong> Array de objetos com habilidades por nível</li>
-        </ul>
-      </div>
+      <p className="text-xs text-app-muted">O nível define quando a trilha fica disponível. As habilidades são apresentadas aos jogadores na ordem cadastrada.</p>
     </div>
   );
 }

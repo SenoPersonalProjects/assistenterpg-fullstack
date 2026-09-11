@@ -277,6 +277,7 @@ describe('CompendioService', () => {
       'tipos-acoes',
       'suplementos-oficiais',
       'sobrevivendo-ao-jujutsu',
+      'topicos-do-compendio',
     ]);
     expect(result.avisos).toEqual([]);
     expect(result.secoes.find((secao) => secao.id === 'pericias')).toEqual(
@@ -333,7 +334,7 @@ describe('CompendioService', () => {
 
     const result = await service.buscarEscudoMestre();
 
-    expect(result.secoes).toHaveLength(9);
+    expect(result.secoes).toHaveLength(10);
     expect(result.avisos.length).toBeGreaterThan(0);
     expect(result.secoes.find((secao) => secao.id === 'pericias')).toEqual(
       expect.objectContaining({
@@ -346,6 +347,43 @@ describe('CompendioService', () => {
     ).toEqual([
       'Livro do suplemento "Sobrevivendo ao Jujutsu" não encontrado no compêndio publicado.',
     ]);
+  });
+
+  it('searches published compendium text and returns the complete topic path', async () => {
+    const artigo = artigoEscudo({
+      codigo: 'rituais',
+      titulo: 'Rituais avançados',
+      categoriaCodigo: 'tecnicas',
+      subcategoriaCodigo: 'rituais',
+      conteudo: '# Rituais avançados\n\nO custo de energia é reduzido nesta situação.',
+      livroCodigo: 'sobrevivendo-ao-jujutsu',
+      livroTitulo: 'Sobrevivendo ao Jujutsu',
+    });
+    prisma.compendioArtigo.findMany.mockResolvedValue([artigo]);
+
+    const result = await service.buscarEscudoMestre('energia');
+
+    expect(result.avisos).toEqual([]);
+    expect(result.secoes).toEqual([
+      expect.objectContaining({
+        titulo: 'Rituais avançados',
+        fonte: 'SUPLEMENTO',
+        referenciaCompendio:
+          'Sobrevivendo ao Jujutsu › tecnicas › rituais',
+        resumoMarkdown: expect.stringContaining('energia'),
+        detalhadoMarkdown: expect.stringContaining('O custo de energia'),
+      }),
+    ]);
+    expect(prisma.compendioArtigo.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            { conteudo: { contains: 'energia' } },
+          ]),
+        }),
+        take: 30,
+      }),
+    );
   });
 
   it('exports current compendium seed from database rows', async () => {

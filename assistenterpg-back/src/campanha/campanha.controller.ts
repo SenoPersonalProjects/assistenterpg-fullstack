@@ -760,6 +760,19 @@ export class CampanhaController {
     );
   }
 
+  @Get(':id/personagens/:personagemCampanhaId/inventario/catalogo')
+  async listarCatalogoInventarioPersonagemCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.listarCatalogoInventarioPersonagemCampanha(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+    );
+  }
+
   @Post(':id/personagens/:personagemCampanhaId/inventario')
   async adicionarItemInventarioCampanha(
     @Param('id', ParseIntPipe) id: number,

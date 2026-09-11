@@ -22,9 +22,9 @@ export class CreateHabilidadeTecnicaDto {
   @Min(1)
   tecnicaId: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  codigo: string;
+  codigo?: string;
 
   @IsNotEmpty()
   @IsString()

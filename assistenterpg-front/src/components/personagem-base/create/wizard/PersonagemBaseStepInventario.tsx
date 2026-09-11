@@ -24,6 +24,7 @@ import {
   equipamentoUsaPericiaPersonalizada,
   filtrarModificacoesCompativeis,
   listarPericiasElegiveisItemPersonalizado,
+  categorizarEquipamentosPorCategoria,
   type CategoriaEquipamento,
   type ItemInventarioParaVestir,
   validarPodeVestir,
@@ -274,94 +275,15 @@ export function PersonagemBaseStepInventario(props: Props) {
     [itensFiltrados, limiteRenderItens],
   );
 
-  // Categorização
+  // O catálogo contextual já filtra fontes; no wizard mantemos apenas homebrews publicados.
   const equipamentosPorCategoria = useMemo(() => {
-    const categorizado: Record<CategoriaEquipamento, EquipamentoCatalogo[]> = {
-      HOMEBREW: [],
-      ARMAS: [],
-      MUNICOES: [],
-      PROTECOES: [],
-      UTILITARIOS: [],
-      ARMAS_AMALDICOADAS_SIMPLES: [],
-      ARMAS_AMALDICOADAS_COMPLEXAS: [],
-      PROTECOES_AMALDICOADAS_SIMPLES: [],
-      PROTECOES_AMALDICOADAS_COMPLEXAS: [],
-      ITENS_AMALDICOADOS: [],
-      ARTEFATOS_AMALDICOADOS: [],
-    };
-
-    if (!Array.isArray(equipamentos)) return categorizado;
-
-    equipamentos.forEach((equip) => {
-      if (equip.fonte === 'HOMEBREW') {
-        if (equip.homebrewOrigemStatus === 'PUBLICADO') {
-          categorizado.HOMEBREW.push(equip);
-        }
-        return;
-      }
-
-      const tipo = equip.tipo;
-      const equipDetalhes = equip as EquipamentoCatalogo;
-      const complexidade = equipDetalhes.complexidadeMaldicao;
-      const armaAmaldicoada = equipDetalhes.armaAmaldicoada;
-      const protecaoAmaldicoada = equipDetalhes.protecaoAmaldicoada;
-      const artefatoAmaldicoado = equipDetalhes.artefatoAmaldicoado;
-
-      if (tipo === 'ARMA') {
-        categorizado.ARMAS.push(equip);
-      } else if (tipo === 'MUNICAO') {
-        categorizado.MUNICOES.push(equip);
-      } else if (tipo === 'PROTECAO') {
-        categorizado.PROTECOES.push(equip);
-      } else if (
-        tipo === 'ACESSORIO' ||
-        tipo === 'ITEM_OPERACIONAL' ||
-        tipo === 'EXPLOSIVO' ||
-        tipo === 'GENERICO'
-      ) {
-        categorizado.UTILITARIOS.push(equip);
-      } else if (tipo === 'FERRAMENTA_AMALDICOADA') {
-        if (artefatoAmaldicoado) {
-          categorizado.ARTEFATOS_AMALDICOADOS.push(equip);
-        } else if (armaAmaldicoada) {
-          if (complexidade === 'SIMPLES') {
-            categorizado.ARMAS_AMALDICOADAS_SIMPLES.push(equip);
-          } else if (complexidade === 'COMPLEXA') {
-            categorizado.ARMAS_AMALDICOADAS_COMPLEXAS.push(equip);
-          } else {
-            categorizado.ITENS_AMALDICOADOS.push(equip);
-          }
-        } else if (protecaoAmaldicoada) {
-          if (complexidade === 'SIMPLES') {
-            categorizado.PROTECOES_AMALDICOADAS_SIMPLES.push(equip);
-          } else if (complexidade === 'COMPLEXA') {
-            categorizado.PROTECOES_AMALDICOADAS_COMPLEXAS.push(equip);
-          } else {
-            categorizado.ITENS_AMALDICOADOS.push(equip);
-          }
-        } else {
-          categorizado.ITENS_AMALDICOADOS.push(equip);
-        }
-      } else if (tipo === 'ITEM_AMALDICOADO') {
-        if (complexidade === 'SIMPLES') {
-          categorizado.PROTECOES_AMALDICOADAS_SIMPLES.push(equip);
-        } else if (complexidade === 'COMPLEXA') {
-          categorizado.PROTECOES_AMALDICOADAS_COMPLEXAS.push(equip);
-        } else {
-          categorizado.ITENS_AMALDICOADOS.push(equip);
-        }
-      } else if (complexidade && complexidade !== 'NENHUMA') {
-        categorizado.ITENS_AMALDICOADOS.push(equip);
-      } else {
-        categorizado.UTILITARIOS.push(equip);
-      }
-    });
-
-    (Object.keys(categorizado) as CategoriaEquipamento[]).forEach((key) => {
-      categorizado[key].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-    });
-
-    return categorizado;
+    return categorizarEquipamentosPorCategoria(
+      (equipamentos ?? []).filter(
+        (equipamento) =>
+          equipamento.fonte !== 'HOMEBREW' ||
+          equipamento.homebrewOrigemStatus === 'PUBLICADO',
+      ),
+    );
   }, [equipamentos]);
 
   const equipamentosFiltrados = useMemo(() => {

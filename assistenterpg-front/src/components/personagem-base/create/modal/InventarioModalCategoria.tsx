@@ -26,6 +26,7 @@ export function InventarioModalCategoria({
         return (
           <button
             key={cat}
+            type="button"
             onClick={() => onSelectCategoria(cat)}
             className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
               categoriaAtiva === cat

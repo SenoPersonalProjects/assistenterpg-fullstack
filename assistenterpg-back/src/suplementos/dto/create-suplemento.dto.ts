@@ -11,9 +11,9 @@ import {
 import { StatusPublicacao } from '@prisma/client';
 
 export class CreateSuplementoDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  codigo: string;
+  codigo?: string;
 
   @IsNotEmpty()
   @IsString()

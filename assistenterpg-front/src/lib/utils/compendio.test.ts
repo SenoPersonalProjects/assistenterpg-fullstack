@@ -130,6 +130,22 @@ describe('compendio api fallbacks', () => {
     );
   });
 
+  it('passes a master shield query to search the published compendium text', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ secoes: [], avisos: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await apiBuscarEscudoMestre('energia amaldiçoada');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/compendio/escudo-mestre?q=energia%20amaldi%C3%A7oada',
+      expect.objectContaining({ cache: 'no-store', credentials: 'include' }),
+    );
+  });
+
   it('returns null when the dynamic master shield fails to load', async () => {
     fetchMock.mockRejectedValue(new Error('network down'));
 

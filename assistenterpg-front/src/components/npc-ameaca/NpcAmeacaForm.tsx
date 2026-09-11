@@ -17,6 +17,14 @@ import type {
 } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { CatalogTagSelector } from '@/components/ui/CatalogTagSelector';
+import {
+  ALCANCES_ACAO_NPC,
+  DURACOES_ACAO_NPC,
+  EXECUCOES_ACAO_NPC,
+  RESISTENCIAS_ACAO_NPC,
+  TIPOS_DANO_NPC,
+} from '@/lib/constants/form-catalogs';
 import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
@@ -1086,17 +1094,19 @@ export function NpcAmeacaForm({
           />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Input
-            label="Resistências (separadas por vírgula)"
-            value={form.resistencias}
-            onChange={(e) => atualizarCampo('resistencias', e.target.value)}
-            placeholder="Ex.: fogo, corte, mental"
+          <CatalogTagSelector
+            label="Resistências"
+            helperText="Selecione tipos de dano ou informe uma resistência descritiva local."
+            options={TIPOS_DANO_NPC}
+            value={quebrarListaPorVirgula(form.resistencias)}
+            onChange={(value) => atualizarCampo('resistencias', value.join(', '))}
           />
-          <Input
-            label="Vulnerabilidades (separadas por vírgula)"
-            value={form.vulnerabilidades}
-            onChange={(e) => atualizarCampo('vulnerabilidades', e.target.value)}
-            placeholder="Ex.: energia positiva, elétrico"
+          <CatalogTagSelector
+            label="Vulnerabilidades"
+            helperText="Vulnerabilidade é uma anotação de ficha; descreva detalhes fora do catálogo como Outro."
+            options={TIPOS_DANO_NPC}
+            value={quebrarListaPorVirgula(form.vulnerabilidades)}
+            onChange={(value) => atualizarCampo('vulnerabilidades', value.join(', '))}
           />
         </div>
       </FormSection>
@@ -1412,39 +1422,52 @@ export function NpcAmeacaForm({
                     value={acao.nome}
                     onChange={(e) => atualizarAcao(index, { nome: e.target.value })}
                   />
-                  <Input
+                  <Select
                     label="Execução"
                     value={acao.tipoExecucao}
                     onChange={(e) =>
                       atualizarAcao(index, { tipoExecucao: e.target.value })
                     }
-                    placeholder="Ex.: PADRAO"
-                  />
-                  <Input
+                  >
+                    <option value="">Selecionar…</option>
+                    {EXECUCOES_ACAO_NPC.map((option) => <option key={option} value={option}>{option}</option>)}
+                    {acao.tipoExecucao && !EXECUCOES_ACAO_NPC.includes(acao.tipoExecucao as never) ? <option value={acao.tipoExecucao}>Outro: {acao.tipoExecucao}</option> : null}
+                  </Select>
+                  <Select
                     label="Alcance"
                     value={acao.alcance}
                     onChange={(e) => atualizarAcao(index, { alcance: e.target.value })}
-                  />
+                  >
+                    <option value="">Selecionar…</option>
+                    {ALCANCES_ACAO_NPC.map((option) => <option key={option} value={option}>{option}</option>)}
+                    {acao.alcance && !ALCANCES_ACAO_NPC.includes(acao.alcance as never) ? <option value={acao.alcance}>Outro: {acao.alcance}</option> : null}
+                  </Select>
                   <Input
                     label="Alvo"
                     value={acao.alvo}
                     onChange={(e) => atualizarAcao(index, { alvo: e.target.value })}
                     placeholder="Ex.: 1 criatura"
                   />
-                  <Input
+                  <Select
                     label="Duração"
                     value={acao.duracao}
                     onChange={(e) => atualizarAcao(index, { duracao: e.target.value })}
-                    placeholder="Ex.: Instantâneo"
-                  />
-                  <Input
+                  >
+                    <option value="">Selecionar…</option>
+                    {DURACOES_ACAO_NPC.map((option) => <option key={option} value={option}>{option}</option>)}
+                    {acao.duracao && !DURACOES_ACAO_NPC.includes(acao.duracao as never) ? <option value={acao.duracao}>Outro: {acao.duracao}</option> : null}
+                  </Select>
+                  <Select
                     label="Resistência"
                     value={acao.resistencia}
                     onChange={(e) =>
                       atualizarAcao(index, { resistencia: e.target.value })
                     }
-                    placeholder="Ex.: Reflexos"
-                  />
+                  >
+                    <option value="">Selecionar…</option>
+                    {RESISTENCIAS_ACAO_NPC.map((option) => <option key={option} value={option}>{option}</option>)}
+                    {acao.resistencia && !RESISTENCIAS_ACAO_NPC.includes(acao.resistencia as never) ? <option value={acao.resistencia}>Outro: {acao.resistencia}</option> : null}
+                  </Select>
                   <Input
                     label="DT resistência"
                     value={acao.dtResistencia}

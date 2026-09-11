@@ -29,6 +29,8 @@ const LIVRO_PRINCIPAL_CODIGO = 'livro-principal';
 const COMPENDIO_SEED_EXPORT_VERSION = 1;
 const ESCUDO_MESTRE_RESUMO_MAX_CHARS = 900;
 const ESCUDO_MESTRE_DETALHE_MAX_CHARS = 2_400;
+const ESCUDO_MESTRE_BUSCA_MIN_CHARS = 3;
+const ESCUDO_MESTRE_BUSCA_LIMITE = 30;
 
 type EscudoMestreFonte = 'BASE' | 'SUPLEMENTO';
 
@@ -75,6 +77,7 @@ type EscudoMestreArtigo = {
   titulo: string;
   resumo: string | null;
   conteudo: string;
+  palavrasChave?: string | null;
   subcategoria: {
     codigo: string;
     nome: string;
@@ -577,6 +580,96 @@ export class CompendioService {
     };
   }
 
+  private montarSecaoTopicosEscudo(
+    livros: EscudoMestreLivro[],
+  ): EscudoMestreSecao {
+    const origens: EscudoMestreOrigem[] = [];
+    const conteudo = livros
+      .map((livro) => {
+        const categorias = livro.categorias
+          .map((categoria) => {
+            const subcategorias = categoria.subcategorias
+              .map((subcategoria) => {
+                const artigos = subcategoria.artigos.map((artigo) => {
+                  const origem = {
+                    livroCodigo: livro.codigo,
+                    livroTitulo: livro.titulo,
+                    categoriaCodigo: categoria.codigo,
+                    subcategoriaCodigo: subcategoria.codigo,
+                    artigoCodigo: artigo.codigo,
+                    artigoTitulo: artigo.titulo,
+                  };
+                  const origemComHref = {
+                    ...origem,
+                    href: this.hrefArtigoEscudo(origem),
+                  };
+                  origens.push(origemComHref);
+                  return `- [${artigo.titulo}](${origemComHref.href})`;
+                });
+                return `  - **${subcategoria.nome}**\n${artigos.join('\n')}`;
+              })
+              .join('\n');
+            return `### ${categoria.nome}\n${subcategorias || '- Sem artigos publicados.'}`;
+          })
+          .join('\n\n');
+        return `## ${livro.titulo}\n\n${categorias || '- Sem tópicos publicados.'}`;
+      })
+      .join('\n\n');
+
+    return {
+      id: 'topicos-do-compendio',
+      titulo: 'Tópicos do compêndio',
+      fonte: 'BASE',
+      referenciaCompendio: 'Todos os livros publicados',
+      resumoMarkdown:
+        'Navegue pelos tópicos publicados ou use a busca para localizar um termo dentro dos textos.',
+      detalhadoMarkdown:
+        conteudo || '_Nenhum tópico publicado foi encontrado._',
+      origens,
+      avisos: [],
+    };
+  }
+
+  private trechoResultadoBuscaEscudo(
+    artigo: EscudoMestreArtigo,
+    termo: string,
+  ): string {
+    const fonte = [artigo.titulo, artigo.resumo, artigo.palavrasChave, artigo.conteudo]
+      .filter((item): item is string => Boolean(item))
+      .join('\n\n');
+    const indice = fonte.toLocaleLowerCase('pt-BR').indexOf(
+      termo.toLocaleLowerCase('pt-BR'),
+    );
+
+    if (indice < 0) return this.resumoArtigoEscudo(artigo);
+
+    const inicio = Math.max(0, indice - 260);
+    const fim = Math.min(fonte.length, indice + termo.length + 520);
+    const prefixo = inicio > 0 ? '…' : '';
+    const sufixo = fim < fonte.length ? '…' : '';
+    return `${prefixo}${fonte.slice(inicio, fim).trim()}${sufixo}`;
+  }
+
+  private montarSecaoResultadoBuscaEscudo(
+    artigo: EscudoMestreArtigo,
+    termo: string,
+  ): EscudoMestreSecao {
+    const origem = this.montarOrigemEscudo(artigo);
+    const categoria = artigo.subcategoria.categoria;
+    const livro = categoria.livro;
+
+    return {
+      id: `busca-${livro.codigo}-${categoria.codigo}-${artigo.subcategoria.codigo}-${artigo.codigo}`,
+      titulo: artigo.titulo,
+      fonte: livro.codigo === LIVRO_PRINCIPAL_CODIGO ? 'BASE' : 'SUPLEMENTO',
+      referenciaCompendio: `${livro.titulo} › ${categoria.nome} › ${artigo.subcategoria.nome}`,
+      resumoMarkdown: this.trechoResultadoBuscaEscudo(artigo, termo),
+      detalhadoMarkdown: `${artigo.conteudo.trim()}\n\n[Ver no compêndio](${origem.href})`,
+      origens: [origem],
+      avisos: [],
+    };
+  }
+
   private montarSecaoSobrevivendoEscudo(
     livro: EscudoMestreLivro | undefined,
   ): EscudoMestreSecao {
@@ -645,10 +738,40 @@ export class CompendioService {
     return livro;
   }
 
-  async buscarEscudoMestre(): Promise<{
+  async buscarEscudoMestre(query?: string): Promise<{
     secoes: EscudoMestreSecao[];
     avisos: string[];
   }> {
+    const termo = query?.trim() ?? '';
+    if (termo.length >= ESCUDO_MESTRE_BUSCA_MIN_CHARS) {
+      const artigos = await this.prisma.compendioArtigo.findMany({
+        where: {
+          ativo: true,
+          subcategoria: {
+            ativo: true,
+            categoria: {
+              ativo: true,
+              livro: { status: StatusPublicacao.PUBLICADO },
+            },
+          },
+          OR: [
+            { titulo: { contains: termo } },
+            { resumo: { contains: termo } },
+            { palavrasChave: { contains: termo } },
+            { conteudo: { contains: termo } },
+          ],
+        },
+        include: this.artigoInclude(),
+        orderBy: { ordem: 'asc' },
+        take: ESCUDO_MESTRE_BUSCA_LIMITE,
+      });
+
+      const secoes = (artigos as EscudoMestreArtigo[]).map((artigo) =>
+        this.montarSecaoResultadoBuscaEscudo(artigo, termo),
+      );
+      return { secoes, avisos: [] };
+    }
+
     const referencias = ESCUDO_MESTRE_SECOES_ARTIGOS.flatMap(
       (secao) => secao.artigos,
     );
@@ -676,10 +799,7 @@ export class CompendioService {
         include: this.artigoInclude(),
       }),
       this.prisma.compendioLivro.findMany({
-        where: {
-          status: StatusPublicacao.PUBLICADO,
-          suplementoId: { not: null },
-        },
+        where: { status: StatusPublicacao.PUBLICADO },
         orderBy: { ordem: 'asc' },
         include: this.livroInclude(true),
       }),
@@ -709,6 +829,7 @@ export class CompendioService {
         livros.find((livro) => livro.codigo === 'sobrevivendo-ao-jujutsu'),
       ),
     );
+    secoes.push(this.montarSecaoTopicosEscudo(livros));
 
     return {
       secoes,

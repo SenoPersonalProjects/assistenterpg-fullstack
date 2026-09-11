@@ -91,6 +91,55 @@ export const CATEGORIAS_LABELS: Record<
   },
 };
 
+export function categorizarEquipamentosPorCategoria(
+  equipamentos: EquipamentoCatalogo[],
+): Record<CategoriaEquipamento, EquipamentoCatalogo[]> {
+  const categorias = {} as Record<CategoriaEquipamento, EquipamentoCatalogo[]>;
+  for (const categoria of Object.keys(CATEGORIAS_LABELS) as CategoriaEquipamento[]) {
+    categorias[categoria] = [];
+  }
+
+  for (const equipamento of equipamentos) {
+    if (equipamento.fonte === 'HOMEBREW') {
+      categorias.HOMEBREW.push(equipamento);
+    } else if (equipamento.tipo === 'ARMA') {
+      categorias.ARMAS.push(equipamento);
+    } else if (equipamento.tipo === 'MUNICAO') {
+      categorias.MUNICOES.push(equipamento);
+    } else if (equipamento.tipo === 'PROTECAO') {
+      categorias.PROTECOES.push(equipamento);
+    } else if (
+      equipamento.tipo === 'FERRAMENTA_AMALDICOADA' ||
+      equipamento.tipo === 'ITEM_AMALDICOADO'
+    ) {
+      if (equipamento.artefatoAmaldicoado) {
+        categorias.ARTEFATOS_AMALDICOADOS.push(equipamento);
+      } else if (equipamento.armaAmaldicoada) {
+        categorias[
+          equipamento.complexidadeMaldicao === 'COMPLEXA'
+            ? 'ARMAS_AMALDICOADAS_COMPLEXAS'
+            : 'ARMAS_AMALDICOADAS_SIMPLES'
+        ].push(equipamento);
+      } else if (equipamento.protecaoAmaldicoada) {
+        categorias[
+          equipamento.complexidadeMaldicao === 'COMPLEXA'
+            ? 'PROTECOES_AMALDICOADAS_COMPLEXAS'
+            : 'PROTECOES_AMALDICOADAS_SIMPLES'
+        ].push(equipamento);
+      } else {
+        categorias.ITENS_AMALDICOADOS.push(equipamento);
+      }
+    } else {
+      categorias.UTILITARIOS.push(equipamento);
+    }
+  }
+
+  for (const categoria of Object.values(categorias)) {
+    categoria.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  }
+  return categorias;
+}
+
 /**
  * Labels para categorias de Grau Xamã
  */

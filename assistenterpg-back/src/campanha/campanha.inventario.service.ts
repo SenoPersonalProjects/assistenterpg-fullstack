@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CampanhaAccessService } from './campanha.access.service';
 import { InventarioEngine } from '../inventario/engine/inventario.engine';
 import { InventarioMapper } from '../inventario/inventario.mapper';
+import { EquipamentosService } from '../equipamentos/equipamentos.service';
 import {
   InventarioItemNaoEncontradoException,
   InventarioEquipamentoNaoEncontradoException,
@@ -84,6 +85,7 @@ export class CampanhaInventarioService {
     private readonly accessService: CampanhaAccessService,
     private readonly engine: InventarioEngine,
     private readonly mapper: InventarioMapper,
+    private readonly equipamentosService: EquipamentosService,
   ) {}
 
   private idsFontes(valor: unknown, chave: string): Set<number> {
@@ -142,6 +144,62 @@ export class CampanhaInventarioService {
       code: 'FONTE_CONTEUDO_NAO_HABILITADA',
       message: 'O item não pertence às fontes habilitadas para esta campanha.',
     });
+  }
+
+  private filtroFontesEquipamentosCampanha(params: {
+    fontesCampanha: unknown;
+    fontesPersonagem: unknown;
+  }): Prisma.EquipamentoCatalogoWhereInput {
+    const { fontesCampanha, fontesPersonagem } = params;
+    // Campanhas legadas preservam a lista pública que já era disponibilizada.
+    if (fontesCampanha === null || fontesCampanha === undefined) {
+      return { usuarioId: null };
+    }
+
+    const suplementoIds = [...this.idsFontes(fontesCampanha, 'suplementoIds')];
+    const homebrewCampanha = this.idsFontes(fontesCampanha, 'homebrewIds');
+    const homebrewPersonagem = this.idsFontes(fontesPersonagem, 'homebrewIds');
+    const homebrewIds = [...homebrewCampanha].filter((id) =>
+      homebrewPersonagem.has(id),
+    );
+
+    return {
+      OR: [
+        { fonte: TipoFonte.SISTEMA_BASE },
+        ...(suplementoIds.length > 0
+          ? [{ fonte: TipoFonte.SUPLEMENTO, suplementoId: { in: suplementoIds } }]
+          : []),
+        ...(homebrewIds.length > 0
+          ? [{ fonte: TipoFonte.HOMEBREW, homebrewOrigemId: { in: homebrewIds } }]
+          : []),
+      ],
+    };
+  }
+
+  async listarCatalogoDisponivelCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+  ) {
+    await this.validarPermissao(campanhaId, personagemCampanhaId, usuarioId);
+
+    const [campanha, personagem] = await Promise.all([
+      this.prisma.campanha.findUnique({
+        where: { id: campanhaId },
+        select: { fontesConteudo: true },
+      }),
+      this.prisma.personagemCampanha.findUnique({
+        where: { id: personagemCampanhaId },
+        select: { personagemBase: { select: { fontesConteudo: true } } },
+      }),
+    ]);
+
+    return this.equipamentosService.listarResumoPorFiltro(
+      this.filtroFontesEquipamentosCampanha({
+        fontesCampanha: campanha?.fontesConteudo,
+        fontesPersonagem: personagem?.personagemBase.fontesConteudo,
+      }),
+    );
   }
 
   private async tornarItemLocalSeHerdado(

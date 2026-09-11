@@ -81,7 +81,7 @@ export async function apiDesativarSuplemento(id: number): Promise<void> {
  * ✅ ADMIN: Criar suplemento
  */
 export async function apiCreateSuplemento(payload: {
-  codigo: string;
+  codigo?: string;
   nome: string;
   descricao?: string;
   versao?: string;

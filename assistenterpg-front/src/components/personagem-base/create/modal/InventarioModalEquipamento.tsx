@@ -108,6 +108,7 @@ export function InventarioModalEquipamento({
                   {equip.descricao && equip.descricao.trim().length > 0 && (
                     <div className="px-4 pb-4">
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleExpandir(equip.id);

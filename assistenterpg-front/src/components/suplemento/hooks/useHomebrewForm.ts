@@ -361,8 +361,6 @@ export function useHomebrewForm({ initialValues }: Params = {}) {
         // Validar cada habilidade
         if (Array.isArray(dados.habilidades)) {
           dados.habilidades.forEach((hab, idx: number) => {
-            if (!hab.codigo?.trim())
-              erros.push(`Habilidade #${idx + 1}: Código é obrigatório`);
             if (!hab.nome?.trim())
               erros.push(`Habilidade #${idx + 1}: Nome é obrigatório`);
             if (!hab.descricao?.trim())

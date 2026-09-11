@@ -2,25 +2,26 @@
 
 'use client';
 
-import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
+import type { JsonImportGuideReferenceRow } from '@/lib/types';
+import { CatalogReferenceSelect } from './CatalogReferenceSelect';
 import type { HomebrewFormDados } from '../hooks/useHomebrewForm';
 
 type Props = {
   dados: HomebrewFormDados;
   onChange: (dados: Partial<HomebrewFormDados>) => void;
+  tecnicas: JsonImportGuideReferenceRow[];
 };
 
-export function ClaFormFields({ dados, onChange }: Props) {
+export function ClaFormFields({ dados, onChange, tecnicas }: Props) {
   return (
     <div className="space-y-4">
-      <Input
-        label="ID da técnica inata (opcional)"
-        type="number"
-        min={1}
-        value={dados.tecnicaInataId ?? ''}
-        onChange={(e) => onChange({ tecnicaInataId: e.target.value ? Number(e.target.value) : undefined })}
-        placeholder="Ex: 1, 5, 10"
+      <CatalogReferenceSelect
+        label="Técnica inata hereditária"
+        helperText="Opcional. Escolha uma técnica publicada em vez de informar o ID técnico."
+        value={dados.tecnicaInataId}
+        rows={tecnicas}
+        onChange={(tecnicaInataId) => onChange({ tecnicaInataId })}
       />
 
       <Textarea

@@ -18,6 +18,17 @@ import { tratarErroPrisma } from './tecnicas-amaldicoadas.errors';
 export class TecnicasAmaldicoadasHabilidadesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async gerarCodigoDisponivel(nome: string): Promise<string> {
+    const base = `HAB_${nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'SEM_NOME'}`;
+    let codigo = base;
+    let sufixo = 2;
+    while (await this.prisma.habilidadeTecnica.findUnique({ where: { codigo }, select: { id: true } })) {
+      codigo = `${base}_${sufixo}`;
+      sufixo += 1;
+    }
+    return codigo;
+  }
+
   async findAllHabilidades(tecnicaId: number) {
     try {
       const tecnica = await this.prisma.tecnicaAmaldicoada.findUnique({
@@ -82,18 +93,19 @@ export class TecnicasAmaldicoadasHabilidadesService {
         throw new TecnicaNaoEncontradaException(dto.tecnicaId);
       }
 
+      const codigo = dto.codigo?.trim() || (await this.gerarCodigoDisponivel(dto.nome));
       const existe = await this.prisma.habilidadeTecnica.findUnique({
-        where: { codigo: dto.codigo },
+        where: { codigo },
       });
 
       if (existe) {
-        throw new HabilidadeCodigoDuplicadoException(dto.codigo);
+        throw new HabilidadeCodigoDuplicadoException(codigo);
       }
 
       return this.prisma.habilidadeTecnica.create({
         data: {
           tecnicaId: dto.tecnicaId,
-          codigo: dto.codigo,
+          codigo,
           nome: dto.nome,
           descricao: dto.descricao,
           requisitos: normalizarJsonOuNull(dto.requisitos),

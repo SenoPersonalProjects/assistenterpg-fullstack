@@ -24,7 +24,6 @@ type ModalSuplementoFormProps = {
 };
 
 type FormData = {
-  codigo: string;
   nome: string;
   descricao: string;
   versao: string;
@@ -45,7 +44,6 @@ export function ModalSuplementoForm({
   const [erros, setErros] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState<FormData>({
-    codigo: '',
     nome: '',
     descricao: '',
     versao: '1.0.0',
@@ -59,7 +57,6 @@ export function ModalSuplementoForm({
   useEffect(() => {
     if (suplemento) {
       setForm({
-        codigo: suplemento.codigo,
         nome: suplemento.nome,
         descricao: suplemento.descricao || '',
         versao: suplemento.versao,
@@ -71,7 +68,6 @@ export function ModalSuplementoForm({
       });
     } else {
       setForm({
-        codigo: '',
         nome: '',
         descricao: '',
         versao: '1.0.0',
@@ -99,12 +95,6 @@ export function ModalSuplementoForm({
   function validar(): boolean {
     const novosErros: Record<string, string> = {};
 
-    if (!form.codigo.trim()) {
-      novosErros.codigo = 'Código é obrigatório';
-    } else if (!/^[A-Z0-9_]+$/.test(form.codigo)) {
-      novosErros.codigo = 'Código deve conter apenas letras maiúsculas, números e underscore';
-    }
-
     if (!form.nome.trim()) {
       novosErros.nome = 'Nome é obrigatório';
     }
@@ -124,7 +114,6 @@ export function ModalSuplementoForm({
       setSalvando(true);
 
       const payload = {
-        codigo: form.codigo.trim().toUpperCase(),
         nome: form.nome.trim(),
         descricao: form.descricao.trim() || undefined,
         versao: form.versao.trim(),
@@ -187,25 +176,6 @@ export function ModalSuplementoForm({
           <h3 className="text-lg font-semibold text-app-fg mb-4">Informações Básicas</h3>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-app-fg mb-1">
-                Código <span className="text-app-danger">*</span>
-              </label>
-              <Input
-                value={form.codigo}
-                onChange={(e) => handleChange('codigo', e.target.value.toUpperCase())}
-                placeholder="SUPL_EXEMPLO_V1"
-                disabled={!!suplemento || salvando}
-                error={erros.codigo}
-              />
-              {erros.codigo && (
-                <p className="text-sm text-app-danger mt-1">{erros.codigo}</p>
-              )}
-              <p className="text-xs text-app-muted mt-1">
-                Identificador único (letras maiúsculas, números e underscore)
-              </p>
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-app-fg mb-1">
                 Nome <span className="text-app-danger">*</span>

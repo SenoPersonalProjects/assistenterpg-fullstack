@@ -686,7 +686,6 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    if (!isEditing && !form.codigo.trim()) next.codigo = 'Código é obrigatório.';
     if (!form.nome.trim()) next.nome = 'Nome é obrigatório.';
     if (!form.descricao.trim()) next.descricao = 'Descrição é obrigatória.';
     if (!form.efeito.trim()) next.efeito = 'Efeito é obrigatório.';
@@ -774,7 +773,6 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
       } else {
         const payload: CreateHabilidadeTecnicaPayload = {
           tecnicaId,
-          codigo: form.codigo.trim().toUpperCase(),
           ...basePayload,
         };
         await apiAdminCreateHabilidadeDaTecnica(payload);
@@ -815,14 +813,6 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
     >
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Input
-            label="Código *"
-            value={form.codigo}
-            onChange={(e) => setField('codigo', e.target.value.toUpperCase())}
-            disabled={isEditing}
-            error={errors.codigo}
-            helperText={isEditing ? 'Código não pode ser alterado no update.' : undefined}
-          />
           <Input
             label="Nome *"
             value={form.nome}

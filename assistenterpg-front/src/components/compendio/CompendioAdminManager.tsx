@@ -25,6 +25,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 import { Textarea } from '@/components/ui/Textarea';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Select } from '@/components/ui/Select';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/hooks/useConfirm';
@@ -46,6 +47,7 @@ import {
   type CompendioStatusPublicacao,
   type CompendioSubcategoriaComArtigo,
 } from '@/lib/utils/compendio';
+import { apiGetSuplementos, type SuplementoCatalogo } from '@/lib/api/suplementos';
 
 type Selection =
   | { type: 'book'; mode: 'create' }
@@ -237,6 +239,7 @@ export function CompendioAdminManager() {
   const { showToast } = useToast();
   const searchParams = useSearchParams();
   const [livros, setLivros] = useState<CompendioLivro[]>([]);
+  const [suplementos, setSuplementos] = useState<SuplementoCatalogo[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState('');
@@ -287,6 +290,11 @@ export function CompendioAdminManager() {
       setLoading(false);
     }
   }, [authLoading, isAdmin, loadLivros]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    void apiGetSuplementos().then(setSuplementos).catch(() => undefined);
+  }, [isAdmin]);
 
   const lookup = useMemo(() => {
     const categorias = new Map<number, CompendioCategoria>();
@@ -844,7 +852,7 @@ export function CompendioAdminManager() {
                 />
 
                 {selection.type === 'book' ? (
-                  <BookEditor form={livroForm} setForm={setLivroForm} />
+          <BookEditor form={livroForm} setForm={setLivroForm} suplementos={suplementos} />
                 ) : null}
 
                 {selection.type === 'category' ? (
@@ -1135,9 +1143,11 @@ function EditorHeader({
 function BookEditor({
   form,
   setForm,
+  suplementos,
 }: {
   form: LivroForm;
   setForm: Dispatch<SetStateAction<LivroForm>>;
+  suplementos: SuplementoCatalogo[];
 }) {
   const patch = <K extends keyof LivroForm>(field: K, value: LivroForm[K]) =>
     setForm((current) => ({ ...current, [field]: value }));
@@ -1145,12 +1155,14 @@ function BookEditor({
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <Input label="Título" value={form.titulo} onChange={(e) => patch('titulo', e.target.value)} />
-      <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, será gerado pelo título." />
       <Textarea className="md:col-span-2" label="Descrição" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
       <Input label="Ícone" value={form.icone} onChange={(e) => patch('icone', e.target.value)} />
       <Input label="Cor" value={form.cor} onChange={(e) => patch('cor', e.target.value)} />
       <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />
-      <Input label="Suplemento ID" type="number" value={form.suplementoId} onChange={(e) => patch('suplementoId', e.target.value)} helperText="Opcional." />
+      <Select label="Suplemento vinculado" value={form.suplementoId} onChange={(e) => patch('suplementoId', e.target.value)} helperText="Opcional. O livro ficará identificado pela fonte selecionada.">
+        <option value="">Nenhum suplemento</option>
+        {suplementos.map((suplemento) => <option key={suplemento.id} value={String(suplemento.id)}>{suplemento.nome}</option>)}
+      </Select>
       <label className="space-y-1">
         <span className="block text-sm font-semibold text-app-fg">Status</span>
         <select value={form.status} onChange={(e) => patch('status', e.target.value as LivroForm['status'])} className="w-full rounded-xl border border-app-border bg-app-surface px-3 py-2.5 text-sm text-app-fg focus:border-app-primary focus:outline-none">
@@ -1181,7 +1193,6 @@ function CategoryEditor({
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <Input label="Nome" value={form.nome} onChange={(e) => patch('nome', e.target.value)} />
-        <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, será gerado pelo nome." />
         <Textarea className="md:col-span-2" label="Descrição" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
         <Input label="Ícone" value={form.icone} onChange={(e) => patch('icone', e.target.value)} />
         <Input label="Cor" value={form.cor} onChange={(e) => patch('cor', e.target.value)} />
@@ -1220,7 +1231,6 @@ function SubcategoryEditor({
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <Input label="Nome" value={form.nome} onChange={(e) => patch('nome', e.target.value)} />
-        <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, será gerado pelo nome." />
         <Textarea className="md:col-span-2" label="Descrição" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
         <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />
         <div className="flex items-end">
@@ -1275,7 +1285,6 @@ function ArticleEditor({
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           <Input label="Título" value={form.titulo} onChange={(e) => patch('titulo', e.target.value)} />
-          <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, será gerado pelo título." />
           <Textarea className="xl:col-span-2" label="Resumo" rows={3} value={form.resumo} onChange={(e) => patch('resumo', e.target.value)} />
           <Textarea className="font-mono xl:col-span-2" label="Conteúdo Markdown" rows={18} value={form.conteudo} onChange={(e) => patch('conteudo', e.target.value)} error={bytes > SAFE_TEXT_BYTES ? 'Conteúdo acima do limite seguro.' : undefined} />
           <Input label="Tags" value={form.tags} onChange={(e) => patch('tags', e.target.value)} helperText="Separe por vírgulas." />

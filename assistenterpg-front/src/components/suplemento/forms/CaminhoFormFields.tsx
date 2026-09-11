@@ -3,6 +3,7 @@
 'use client';
 
 import { Textarea } from '@/components/ui/Textarea';
+import { HabilidadesEstruturadasEditor, type HabilidadeEstruturada } from './HabilidadesEstruturadasEditor';
 import type { HomebrewFormDados } from '../hooks/useHomebrewForm';
 
 type Props = {
@@ -32,24 +33,12 @@ export function CaminhoFormFields({ dados, onChange }: Props) {
         rows={3}
       />
 
-      <Textarea
-        label="Habilidades do caminho (JSON array) *"
-        value={
-          Array.isArray(dados.habilidades)
-            ? JSON.stringify(dados.habilidades, null, 2)
-            : dados.habilidades || '[]'
-        }
-        onChange={(e) => {
-          try {
-            const parsed = JSON.parse(e.target.value);
-            onChange({ habilidades: Array.isArray(parsed) ? parsed : [] });
-          } catch {
-            onChange({ habilidades: e.target.value });
-          }
-        }}
-        placeholder='Ex: [{"nível": 7, "nome": "Maestria Elemental", "descrição": "..."}]'
-        rows={8}
+      <HabilidadesEstruturadasEditor
+        label="Habilidades do caminho"
+        incluirNivel
         required
+        value={Array.isArray(dados.habilidades) ? dados.habilidades as HabilidadeEstruturada[] : []}
+        onChange={(habilidades) => onChange({ habilidades })}
       />
 
       <div className="p-3 border border-app-border rounded-lg bg-app-muted-surface">
