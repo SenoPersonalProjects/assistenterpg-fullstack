@@ -29,40 +29,32 @@ function printManualHelp(extra = '') {
   console.error('   Consulte: documentacao-unica/README.md\n');
 }
 
-function clearPrismaRequireCache() {
-  const prismaPaths = [
-    `${path.sep}@prisma${path.sep}client${path.sep}`,
-    `${path.sep}.prisma${path.sep}client${path.sep}`,
-  ];
-
-  for (const modulePath of Object.keys(require.cache)) {
-    if (prismaPaths.some((prismaPath) => modulePath.includes(prismaPath))) {
-      delete require.cache[modulePath];
-    }
-  }
-}
-
 function validateClient() {
-  try {
-    clearPrismaRequireCache();
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const validationScript = `
     const prisma = require('@prisma/client');
-
-    const missing = REQUIRED_EXPORTS.filter((key) => !prisma?.[key]);
+    const requiredExports = ${JSON.stringify(REQUIRED_EXPORTS)};
+    const missing = requiredExports.filter((key) => !prisma[key]);
     if (missing.length) {
-      return {
-        ok: false,
-        reason: `Exports ausentes em @prisma/client: ${missing.join(', ')}`,
-      };
+      console.error('Exports ausentes em @prisma/client: ' + missing.join(', '));
+      process.exit(1);
     }
+  `;
+  const result = spawnSync(process.execPath, ['-e', validationScript], {
+    encoding: 'utf8',
+    env: process.env,
+  });
 
+  if (result.status === 0) {
     return { ok: true };
-  } catch (error) {
-    return {
-      ok: false,
-      reason: error instanceof Error ? error.message : String(error),
-    };
   }
+
+  return {
+    ok: false,
+    reason:
+      result.error?.message ||
+      result.stderr?.trim() ||
+      `validacao do Prisma Client saiu com codigo ${result.status ?? 'desconhecido'}`,
+  };
 }
 
 function runGenerate() {
