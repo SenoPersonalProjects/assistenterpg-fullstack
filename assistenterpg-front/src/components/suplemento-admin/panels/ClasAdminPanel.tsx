@@ -21,11 +21,13 @@ import { FonteSuplementoFields } from '../common/FonteSuplementoFields';
 import { fonteBadgeColor, formatFonte, toOptionalNumber } from '../common/fonte-utils';
 import {
   apiAdminGetClas,
+  apiAdminGetTecnicasAmaldicoadas,
   apiAdminCreateCla,
   apiAdminUpdateCla,
   apiGetSuplementos,
   criarErroUsuario,
   type ClaCatalogo,
+  type TecnicaAmaldicoadaCatalogo,
   type SuplementoCatalogo,
   type TipoFonte,
   type CreateClaPayload,
@@ -43,18 +45,8 @@ type ClaFormState = {
   grandeCla: boolean;
   fonte: TipoFonte;
   suplementoId: string;
-  tecnicasIdsCsv: string;
+  tecnicasHereditariasIds: number[];
 };
-
-function parseIdsCsv(input: string): number[] | undefined {
-  const values = input
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .map((item) => Number(item))
-    .filter((id) => Number.isFinite(id) && id > 0);
-  return values.length ? values : undefined;
-}
 
 function buildFormState(item?: ClaComTecnicas | null): ClaFormState {
   return {
@@ -64,7 +56,7 @@ function buildFormState(item?: ClaComTecnicas | null): ClaFormState {
     fonte: item?.fonte ?? ('SISTEMA_BASE' as TipoFonte),
     suplementoId:
       item?.suplementoId !== null && item?.suplementoId !== undefined ? String(item.suplementoId) : '',
-    tecnicasIdsCsv: (item?.tecnicasHereditarias ?? []).map((t) => t.id).join(', '),
+    tecnicasHereditariasIds: (item?.tecnicasHereditarias ?? []).map((tecnica) => tecnica.id),
   };
 }
 
@@ -72,10 +64,17 @@ type ModalProps = {
   isOpen: boolean;
   onClose: (success?: boolean) => void;
   suplementos: SuplementoCatalogo[];
+  tecnicasHereditarias: TecnicaAmaldicoadaCatalogo[];
   cla?: ClaComTecnicas | null;
 };
 
-function ClaAdminFormModal({ isOpen, onClose, suplementos, cla }: ModalProps) {
+function ClaAdminFormModal({
+  isOpen,
+  onClose,
+  suplementos,
+  tecnicasHereditarias,
+  cla,
+}: ModalProps) {
   const { showToast } = useToast();
   const [form, setForm] = useState<ClaFormState>(buildFormState(cla));
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -117,7 +116,7 @@ function ClaAdminFormModal({ isOpen, onClose, suplementos, cla }: ModalProps) {
       grandeCla: form.grandeCla,
       fonte: form.fonte,
       suplementoId: form.fonte === 'SUPLEMENTO' ? toOptionalNumber(form.suplementoId) : undefined,
-      tecnicasHereditariasIds: parseIdsCsv(form.tecnicasIdsCsv),
+      tecnicasHereditariasIds: form.tecnicasHereditariasIds,
     };
 
     try {
@@ -183,12 +182,45 @@ function ClaAdminFormModal({ isOpen, onClose, suplementos, cla }: ModalProps) {
           checked={form.grandeCla}
           onChange={(e) => setField('grandeCla', e.target.checked)}
         />
-        <Input
-          label="Técnicas hereditárias IDs (CSV)"
-          value={form.tecnicasIdsCsv}
-          onChange={(e) => setField('tecnicasIdsCsv', e.target.value)}
-          placeholder="Ex: 1, 2, 3"
-        />
+        <div className="space-y-2 rounded-xl border border-app-border p-3">
+          <div>
+            <p className="text-sm font-semibold text-app-fg">Técnicas hereditárias</p>
+            <p className="text-xs text-app-muted">
+              Selecione as técnicas que pertencem a este clã. A lista contém somente técnicas
+              marcadas como hereditárias.
+            </p>
+          </div>
+          {tecnicasHereditarias.length === 0 ? (
+            <p className="text-sm text-app-muted">
+              Nenhuma técnica hereditária está disponível para associação.
+            </p>
+          ) : (
+            <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+              {tecnicasHereditarias.map((tecnica) => {
+                const selecionada = form.tecnicasHereditariasIds.includes(tecnica.id);
+                return (
+                  <div key={tecnica.id} className="rounded-lg border border-app-border p-2">
+                    <Checkbox
+                      label={tecnica.nome}
+                      checked={selecionada}
+                      onChange={(event) =>
+                        setField(
+                          'tecnicasHereditariasIds',
+                          event.target.checked
+                            ? [...form.tecnicasHereditariasIds, tecnica.id]
+                            : form.tecnicasHereditariasIds.filter((id) => id !== tecnica.id),
+                        )
+                      }
+                    />
+                    {tecnica.descricao && (
+                      <p className="ml-6 mt-1 text-xs text-app-muted">{tecnica.descricao}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <FonteSuplementoFields
             fonte={form.fonte}
@@ -210,6 +242,7 @@ export function ClasAdminPanel() {
   const [erro, setErro] = useState<UserErrorState | null>(null);
   const [items, setItems] = useState<ClaComTecnicas[]>([]);
   const [suplementos, setSuplementos] = useState<SuplementoCatalogo[]>([]);
+  const [tecnicasHereditarias, setTecnicasHereditarias] = useState<TecnicaAmaldicoadaCatalogo[]>([]);
   const [busca, setBusca] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ClaComTecnicas | null>(null);
@@ -244,9 +277,14 @@ export function ClasAdminPanel() {
     try {
       setLoading(true);
       setErro(null);
-      const [data, suplementosData] = await Promise.all([apiAdminGetClas(), apiGetSuplementos()]);
+      const [data, suplementosData, tecnicasData] = await Promise.all([
+        apiAdminGetClas(),
+        apiGetSuplementos(),
+        apiAdminGetTecnicasAmaldicoadas({ hereditaria: true }),
+      ]);
       setItems(data as ClaComTecnicas[]);
       setSuplementos(suplementosData);
+      setTecnicasHereditarias(tecnicasData);
     } catch (error) {
       const mensagem = criarErroUsuario(error);
       setErro(mensagem);
@@ -361,6 +399,7 @@ export function ClasAdminPanel() {
           if (success) carregarDados();
         }}
         suplementos={suplementos}
+        tecnicasHereditarias={tecnicasHereditarias}
         cla={editingItem}
       />
     </AdminPanelScaffold>
