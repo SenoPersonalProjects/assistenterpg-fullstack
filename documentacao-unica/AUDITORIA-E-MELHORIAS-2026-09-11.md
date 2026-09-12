@@ -71,6 +71,7 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 ### Regras de atualização
 
 - Estado inicial: **0/23 melhorias concluídas**.
+- Progresso atual: **1/23 melhorias concluídas**.
 - Não marcar como concluído somente por haver código ou commit: registrar testes, build, revisão e publicação quando aplicável.
 - Itens não aplicáveis devem ser marcados como `Não aplicável`, com justificativa datada no histórico do item.
 - Não renomear ou reutilizar IDs. Novas descobertas devem usar novos IDs, mantendo este conjunto preservado.
@@ -87,8 +88,8 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | UX-04 | UI/UX | P1 | Pendente | DS-02 | Corrigir contratos acessíveis de campos |
 | UX-05 | UI/UX | P2 | Pendente | ARQ-02 | Definir estados comuns de dados remotos |
 | UX-06 | UI/UX | P2 | Pendente | Validação autenticada | Revisar fluxos de sessão por papel e viewport |
-| COD-01 | Código | P1 | Em validação | Ambientes CI | Publicar o commit e confirmar a execução remota do workflow |
-| COD-02 | Código | P1 | Em validação | COD-01 | Confirmar lint no workflow remoto |
+| COD-01 | Código | P1 | Em validação | Política de proteção da branch | Definir checks obrigatórios para `main` |
+| COD-02 | Código | P1 | Concluído | — | — |
 | COD-03 | Código | P1 | Pendente | UX-03 | Ampliar testes de contratos e permissões |
 | COD-04 | Código | P2 | Pendente | DS-02 | Projetar seletor comum de catálogo |
 | ARQ-01 | Arquitetura | P2 | Pendente | COD-03 | Delimitar primeira extração da sessão |
@@ -379,22 +380,24 @@ Criar pipeline obrigatório e reproduzível que execute instalação limpa, veri
 - [x] Solução definida.
 - [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
+- [x] Execução remota do workflow verificada.
+- [ ] Proteção de branch e checks obrigatórios configurados.
 - [x] Testes e validações aplicáveis registrados.
 - [x] Documentação atualizada.
-- [ ] Publicação validada, quando aplicável.
+- [x] Publicação validada, quando aplicável.
 
 #### Evidências
 
 - Arquivos/PR: `.github/workflows/quality.yml`; scripts `lint:check` nos dois `package.json`; geração explícita do Prisma Client antes do lint do backend, com URL inerte exclusiva do CI para carregar o schema sem acessar banco remoto.
-- Testes e resultados: lint, testes e builds locais aprovados em 2026-09-12.
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: Publicar o commit e confirmar jobs `Frontend` e `Backend` no GitHub Actions.
+- Testes e resultados: lint, testes e builds locais aprovados em 2026-09-12; workflow remoto [Quality Gate #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929) aprovado para frontend e backend.
+- Commit: `513e1de`.
+- Deploy/migration, se aplicável: não aplicável.
+- Pendências e próxima ação: `main` não possui proteção de branch; definir os checks obrigatórios da equipe antes de marcar este item como concluído.
 
 ### COD-02 — Lint verificável sem escrita
 
 Prioridade: P1  
-Status: Em validação  
+Status: Concluído  
 Responsável: A definir  
 Última atualização: 2026-09-12  
 Dependências: COD-01
@@ -421,15 +424,15 @@ Separar comandos `lint:check` e `lint:fix`; resolver os problemas existentes em 
 - [x] Critérios de aceitação verificados.
 - [x] Testes e validações aplicáveis registrados.
 - [x] Documentação atualizada.
-- [ ] Publicação validada, quando aplicável.
+- [x] Publicação validada, quando aplicável.
 
 #### Evidências
 
 - Arquivos/PR: `assistenterpg-back/package.json`, `assistenterpg-front/package.json`, `assistenterpg-back/src/auth/jwt.strategy.ts` e formatação mecânica de arquivos apontados pelo lint.
-- Testes e resultados: `npm run lint:check` aprovado sem avisos em frontend e backend; suites e builds também aprovados em 2026-09-12.
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: Confirmar `lint:check` no workflow remoto após publicação.
+- Testes e resultados: `npm run lint:check` aprovado sem avisos em frontend e backend; suites e builds também aprovados em 2026-09-12; [Quality Gate #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929) aprovou ambos os jobs.
+- Commit: `e1241bb`, `d546539`, `24eac1e` e `513e1de`.
+- Deploy/migration, se aplicável: não aplicável.
+- Pendências e próxima ação: —
 
 ### COD-03 — Contratos e permissões entre frontend e backend
 
@@ -1045,6 +1048,7 @@ Validar comandos, caminhos e links internos automaticamente ou em checklist de d
 | --- | --- | --- | --- | --- |
 | 2026-09-11 | Todos | Auditoria criada; 23 melhorias registradas como pendentes. | Testes, builds, lint, Vercel e TiDB descritos na seção 3. | Priorizar P1: OPS-01, COD-01, COD-02, DS-01, UX-01 a UX-04, COD-03 e OPS-02. |
 | 2026-09-12 | OPS-01, COD-01, COD-02 | Atualizadas dependências compatíveis, scripts de lint e workflow de qualidade; ajustados fixtures expostos pelo novo typecheck. | Frontend: audit 0, lint, 368 testes e build aprovados. Backend: lint, 868 testes, build e Prisma aprovados; 3 alertas Prisma permanecem. | Publicar e validar o workflow remoto; tratar Prisma em upgrade dedicado. |
+| 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 
 ## 13. Próxima priorização recomendada
 
