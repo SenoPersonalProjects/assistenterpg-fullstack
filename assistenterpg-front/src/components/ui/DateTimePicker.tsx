@@ -52,7 +52,6 @@ export function DateTimePicker({
   label,
   value,
   onChange,
-  required = false,
   disabled = false,
   error,
   helperText,
@@ -375,10 +374,7 @@ export function DateTimePicker({
         disabled={disabled}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-required={required || undefined}
-        aria-invalid={error ? true : undefined}
         aria-describedby={acessibilidade.describedBy}
-        aria-errormessage={acessibilidade.errorMessage}
         onClick={abrirPicker}
         onKeyDown={handleTriggerKeyDown}
         className={`group flex w-full items-center justify-between rounded-xl border bg-app-surface px-4 py-2.5 text-left text-sm ring-offset-app-bg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/40 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 ${
