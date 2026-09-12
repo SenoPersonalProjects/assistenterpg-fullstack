@@ -19,6 +19,35 @@ import { handlePrismaError } from 'src/common/exceptions/database.exception';
 export class ProficienciasService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private normalizarCodigo(nome: string): string {
+    const base = nome
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+
+    return `PROFICIENCIA_${base || 'SEM_NOME'}`;
+  }
+
+  private async gerarCodigoDisponivel(nome: string): Promise<string> {
+    const base = this.normalizarCodigo(nome);
+    let codigo = base;
+    let sufixo = 2;
+
+    while (
+      await this.prisma.proficiencia.findUnique({
+        where: { codigo },
+        select: { id: true },
+      })
+    ) {
+      codigo = `${base}_${sufixo}`;
+      sufixo += 1;
+    }
+
+    return codigo;
+  }
+
   private tratarErroPrisma(error: unknown): void {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError ||
@@ -30,6 +59,9 @@ export class ProficienciasService {
 
   async create(dto: CreateProficienciaDto) {
     try {
+      const codigo =
+        dto.codigo?.trim().toUpperCase() ||
+        (await this.gerarCodigoDisponivel(dto.nome));
       // ✅ OPCIONAL: Validar nome único (se necessário)
       // const existente = await this.prisma.proficiencia.findFirst({
       //   where: { nome: dto.nome },
@@ -38,7 +70,7 @@ export class ProficienciasService {
       //   throw new ProficienciaNomeDuplicadoException(dto.nome);
       // }
 
-      return this.prisma.proficiencia.create({ data: dto });
+      return this.prisma.proficiencia.create({ data: { ...dto, codigo } });
     } catch (error: unknown) {
       this.tratarErroPrisma(error);
       throw error;

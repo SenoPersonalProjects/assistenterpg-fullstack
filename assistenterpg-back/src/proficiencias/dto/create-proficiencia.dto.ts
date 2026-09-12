@@ -8,9 +8,9 @@ import {
 
 export class CreateProficienciaDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(50)
-  codigo: string;
+  codigo?: string;
 
   @IsString()
   @IsNotEmpty()

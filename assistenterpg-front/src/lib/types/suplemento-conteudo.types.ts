@@ -157,7 +157,8 @@ export type CreateEquipamentoPayload = ConteudoComFonte & {
 export type UpdateEquipamentoPayload = Partial<CreateEquipamentoPayload>;
 
 export type CreateProficienciaPayload = {
-  codigo: string;
+  /** Código técnico opcional, reservado a importadores administrativos. */
+  codigo?: string;
   nome: string;
   descricao?: string | null;
   tipo: string;

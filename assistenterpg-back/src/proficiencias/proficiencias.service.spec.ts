@@ -17,4 +17,24 @@ describe('ProficienciasService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
+
+  it('gera código único ao criar proficiência sem código explícito', async () => {
+    const prisma = {
+      proficiencia: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: 1 }),
+      },
+    };
+    const serviceComPrisma = new ProficienciasService(prisma as never);
+
+    await serviceComPrisma.create({
+      nome: 'Armas Táticas',
+      tipo: 'ARMA',
+      categoria: 'TÁTICA',
+    });
+
+    expect(prisma.proficiencia.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ codigo: 'PROFICIENCIA_ARMAS_TATICAS' }),
+    });
+  });
 });

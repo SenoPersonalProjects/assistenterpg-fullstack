@@ -31,7 +31,6 @@ import {
 import type { UserErrorState } from '@/lib/types';
 
 type ProficienciaFormState = {
-  codigo: string;
   nome: string;
   descricao: string;
   tipo: string;
@@ -41,7 +40,6 @@ type ProficienciaFormState = {
 
 function buildFormState(item?: ProficienciaCatalogo | null): ProficienciaFormState {
   return {
-    codigo: item?.codigo ?? '',
     nome: item?.nome ?? '',
     descricao: item?.descricao ?? '',
     tipo: item?.tipo ?? '',
@@ -84,7 +82,6 @@ function ProficienciaFormModal({ isOpen, onClose, item }: ModalProps) {
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    if (!form.codigo.trim()) next.codigo = 'Código é obrigatório.';
     if (!form.nome.trim()) next.nome = 'Nome é obrigatório.';
     if (!form.tipo.trim()) next.tipo = 'Tipo é obrigatório.';
     if (!form.categoria.trim()) next.categoria = 'Categoria é obrigatória.';
@@ -98,7 +95,6 @@ function ProficienciaFormModal({ isOpen, onClose, item }: ModalProps) {
     const descricaoNormalizada = form.descricao.trim();
     const subtipoNormalizado = form.subtipo.trim();
     const payloadBase: CreateProficienciaPayload = {
-      codigo: form.codigo.trim(),
       nome: form.nome.trim(),
       descricao: descricaoNormalizada || undefined,
       tipo: form.tipo.trim(),
@@ -154,12 +150,6 @@ function ProficienciaFormModal({ isOpen, onClose, item }: ModalProps) {
     >
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Input
-            label="Código *"
-            value={form.codigo}
-            onChange={(e) => setField('codigo', e.target.value)}
-            error={errors.codigo}
-          />
           <Input
             label="Nome *"
             value={form.nome}
