@@ -224,9 +224,9 @@ Concluir seletores pesquisáveis, geração de código no backend e editores est
 
 #### Evidências
 
-- Arquivos/PR: `TecnicasAdminPanel`, `ClasAdminPanel`, DTO e serviço de técnicas.
+- Arquivos/PR: `TecnicasAdminPanel`, `ClasAdminPanel`, `RequisitosEstruturadosEditor`, DTO e serviço de técnicas.
 - Testes e resultados: frontend — lint, 370 testes e build aprovados; backend — 6 testes direcionados, lint, build e `prisma validate` aprovados em 2026-09-12. Os Quality Gates remotos concluíram com êxito.
-- Commit: `e7a76a5 feat(catalogo): simplifica cadastro de técnicas`; correção de formatação `968f89d`; `cccee52 feat(catalogo): guia técnicas hereditárias`.
+- Commit: `e7a76a5 feat(catalogo): simplifica cadastro de técnicas`; correção de formatação `968f89d`; `cccee52 feat(catalogo): guia técnicas hereditárias`; `88a2f2d feat(homebrew): guia requisitos de conteúdo`.
 - Deploy/migration, se aplicável: sem migration ou seed; publicação automática confirmada por resposta HTTP 200 da produção.
 - Pendências e próxima ação: migrar os demais painéis de catálogo e substituir o editor textual de requisitos por controles estruturados, preservando JSON apenas para importação/exportação avançada.
 
@@ -235,6 +235,8 @@ Concluir seletores pesquisáveis, geração de código no backend e editores est
 O cadastro comum de técnicas não solicita mais código: o backend deriva um código estável do nome e acrescenta sufixo em colisões. A relação de clãs hereditários deixou de usar CSV e agora é selecionada por nome. O campo de requisitos passou a orientar texto legível; valores JSON antigos continuam aceitos para compatibilidade.
 
 O cadastro de clãs também deixou de solicitar IDs de técnicas em CSV. Ele agora apresenta somente técnicas hereditárias, com nome e descrição, e mantém a persistência pelos IDs do contrato existente.
+
+Os formulários reutilizados de técnica, clã, caminho e poder genérico agora compartilham um editor de requisitos. Ele oferece regras conhecidas e “Outro”, preserva valores estruturados existentes e deixa a descrição livre como opção padrão.
 
 ### UX-04 — Acessibilidade dos campos básicos
 
@@ -1060,6 +1062,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 - [ ] Conferir `Input`, `Select` e `Textarea` com ID explícito e gerado: rótulo aciona o campo; ajuda/erro são anunciados e o estado inválido é exposto.
 - [ ] Criar uma técnica sem informar código: conferir o código automático, a seleção de clãs por nome, a rejeição de técnica hereditária sem clã e a preservação de importações legadas com código explícito.
 - [ ] Criar e editar um clã: selecionar técnicas hereditárias por nome, remover todas para limpar os vínculos e confirmar que técnicas não hereditárias não aparecem na lista.
+- [ ] Criar e editar conteúdo de suplemento: informar requisitos livres e estruturados, alternar entre os dois formatos e confirmar a preservação de requisitos legados.
 - [ ] Conferir botões e badges primários, destrutivos, de aviso e desabilitados nos temas padrão, roxo, vermelho e verde, claro e escuro.
 
 ### Registro da bateria
@@ -1083,6 +1086,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-12 | OPS-01, COD-01, COD-02 | Atualizadas dependências compatíveis, scripts de lint e workflow de qualidade; ajustados fixtures expostos pelo novo typecheck. | Frontend: audit 0, lint, 368 testes e build aprovados. Backend: lint, 868 testes, build e Prisma aprovados; 3 alertas Prisma permanecem. | Publicar e validar o workflow remoto; tratar Prisma em upgrade dedicado. |
 | 2026-09-12 | UX-03 | Cadastro de técnica migrou código automático e seleção de clãs por nome; requisitos comuns ganharam orientação textual. | `e7a76a5`, `968f89d`; [Quality Gate 34697036630](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34697036630) aprovado e produção HTTP 200. | Seguir com outros cadastros de catálogo. |
 | 2026-09-12 | UX-03 | Cadastro de clãs migrou técnicas hereditárias de IDs CSV para seleção guiada. | `cccee52`; [Quality Gate 34697548021](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34697548021) aprovado e produção HTTP 200. | Seguir com requisitos estruturados e outros catálogos. |
+| 2026-09-12 | UX-03 | Técnica, clã, caminho e poder genérico passaram a compartilhar editor guiado de requisitos. | `88a2f2d`; validações locais do frontend registradas em UX-03. | Publicar e validar o gate remoto; revisar características e mecânicas avançadas. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
