@@ -4,8 +4,8 @@
 
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { Textarea } from '@/components/ui/Textarea';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { RequisitosEstruturadosEditor } from '../RequisitosEstruturadosEditor';
 import {
   TipoTecnicaAmaldicoada,
   TIPO_TECNICA_LABELS,
@@ -52,19 +52,9 @@ export function TecnicaBaseFields({ dados, onChange }: Props) {
         placeholder="https://wiki.exemplo.com/tecnica"
       />
 
-      <Textarea
-        label="Requisitos (JSON ou texto livre)"
-        value={typeof dados.requisitos === 'string' ? dados.requisitos : JSON.stringify(dados.requisitos || {}, null, 2)}
-        onChange={(e) => {
-          try {
-            const parsed = JSON.parse(e.target.value);
-            onChange({ requisitos: parsed });
-          } catch {
-            onChange({ requisitos: e.target.value });
-          }
-        }}
-        placeholder='Ex: { "nível": 5, "atributo": "INT >= 3" }'
-        rows={3}
+      <RequisitosEstruturadosEditor
+        value={dados.requisitos}
+        onChange={(requisitos) => onChange({ requisitos })}
       />
 
       <div className="p-3 border border-app-border rounded-lg bg-app-alert">

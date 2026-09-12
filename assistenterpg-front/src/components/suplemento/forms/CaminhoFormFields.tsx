@@ -2,8 +2,8 @@
 
 'use client';
 
-import { Textarea } from '@/components/ui/Textarea';
 import { HabilidadesEstruturadasEditor, type HabilidadeEstruturada } from './HabilidadesEstruturadasEditor';
+import { RequisitosEstruturadosEditor } from './RequisitosEstruturadosEditor';
 import type { HomebrewFormDados } from '../hooks/useHomebrewForm';
 
 type Props = {
@@ -14,23 +14,9 @@ type Props = {
 export function CaminhoFormFields({ dados, onChange }: Props) {
   return (
     <div className="space-y-4">
-      <Textarea
-        label="Requisitos (JSON ou texto livre)"
-        value={
-          typeof dados.requisitos === 'string'
-            ? dados.requisitos
-            : JSON.stringify(dados.requisitos || {}, null, 2)
-        }
-        onChange={(e) => {
-          try {
-            const parsed = JSON.parse(e.target.value);
-            onChange({ requisitos: parsed });
-          } catch {
-            onChange({ requisitos: e.target.value });
-          }
-        }}
-        placeholder='Ex: { "nível": 7, "trilha": "Elementalista" }'
-        rows={3}
+      <RequisitosEstruturadosEditor
+        value={dados.requisitos}
+        onChange={(requisitos) => onChange({ requisitos })}
       />
 
       <HabilidadesEstruturadasEditor

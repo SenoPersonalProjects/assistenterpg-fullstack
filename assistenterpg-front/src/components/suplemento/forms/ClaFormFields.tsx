@@ -5,6 +5,7 @@
 import { Textarea } from '@/components/ui/Textarea';
 import type { JsonImportGuideReferenceRow } from '@/lib/types';
 import { CatalogReferenceSelect } from './CatalogReferenceSelect';
+import { RequisitosEstruturadosEditor } from './RequisitosEstruturadosEditor';
 import type { HomebrewFormDados } from '../hooks/useHomebrewForm';
 
 type Props = {
@@ -43,29 +44,15 @@ export function ClaFormFields({ dados, onChange, tecnicas }: Props) {
         rows={5}
       />
 
-      <Textarea
-        label="Requisitos (JSON ou texto livre)"
-        value={
-          typeof dados.requisitos === 'string'
-            ? dados.requisitos
-            : JSON.stringify(dados.requisitos || {}, null, 2)
-        }
-        onChange={(e) => {
-          try {
-            const parsed = JSON.parse(e.target.value);
-            onChange({ requisitos: parsed });
-          } catch {
-            onChange({ requisitos: e.target.value });
-          }
-        }}
-        placeholder='Ex: { "nível": 1, "origem": "Kyoto" }'
-        rows={3}
+      <RequisitosEstruturadosEditor
+        value={dados.requisitos}
+        onChange={(requisitos) => onChange({ requisitos })}
       />
 
       <div className="p-3 border border-app-border rounded-lg bg-app-muted-surface">
         <p className="text-xs text-app-muted">
-          <strong>Dica:</strong> Use JSON válido para estruturar características e requisitos.
-          Se a técnica inata for hereditária do clã, informe o ID dela.
+          <strong>Dica:</strong> Estruture características na lista e descreva requisitos de forma
+          clara. A técnica inata é escolhida pelo nome, sem informar ID técnico.
         </p>
       </div>
     </div>
