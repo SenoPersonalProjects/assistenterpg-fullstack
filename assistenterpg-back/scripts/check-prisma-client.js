@@ -29,8 +29,22 @@ function printManualHelp(extra = '') {
   console.error('   Consulte: documentacao-unica/README.md\n');
 }
 
+function clearPrismaRequireCache() {
+  const prismaPaths = [
+    `${path.sep}@prisma${path.sep}client${path.sep}`,
+    `${path.sep}.prisma${path.sep}client${path.sep}`,
+  ];
+
+  for (const modulePath of Object.keys(require.cache)) {
+    if (prismaPaths.some((prismaPath) => modulePath.includes(prismaPath))) {
+      delete require.cache[modulePath];
+    }
+  }
+}
+
 function validateClient() {
   try {
+    clearPrismaRequireCache();
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const prisma = require('@prisma/client');
 
