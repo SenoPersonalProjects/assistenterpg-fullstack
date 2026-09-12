@@ -226,7 +226,7 @@ Concluir seletores pesquisáveis, geração de código no backend e editores est
 
 - Arquivos/PR: `TecnicasAdminPanel`, `ClasAdminPanel`, `RequisitosEstruturadosEditor`, `CaracteristicasEstruturadasEditor`, `MecanicasEstruturadasEditor`, DTO e serviço de técnicas.
 - Testes e resultados: frontend — lint, 370 testes e build aprovados; backend — 6 testes direcionados, lint, build e `prisma validate` aprovados em 2026-09-12. Os Quality Gates remotos concluíram com êxito.
-- Commit: `e7a76a5 feat(catalogo): simplifica cadastro de técnicas`; correção de formatação `968f89d`; `cccee52 feat(catalogo): guia técnicas hereditárias`; `88a2f2d feat(homebrew): guia requisitos de conteúdo`; `7d32606 feat(homebrew): estrutura características de clãs`; `22f951d feat(homebrew): guia mecânicas de poderes`.
+- Commit: `e7a76a5 feat(catalogo): simplifica cadastro de técnicas`; correção de formatação `968f89d`; `cccee52 feat(catalogo): guia técnicas hereditárias`; `88a2f2d feat(homebrew): guia requisitos de conteúdo`; `7d32606 feat(homebrew): estrutura características de clãs`; `22f951d feat(homebrew): guia mecânicas de poderes`; `1fe1161 feat(homebrew): guia requisitos de variações`.
 - Deploy/migration, se aplicável: sem migration ou seed; publicação automática confirmada por resposta HTTP 200 da produção.
 - Pendências e próxima ação: migrar os demais painéis de catálogo e substituir o editor textual de requisitos por controles estruturados, preservando JSON apenas para importação/exportação avançada.
 
@@ -236,7 +236,7 @@ O cadastro comum de técnicas não solicita mais código: o backend deriva um c�
 
 O cadastro de clãs também deixou de solicitar IDs de técnicas em CSV. Ele agora apresenta somente técnicas hereditárias, com nome e descrição, e mantém a persistência pelos IDs do contrato existente.
 
-Os formulários reutilizados de técnica, clã, caminho e poder genérico agora compartilham um editor de requisitos. Ele oferece regras conhecidas e “Outro”, preserva valores estruturados existentes e deixa a descrição livre como opção padrão. As características de clã também deixaram o array JSON e ganharam editor de nome e descrição, preservando propriedades adicionais dos registros legados. Poderes genéricos agora possuem editor guiado de mecânicas especiais para custos, dano, alcance, duração, limite de uso e efeitos contínuos.
+Os formulários reutilizados de técnica, clã, caminho, poder genérico e variação de técnica agora compartilham um editor de requisitos. Ele oferece regras conhecidas e “Outro”, preserva valores estruturados existentes e deixa a descrição livre como opção padrão. As características de clã também deixaram o array JSON e ganharam editor de nome e descrição, preservando propriedades adicionais dos registros legados. Poderes genéricos agora possuem editor guiado de mecânicas especiais para custos, dano, alcance, duração, limite de uso e efeitos contínuos.
 
 ### UX-04 — Acessibilidade dos campos básicos
 
@@ -1065,6 +1065,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 - [ ] Criar e editar conteúdo de suplemento: informar requisitos livres e estruturados, alternar entre os dois formatos e confirmar a preservação de requisitos legados.
 - [ ] Criar e editar um clã com características livres e estruturadas: adicionar, remover, alternar os formatos e confirmar a preservação de dados legados.
 - [ ] Criar e editar poder genérico: informar mecânicas livres e estruturadas, incluindo “Outro”, e confirmar a preservação de dados legados.
+- [ ] Criar e editar uma variação de técnica: informar requisitos livres e estruturados e confirmar que eles se aplicam apenas à variação.
 - [ ] Conferir botões e badges primários, destrutivos, de aviso e desabilitados nos temas padrão, roxo, vermelho e verde, claro e escuro.
 
 ### Registro da bateria
@@ -1091,6 +1092,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-12 | UX-03 | Técnica, clã, caminho e poder genérico passaram a compartilhar editor guiado de requisitos. | `88a2f2d`; [Quality Gate 34697902665](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34697902665) aprovado e produção HTTP 200. | Revisar características e mecânicas avançadas. |
 | 2026-09-12 | UX-03 | Características de clã migraram de array JSON para editor visual de nome e descrição. | `7d32606`; [Quality Gate 34699031514](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34699031514) aprovado e produção HTTP 200. | Revisar mecânicas avançadas. |
 | 2026-09-12 | UX-03 | Mecânicas especiais de poderes migraram de JSON para editor guiado. | `22f951d`; [Quality Gate 34699473681](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34699473681) aprovado e produção HTTP 200. | Revisar formulários restantes. |
+| 2026-09-12 | UX-03 | Requisitos específicos de variações de técnica migraram de JSON para editor guiado. | `1fe1161`; validações locais do frontend registradas em UX-03. | Publicar e validar o gate remoto; revisar formulários restantes. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
