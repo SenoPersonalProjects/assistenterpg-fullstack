@@ -225,9 +225,9 @@ Concluir seletores pesquisáveis, geração de código no backend e editores est
 #### Evidências
 
 - Arquivos/PR: `TecnicasAdminPanel`, DTO e serviço de técnicas.
-- Testes e resultados: frontend — lint, 370 testes e build aprovados; backend — 6 testes direcionados, lint, build e `prisma validate` aprovados em 2026-09-12.
-- Commit: `e7a76a5 feat(catalogo): simplifica cadastro de técnicas`.
-- Deploy/migration, se aplicável: sem migration ou seed; publicação pendente da validação remota.
+- Testes e resultados: frontend — lint, 370 testes e build aprovados; backend — 6 testes direcionados, lint, build e `prisma validate` aprovados em 2026-09-12. O Quality Gate remoto concluiu com êxito.
+- Commit: `e7a76a5 feat(catalogo): simplifica cadastro de técnicas`; correção de formatação `968f89d`.
+- Deploy/migration, se aplicável: sem migration ou seed; publicação automática confirmada por resposta HTTP 200 da produção.
 - Pendências e próxima ação: migrar os demais painéis de catálogo e substituir o editor textual de requisitos por controles estruturados, preservando JSON apenas para importação/exportação avançada.
 
 #### Atualização 2026-09-12
@@ -1077,7 +1077,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | --- | --- | --- | --- | --- |
 | 2026-09-11 | Todos | Auditoria criada; 23 melhorias registradas como pendentes. | Testes, builds, lint, Vercel e TiDB descritos na seção 3. | Priorizar P1: OPS-01, COD-01, COD-02, DS-01, UX-01 a UX-04, COD-03 e OPS-02. |
 | 2026-09-12 | OPS-01, COD-01, COD-02 | Atualizadas dependências compatíveis, scripts de lint e workflow de qualidade; ajustados fixtures expostos pelo novo typecheck. | Frontend: audit 0, lint, 368 testes e build aprovados. Backend: lint, 868 testes, build e Prisma aprovados; 3 alertas Prisma permanecem. | Publicar e validar o workflow remoto; tratar Prisma em upgrade dedicado. |
-| 2026-09-12 | UX-03 | Cadastro de técnica migrou código automático e seleção de clãs por nome; requisitos comuns ganharam orientação textual. | `e7a76a5`; validações locais registradas em UX-03. | Publicar e confirmar o lote no gate remoto; seguir com outros cadastros de catálogo. |
+| 2026-09-12 | UX-03 | Cadastro de técnica migrou código automático e seleção de clãs por nome; requisitos comuns ganharam orientação textual. | `e7a76a5`, `968f89d`; [Quality Gate 34697036630](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34697036630) aprovado e produção HTTP 200. | Seguir com outros cadastros de catálogo. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
