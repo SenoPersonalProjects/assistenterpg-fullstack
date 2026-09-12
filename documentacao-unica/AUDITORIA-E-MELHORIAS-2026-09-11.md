@@ -140,7 +140,7 @@ Criar uma infraestrutura única de diálogos com portal, pilha de camadas, fecha
 - [ ] Critérios de aceitação verificados.
 - [ ] Testes e validações aplicáveis registrados.
 - [ ] Documentação atualizada.
-- [ ] Publicação validada, quando aplicável.
+- [x] Publicação validada, quando aplicável.
 
 #### Evidências
 
@@ -469,9 +469,9 @@ Ampliar testes de contrato e de permissões por papel, normalizando respostas na
 #### Evidências
 
 - Arquivos/PR: `assistenterpg-back/src/sessao/sessao.service.ts`, `assistenterpg-front/src/lib/types/campanha.types.ts`, `assistenterpg-front/src/lib/campanha/sessao-atualizacoes.ts`, cartões e painéis de NPC da sessão.
-- Testes e resultados: frontend — `sessao-atualizacoes.test.ts` (7 testes), suíte completa (60 arquivos, 370 testes), lint e build aprovados; backend — `sessao.service.spec.ts` (137 testes), lint, build e `prisma validate` aprovados. CI remoto será registrado após a publicação.
-- Commit: pendente deste lote.
-- Deploy/migration, se aplicável: sem migration ou seed; deploy pendente.
+- Testes e resultados: frontend — `sessao-atualizacoes.test.ts` (7 testes), suíte completa (60 arquivos, 370 testes), lint e build aprovados; backend — `sessao.service.spec.ts` (137 testes), lint, build e `prisma validate` aprovados; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado.
+- Commit: `afecca2`.
+- Deploy/migration, se aplicável: sem migration ou seed; produção em `https://assistenterpg-fullstack.vercel.app/` respondeu HTTP 200 em 2026-09-12.
 - Pendências e próxima ação: executar a bateria manual autenticada dos papéis após o deploy e registrar resultado.
 
 ### COD-04 — Seletores reutilizáveis de catálogo
@@ -1075,6 +1075,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-12 | OPS-01, COD-01, COD-02 | Atualizadas dependências compatíveis, scripts de lint e workflow de qualidade; ajustados fixtures expostos pelo novo typecheck. | Frontend: audit 0, lint, 368 testes e build aprovados. Backend: lint, 868 testes, build e Prisma aprovados; 3 alertas Prisma permanecem. | Publicar e validar o workflow remoto; tratar Prisma em upgrade dedicado. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
+| 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
 
 ## 14. Próxima priorização recomendada
 
