@@ -4,6 +4,7 @@
 
 import { Textarea } from '@/components/ui/Textarea';
 import { RequisitosEstruturadosEditor } from './RequisitosEstruturadosEditor';
+import { MecanicasEstruturadasEditor } from './MecanicasEstruturadasEditor';
 import type { HomebrewFormDados } from '../hooks/useHomebrewForm';
 
 type Props = {
@@ -29,23 +30,9 @@ export function PoderGenericoFormFields({ dados, onChange }: Props) {
         required
       />
 
-      <Textarea
-        label="Mecânicas especiais (JSON)"
-        value={
-          typeof dados.mecanicas === 'string'
-            ? dados.mecanicas
-            : JSON.stringify(dados.mecanicas || {}, null, 2)
-        }
-        onChange={(e) => {
-          try {
-            const parsed = JSON.parse(e.target.value);
-            onChange({ mecanicas: parsed });
-          } catch {
-            onChange({ mecanicas: e.target.value });
-          }
-        }}
-        placeholder='Ex: { "custoXP": 2, "dano": "1d6", "alcance": "Curto" }'
-        rows={5}
+      <MecanicasEstruturadasEditor
+        value={dados.mecanicas}
+        onChange={(mecanicas) => onChange({ mecanicas })}
       />
 
       <div className="p-3 border border-app-border rounded-lg bg-app-muted-surface">
@@ -53,9 +40,9 @@ export function PoderGenericoFormFields({ dados, onChange }: Props) {
           <strong>Estrutura esperada:</strong>
         </p>
         <ul className="text-xs text-app-muted mt-2 space-y-1">
-          <li>• <strong>requisitos:</strong> Objeto JSON ou texto (opcional)</li>
+          <li>• <strong>requisitos:</strong> Condições livres ou estruturadas (opcional)</li>
           <li>• <strong>efeitos:</strong> Descrição textual dos efeitos (obrigatório)</li>
-          <li>• <strong>mecanicas:</strong> Objeto JSON com custos, dano, alcance, etc. (opcional)</li>
+          <li>• <strong>mecânicas:</strong> Custos, dano, alcance e limites estruturados (opcional)</li>
         </ul>
       </div>
     </div>
