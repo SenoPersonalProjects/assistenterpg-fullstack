@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { RequisitosEstruturadosEditor } from '../RequisitosEstruturadosEditor';
 import {
   TipoExecucao,
   AreaEfeito,
@@ -600,19 +601,12 @@ export function VariacaoForm({
           />
 
           {/* Requisitos específicos */}
-          <Textarea
-            label="Requisitos específicos (JSON)"
-            value={typeof variacao.requisitos === 'string' ? variacao.requisitos : JSON.stringify(variacao.requisitos || {}, null, 2)}
-            onChange={(e) => {
-              try {
-                const parsed = JSON.parse(e.target.value);
-                onChange({ requisitos: parsed });
-              } catch {
-                onChange({ requisitos: e.target.value });
-              }
-            }}
-            placeholder='Ex: { "nível": 10 }'
-            rows={2}
+          <RequisitosEstruturadosEditor
+            value={variacao.requisitos}
+            onChange={(requisitos) =>
+              onChange({ requisitos: requisitos as VariacaoHabilidade['requisitos'] })
+            }
+            helperText="Defina condições que se aplicam somente a esta variação."
           />
         </div>
       )}
