@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { criarAcessibilidadeCampo } from '@/lib/ui/field-accessibility';
 
 type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
@@ -22,14 +23,20 @@ export function Input({
   rightIconLabel,
   onRightIconClick,
   className = '',
-  ...props
+  id,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
+  'aria-errormessage': ariaErrorMessage,
+  ...inputProps
 }: InputProps) {
   const generatedId = React.useId();
-  const inputId = props.id ?? generatedId;
-  const messageId = `${inputId}-description`;
-  const describedBy = [props['aria-describedby'], error || helperText ? messageId : undefined]
-    .filter(Boolean)
-    .join(' ') || undefined;
+  const inputId = id ?? generatedId;
+  const acessibilidade = criarAcessibilidadeCampo({
+    id: inputId,
+    ariaDescribedBy,
+    possuiAjuda: Boolean(helperText),
+    possuiErro: Boolean(error),
+  });
   const hasRightIcon = Boolean(rightIcon);
   const rightIconButton = hasRightIcon && typeof onRightIconClick === 'function';
 
@@ -57,7 +64,7 @@ export function Input({
               <button
                 type="button"
                 onClick={onRightIconClick}
-                aria-label={rightIconLabel}
+                aria-label={rightIconLabel ?? 'Ação complementar do campo'}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-app-muted transition-all duration-200 hover:text-app-fg hover:bg-app-border/40 active:scale-90"
               >
                 <Icon name={rightIcon as IconName} className="w-4 h-4" />
@@ -73,8 +80,9 @@ export function Input({
 
         <input
           id={inputId}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={describedBy}
+          aria-invalid={error ? true : ariaInvalid}
+          aria-describedby={acessibilidade.describedBy}
+          aria-errormessage={error ? acessibilidade.errorMessage : ariaErrorMessage}
           className={`
             w-full rounded-xl border bg-app-surface py-2.5 text-sm ring-offset-app-bg transition-all duration-200
             placeholder:text-app-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/40 focus-visible:ring-offset-1
@@ -88,13 +96,23 @@ export function Input({
             }
             ${className}
           `}
-          {...props}
+          {...inputProps}
         />
       </div>
 
-      {error && <span id={messageId} className="text-xs font-medium text-app-danger ml-1 animate-fade-in-up">{error}</span>}
-      {helperText && !error && (
-        <span id={messageId} className="text-xs text-app-muted ml-1">{helperText}</span>
+      {helperText && (
+        <span id={acessibilidade.helperId} className="text-xs text-app-muted ml-1">
+          {helperText}
+        </span>
+      )}
+      {error && (
+        <span
+          id={acessibilidade.errorId}
+          role="alert"
+          className="text-xs font-medium text-app-danger ml-1 animate-fade-in-up"
+        >
+          {error}
+        </span>
       )}
     </div>
   );

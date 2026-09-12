@@ -24,8 +24,10 @@ import {
   resolverProximoInicioPermitido,
   splitDateTimeLocalValue,
 } from '@/lib/datetime/date-time-picker.helpers';
+import { criarAcessibilidadeCampo } from '@/lib/ui/field-accessibility';
 
 type DateTimePickerProps = {
+  id?: string;
   label?: string;
   value: string;
   onChange: (value: string) => void;
@@ -46,9 +48,11 @@ const DESKTOP_PICKER_HEIGHT = 520;
 const VIEWPORT_MARGIN = 16;
 
 export function DateTimePicker({
+  id,
   label,
   value,
   onChange,
+  required = false,
   disabled = false,
   error,
   helperText,
@@ -57,9 +61,8 @@ export function DateTimePicker({
   allowClear = false,
   className = '',
 }: DateTimePickerProps) {
-  const inputId = useId();
-  const helperId = useId();
-  const errorId = useId();
+  const generatedInputId = useId();
+  const inputId = id ?? generatedInputId;
   const rootRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -77,7 +80,11 @@ export function DateTimePicker({
     [visibleMonth],
   );
   const timeSlots = useMemo(() => gerarHorariosDia(minuteStep), [minuteStep]);
-  const describedBy = error ? errorId : helperText ? helperId : undefined;
+  const acessibilidade = criarAcessibilidadeCampo({
+    id: inputId,
+    possuiAjuda: Boolean(helperText),
+    possuiErro: Boolean(error),
+  });
   const displayValue = formatarDateTimePickerValue(value);
   const monthLabel = visibleMonth.toLocaleDateString('pt-BR', {
     month: 'long',
@@ -368,7 +375,10 @@ export function DateTimePicker({
         disabled={disabled}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-describedby={describedBy}
+        aria-required={required || undefined}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={acessibilidade.describedBy}
+        aria-errormessage={acessibilidade.errorMessage}
         onClick={abrirPicker}
         onKeyDown={handleTriggerKeyDown}
         className={`group flex w-full items-center justify-between rounded-xl border bg-app-surface px-4 py-2.5 text-left text-sm ring-offset-app-bg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/40 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 ${
@@ -421,14 +431,18 @@ export function DateTimePicker({
         </Portal>
       ) : null}
 
-      {error ? (
-        <span id={errorId} className="ml-1 text-xs font-medium text-app-danger">
-          {error}
+      {helperText ? (
+        <span id={acessibilidade.helperId} className="ml-1 text-xs text-app-muted">
+          {helperText}
         </span>
       ) : null}
-      {helperText && !error ? (
-        <span id={helperId} className="ml-1 text-xs text-app-muted">
-          {helperText}
+      {error ? (
+        <span
+          id={acessibilidade.errorId}
+          role="alert"
+          className="ml-1 text-xs font-medium text-app-danger"
+        >
+          {error}
         </span>
       ) : null}
     </div>

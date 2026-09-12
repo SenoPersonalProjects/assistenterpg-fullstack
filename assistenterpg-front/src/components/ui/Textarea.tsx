@@ -2,6 +2,7 @@
 'use client';
 
 import React from 'react';
+import { criarAcessibilidadeCampo } from '@/lib/ui/field-accessibility';
 
 type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
   label?: string;
@@ -14,14 +15,20 @@ export function Textarea({
   error,
   helperText,
   className = '',
-  ...props
+  id,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
+  'aria-errormessage': ariaErrorMessage,
+  ...textareaProps
 }: TextareaProps) {
   const generatedId = React.useId();
-  const textareaId = props.id ?? generatedId;
-  const messageId = `${textareaId}-description`;
-  const describedBy = [props['aria-describedby'], error || helperText ? messageId : undefined]
-    .filter(Boolean)
-    .join(' ') || undefined;
+  const textareaId = id ?? generatedId;
+  const acessibilidade = criarAcessibilidadeCampo({
+    id: textareaId,
+    ariaDescribedBy,
+    possuiAjuda: Boolean(helperText),
+    possuiErro: Boolean(error),
+  });
   const base =
     'w-full rounded border bg-app-surface text-app-fg px-3 py-2 text-sm transition-colors resize-vertical';
 
@@ -38,14 +45,21 @@ export function Textarea({
       )}
       <textarea
         id={textareaId}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
+        aria-invalid={error ? true : ariaInvalid}
+        aria-describedby={acessibilidade.describedBy}
+        aria-errormessage={error ? acessibilidade.errorMessage : ariaErrorMessage}
         className={`${base} ${stateClasses} ${className}`}
-        {...props}
+        {...textareaProps}
       />
-      {error && <p id={messageId} className="text-xs text-app-danger">{error}</p>}
-      {helperText && !error && (
-        <p id={messageId} className="text-xs text-app-muted">{helperText}</p>
+      {helperText && (
+        <p id={acessibilidade.helperId} className="text-xs text-app-muted">
+          {helperText}
+        </p>
+      )}
+      {error && (
+        <p id={acessibilidade.errorId} role="alert" className="text-xs text-app-danger">
+          {error}
+        </p>
       )}
     </div>
   );
