@@ -37,10 +37,9 @@ export class CriarEquipamentoDto {
   // ============================================================
 
   @IsString()
-  @IsNotEmpty()
   @MinLength(3, { message: 'Código deve ter no mínimo 3 caracteres' })
   @MaxLength(50, { message: 'Código deve ter no máximo 50 caracteres' })
-  codigo: string;
+  codigo?: string;
 
   @IsString()
   @IsNotEmpty()

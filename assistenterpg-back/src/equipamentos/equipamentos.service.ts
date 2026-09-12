@@ -101,6 +101,35 @@ type EquipamentoDetalhadoEntity = Prisma.EquipamentoCatalogoGetPayload<{
 export class EquipamentosService {
   constructor(private prisma: PrismaService) {}
 
+  private normalizarCodigo(nome: string): string {
+    const base = nome
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+
+    return `EQUIPAMENTO_${base || 'SEM_NOME'}`;
+  }
+
+  private async gerarCodigoDisponivel(nome: string): Promise<string> {
+    const base = this.normalizarCodigo(nome);
+    let codigo = base;
+    let sufixo = 2;
+
+    while (
+      await this.prisma.equipamentoCatalogo.findUnique({
+        where: { codigo },
+        select: { id: true },
+      })
+    ) {
+      codigo = `${base}_${sufixo}`;
+      sufixo += 1;
+    }
+
+    return codigo;
+  }
+
   private async validarFonteSuplemento(
     fonte: TipoFonte,
     suplementoId: number | null,
@@ -270,12 +299,15 @@ export class EquipamentosService {
   }
 
   async criar(data: CriarEquipamentoDto): Promise<EquipamentoDetalhadoDto> {
+    const codigo =
+      data.codigo?.trim().toUpperCase() ||
+      (await this.gerarCodigoDisponivel(data.nome));
     const existente = await this.prisma.equipamentoCatalogo.findUnique({
-      where: { codigo: data.codigo },
+      where: { codigo },
     });
 
     if (existente) {
-      throw new EquipamentoCodigoDuplicadoException(data.codigo);
+      throw new EquipamentoCodigoDuplicadoException(codigo);
     }
 
     const suplementoIdFinal = data.suplementoId ?? null;
@@ -285,7 +317,7 @@ export class EquipamentosService {
     await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
 
     const dadosCriacao: Prisma.EquipamentoCatalogoUncheckedCreateInput = {
-      codigo: data.codigo,
+      codigo,
       nome: data.nome,
       descricao: data.descricao ?? null,
       tipo: data.tipo,

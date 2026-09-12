@@ -51,7 +51,6 @@ type AppliedFilters = DraftFilters & {
 };
 
 type EquipamentoFormState = {
-  codigo: string;
   nome: string;
   descricao: string;
   tipo: TipoEquipamento;
@@ -90,7 +89,6 @@ function toApiFilters(filtros: AppliedFilters): ListEquipamentosFilters {
 
 function buildFormState(item?: EquipamentoResumoDto | null): EquipamentoFormState {
   return {
-    codigo: item?.codigo ?? '',
     nome: item?.nome ?? '',
     descricao: item?.descricao ?? '',
     tipo: (item?.tipo as TipoEquipamento) ?? TipoEquipamento.GENERICO,
@@ -135,7 +133,6 @@ function EquipamentoAdminFormModal({ isOpen, onClose, equipamento, suplementos }
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    if (!form.codigo.trim()) next.codigo = 'Código é obrigatório.';
     if (!form.nome.trim()) next.nome = 'Nome é obrigatório.';
     if (!form.tipo) next.tipo = 'Tipo é obrigatório.';
     if (form.fonte === 'SUPLEMENTO' && !form.suplementoId.trim()) {
@@ -149,7 +146,6 @@ function EquipamentoAdminFormModal({ isOpen, onClose, equipamento, suplementos }
     if (!validate()) return;
 
     const payloadBase: CreateEquipamentoPayload = {
-      codigo: form.codigo.trim().toUpperCase(),
       nome: form.nome.trim(),
       descricao: form.descricao.trim() || undefined,
       tipo: form.tipo,
@@ -207,12 +203,6 @@ function EquipamentoAdminFormModal({ isOpen, onClose, equipamento, suplementos }
     >
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Input
-            label="Código *"
-            value={form.codigo}
-            onChange={(e) => setField('codigo', e.target.value.toUpperCase())}
-            error={errors.codigo}
-          />
           <Input
             label="Nome *"
             value={form.nome}

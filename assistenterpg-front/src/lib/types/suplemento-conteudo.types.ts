@@ -118,7 +118,8 @@ export type CreateHabilidadePayload = ConteudoComFonte & {
 export type UpdateHabilidadePayload = Partial<CreateHabilidadePayload>;
 
 export type CreateEquipamentoPayload = ConteudoComFonte & {
-  codigo: string;
+  /** Código técnico opcional, reservado a importadores administrativos. */
+  codigo?: string;
   nome: string;
   tipo: TipoEquipamento;
   descricao?: string;
@@ -169,7 +170,8 @@ export type CreateProficienciaPayload = {
 export type UpdateProficienciaPayload = Partial<CreateProficienciaPayload>;
 
 export type CreateTipoGrauPayload = {
-  codigo: string;
+  /** Código técnico opcional, reservado a importadores administrativos. */
+  codigo?: string;
   nome: string;
   descricao?: string | null;
 };

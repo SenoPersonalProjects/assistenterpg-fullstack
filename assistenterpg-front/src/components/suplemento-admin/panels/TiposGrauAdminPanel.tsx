@@ -31,14 +31,12 @@ import {
 import type { UserErrorState } from '@/lib/types';
 
 type TipoGrauFormState = {
-  codigo: string;
   nome: string;
   descricao: string;
 };
 
 function buildFormState(item?: TipoGrauCatalogo | null): TipoGrauFormState {
   return {
-    codigo: item?.codigo ?? '',
     nome: item?.nome ?? '',
     descricao: item?.descricao ?? '',
   };
@@ -75,7 +73,6 @@ function TipoGrauFormModal({ isOpen, onClose, item }: ModalProps) {
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    if (!form.codigo.trim()) next.codigo = 'Código é obrigatório.';
     if (!form.nome.trim()) next.nome = 'Nome é obrigatório.';
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -86,7 +83,6 @@ function TipoGrauFormModal({ isOpen, onClose, item }: ModalProps) {
 
     const descricaoNormalizada = form.descricao.trim();
     const payloadBase: CreateTipoGrauPayload = {
-      codigo: form.codigo.trim(),
       nome: form.nome.trim(),
       descricao: descricaoNormalizada || undefined,
     };
@@ -137,12 +133,6 @@ function TipoGrauFormModal({ isOpen, onClose, item }: ModalProps) {
       }
     >
       <div className="space-y-4">
-        <Input
-          label="Código *"
-          value={form.codigo}
-          onChange={(e) => setField('codigo', e.target.value)}
-          error={errors.codigo}
-        />
         <Input
           label="Nome *"
           value={form.nome}

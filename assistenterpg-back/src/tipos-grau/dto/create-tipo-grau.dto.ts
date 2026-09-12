@@ -8,9 +8,9 @@ import {
 
 export class CreateTipoGrauDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(50)
-  codigo: string;
+  codigo?: string;
 
   @IsString()
   @IsNotEmpty()
