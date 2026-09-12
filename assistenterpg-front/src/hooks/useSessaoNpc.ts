@@ -14,6 +14,7 @@ import {
 } from '@/lib/api';
 import type {
   NpcSessaoCampanha,
+  NpcSessaoCampanhaCompleto,
   SessaoCampanhaDetalhe,
   UserErrorState,
 } from '@/lib/types';
@@ -97,15 +98,15 @@ type UseSessaoNpcReturn = {
     notasCena?: string;
     ocultoJogadores?: boolean;
   }) => Promise<void>;
-  handleAlternarVisibilidadeNpc: (npc: NpcSessaoCampanha) => Promise<void>;
-  handleSalvarNpc: (npc: NpcSessaoCampanha) => Promise<void>;
+  handleAlternarVisibilidadeNpc: (npc: NpcSessaoCampanhaCompleto) => Promise<void>;
+  handleSalvarNpc: (npc: NpcSessaoCampanhaCompleto) => Promise<void>;
   handleAplicarDeltaRecursoNpc: (
-    npc: NpcSessaoCampanha,
+    npc: NpcSessaoCampanhaCompleto,
     campo: CampoAjusteRecursoNpc,
     delta: number,
   ) => Promise<void>;
   handleAplicarAjustePersonalizadoRecursoNpc: (
-    npc: NpcSessaoCampanha,
+    npc: NpcSessaoCampanhaCompleto,
     campo: CampoAjusteRecursoNpc,
   ) => Promise<void>;
   handleRemoverNpc: (
@@ -140,7 +141,7 @@ export function useSessaoNpc({
 
   const montarPayloadAjustadoNpc = useCallback(
     (
-      npc: NpcSessaoCampanha,
+      npc: NpcSessaoCampanhaCompleto,
       campo: CampoAjusteRecursoNpc,
       delta: number,
     ) => {
@@ -336,7 +337,7 @@ export function useSessaoNpc({
   );
 
   const handleSalvarNpc = useCallback(
-    async (npc: NpcSessaoCampanha) => {
+    async (npc: NpcSessaoCampanhaCompleto) => {
       const draft = edicaoNpcs[npc.npcSessaoId];
       if (!draft) return;
 
@@ -431,7 +432,7 @@ export function useSessaoNpc({
 
   const handleAplicarDeltaRecursoNpc = useCallback(
     async (
-      npc: NpcSessaoCampanha,
+      npc: NpcSessaoCampanhaCompleto,
       campo: CampoAjusteRecursoNpc,
       delta: number,
     ) => {
@@ -507,7 +508,7 @@ export function useSessaoNpc({
   );
 
   const handleAplicarAjustePersonalizadoRecursoNpc = useCallback(
-    async (npc: NpcSessaoCampanha, campo: CampoAjusteRecursoNpc) => {
+    async (npc: NpcSessaoCampanhaCompleto, campo: CampoAjusteRecursoNpc) => {
       const ajuste = obterAjustesRecursosNpc(npc.npcSessaoId)[campo];
       const delta = parseInteiroComSinal(ajuste);
       if (delta === null || delta === 0) {
@@ -558,7 +559,7 @@ export function useSessaoNpc({
   );
 
   const handleAlternarVisibilidadeNpc = useCallback(
-    async (npc: NpcSessaoCampanha) => {
+    async (npc: NpcSessaoCampanhaCompleto) => {
       if (!npc.podeEditar || sessaoEncerrada) return;
 
       setSalvandoNpcId(npc.npcSessaoId);

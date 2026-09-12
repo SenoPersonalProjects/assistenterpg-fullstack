@@ -12,6 +12,7 @@ import type {
   ParticipanteIniciativaSessaoCampanha,
   SessaoCampanhaDetalhe,
 } from '@/lib/types';
+import { ehNpcSessaoCampanhaCompleto } from '@/lib/campanha/sessao-atualizacoes';
 import {
   resolverStatusFisico,
   resolverStatusMental,
@@ -110,6 +111,19 @@ export function SessionSceneRosterPanel({
       iniciativaValor: number | null,
     ): RosterItem => {
       const condicoesAtivas = npc.condicoesAtivas ?? [];
+      if (!ehNpcSessaoCampanhaCompleto(npc)) {
+        return {
+          id: `npc-${npc.npcSessaoId}`,
+          nome: npc.nome,
+          tipo: 'NPC',
+          tipoLabel: labelTipoNpc(npc.tipo),
+          jogador: null,
+          iniciativaValor,
+          statusFisico: 'Indisponivel',
+          statusMental: 'Indisponivel',
+          condicoes: condicoesAtivas,
+        };
+      }
       const recursos = {
         pvAtual: npc.pontosVidaAtual,
         pvMax: npc.pontosVidaMax,

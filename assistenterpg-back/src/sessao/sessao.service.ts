@@ -2162,14 +2162,7 @@ export class SessaoService {
           npc,
         );
         if (!podeControlarNpc) {
-          return {
-            npcSessaoId: npc.id,
-            nome: npc.nomeExibicao,
-            fichaTipo: npc.fichaTipo,
-            tipo: npc.tipo,
-            visibilidade: 'resumida' as const,
-            ocultoJogadores: npc.ocultoJogadores,
-          };
+          return this.montarResumoNpcSessao(npc);
         }
         const atributosNpc = npc.npcAmeaca
           ? this.montarAtributosNpc(npc.npcAmeaca)
@@ -7275,6 +7268,24 @@ export class SessaoService {
       npc?.personagemDono?.donoId === usuarioId ||
       npc?.personagemControladorSessao?.controladorUsuarioId === usuarioId,
     );
+  }
+
+  private montarResumoNpcSessao(npc: {
+    id: number;
+    nomeExibicao: string;
+    fichaTipo: string;
+    tipo: string;
+    ocultoJogadores: boolean;
+  }) {
+    return {
+      npcSessaoId: npc.id,
+      nome: npc.nomeExibicao,
+      fichaTipo: npc.fichaTipo,
+      tipo: npc.tipo,
+      visibilidade: 'resumida' as const,
+      ocultoJogadores: npc.ocultoJogadores,
+      condicoesAtivas: [],
+    };
   }
 
   async atualizarNpcSessao(

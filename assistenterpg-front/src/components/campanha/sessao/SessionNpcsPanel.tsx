@@ -10,9 +10,11 @@ import type {
   CondicaoAtivaSessaoCampanha,
   NpcAmeacaResumo,
   NpcSessaoCampanha,
+  NpcSessaoCampanhaCompleto,
   AlvoEncontroSocialSessao,
   UserErrorState,
 } from '@/lib/types';
+import { ehNpcSessaoCampanhaCompleto } from '@/lib/campanha/sessao-atualizacoes';
 import type {
   AjustesRecursosNpc,
   CampoAjusteRecursoNpc,
@@ -40,27 +42,27 @@ type SessionNpcsPanelProps = {
   onAbrirAdicionar: () => void;
   onAbrirAdicionarNpcSimples: () => void;
   onAtualizarCampo: (
-    npc: NpcSessaoCampanha,
+    npc: NpcSessaoCampanhaCompleto,
     campo: keyof NpcEditavel,
     valor: string,
   ) => void;
   onAtualizarAjustePersonalizado: (
-    npc: NpcSessaoCampanha,
+    npc: NpcSessaoCampanhaCompleto,
     campo: CampoAjusteRecursoNpc,
     valor: string,
   ) => void;
   onAplicarDeltaRecurso: (
-    npc: NpcSessaoCampanha,
+    npc: NpcSessaoCampanhaCompleto,
     campo: CampoAjusteRecursoNpc,
     delta: number,
   ) => void;
   onAplicarAjustePersonalizado: (
-    npc: NpcSessaoCampanha,
+    npc: NpcSessaoCampanhaCompleto,
     campo: CampoAjusteRecursoNpc,
   ) => void;
-  onSalvarNpc: (npc: NpcSessaoCampanha) => void;
-  onSolicitarRemoverNpc: (npc: NpcSessaoCampanha) => void;
-  onAlternarVisibilidadeNpc?: (npc: NpcSessaoCampanha) => void;
+  onSalvarNpc: (npc: NpcSessaoCampanhaCompleto) => void;
+  onSolicitarRemoverNpc: (npc: NpcSessaoCampanhaCompleto) => void;
+  onAlternarVisibilidadeNpc?: (npc: NpcSessaoCampanhaCompleto) => void;
   renderPainelCondicoes: (
     alvoTipo: 'PERSONAGEM' | 'NPC',
     alvoId: number,
@@ -74,8 +76,8 @@ type SessionNpcsPanelProps = {
   socialAtivo?: boolean;
   alvosSociais?: AlvoEncontroSocialSessao[];
   atualizandoAlvoSocial?: boolean;
-  onAdicionarAlvoSocial?: (npc: NpcSessaoCampanha) => void;
-  onRemoverAlvoSocial?: (npc: NpcSessaoCampanha) => void;
+  onAdicionarAlvoSocial?: (npc: NpcSessaoCampanhaCompleto) => void;
+  onRemoverAlvoSocial?: (npc: NpcSessaoCampanhaCompleto) => void;
   onAtualizarAlvoSocial?: (
     alvo: AlvoEncontroSocialSessao,
     patch: Partial<AlvoEncontroSocialSessao>,
@@ -114,6 +116,11 @@ export function SessionNpcsPanel({
   onRemoverAlvoSocial,
   onAtualizarAlvoSocial,
 }: SessionNpcsPanelProps) {
+  const npcsCompletos = npcs.filter(ehNpcSessaoCampanhaCompleto);
+  const npcsResumidos = npcs.filter(
+    (npc) => !ehNpcSessaoCampanhaCompleto(npc),
+  );
+
   return (
     <SessionPanel
       title="Aliados ou ameaças na cena"
@@ -154,10 +161,11 @@ export function SessionNpcsPanel({
           description="O mestre pode adicionar aliados ou ameaças para esta cena."
         />
       ) : (
-        npcs.map((npc) => (
-          <NpcSessionCard
-            key={npc.npcSessaoId}
-            npc={npc}
+        <>
+          {npcsCompletos.map((npc) => (
+            <NpcSessionCard
+              key={npc.npcSessaoId}
+              npc={npc}
             iniciativaValor={iniciativaPorNpcSessao.get(npc.npcSessaoId) ?? null}
             podeControlarSessao={podeControlarSessao}
             sessaoEncerrada={sessaoEncerrada}
@@ -194,9 +202,24 @@ export function SessionNpcsPanel({
             atualizandoAlvoSocial={atualizandoAlvoSocial}
             onAdicionarAlvoSocial={() => onAdicionarAlvoSocial?.(npc)}
             onRemoverAlvoSocial={() => onRemoverAlvoSocial?.(npc)}
-            onAtualizarAlvoSocial={onAtualizarAlvoSocial}
-          />
-        ))
+              onAtualizarAlvoSocial={onAtualizarAlvoSocial}
+            />
+          ))}
+          {npcsResumidos.map((npc) => (
+            <div
+              key={npc.npcSessaoId}
+              className="rounded-xl border border-app-border/60 bg-app-surface/35 px-4 py-3"
+            >
+              <p className="text-sm font-semibold text-app-fg">{npc.nome}</p>
+              <p className="mt-1 text-xs text-app-muted">
+                {npc.fichaTipo === 'NPC' ? 'Aliado' : 'Ameaça'} · {npc.tipo}
+              </p>
+              <p className="mt-2 text-xs text-app-muted">
+                Dados de combate disponíveis apenas ao mestre e ao controlador.
+              </p>
+            </div>
+          ))}
+        </>
       )}
     </SessionPanel>
   );

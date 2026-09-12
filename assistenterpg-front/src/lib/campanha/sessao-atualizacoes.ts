@@ -3,15 +3,43 @@ import type {
   AtualizacaoRecursosSessaoCampanha,
   CampoRecursoSessaoCampanha,
   NpcSessaoCampanha,
+  NpcSessaoCampanhaCompleto,
   SessaoCampanhaDetalhe,
 } from '@/lib/types';
 
 export type ValoresRecursosNpcSessao = Partial<
   Pick<
-    NpcSessaoCampanha,
+    NpcSessaoCampanhaCompleto,
     'pontosVidaAtual' | 'sanAtual' | 'eaAtual' | 'peAtual'
   >
 >;
+
+export function ehNpcSessaoCampanhaCompleto(
+  npc: NpcSessaoCampanha,
+): npc is NpcSessaoCampanhaCompleto {
+  return npc.visibilidade === 'completa';
+}
+
+function inferirVisibilidadeNpcSessao(
+  npc: NpcSessaoCampanha,
+): 'completa' | 'resumida' {
+  if (npc.visibilidade === 'completa' || npc.visibilidade === 'resumida') {
+    return npc.visibilidade;
+  }
+
+  // Uma resposta sem marcador nunca pode revelar dados por acidente. Só
+  // compatibilizamos como completa o snapshot legado que já traz recursos.
+  const snapshotLegado = npc as unknown as {
+    pontosVidaAtual?: unknown;
+    pontosVidaMax?: unknown;
+  };
+  return (
+    typeof snapshotLegado.pontosVidaAtual === 'number' &&
+    typeof snapshotLegado.pontosVidaMax === 'number'
+      ? 'completa'
+      : 'resumida'
+  );
+}
 
 /**
  * Compatibiliza snapshots parciais de sessão com o contrato consumido pela UI.
@@ -34,14 +62,17 @@ export function normalizarDetalheSessao(
       }))
     : cards;
   const npcsNormalizados = npcs.some(
-    (npc) => !Array.isArray(npc.condicoesAtivas),
+    (npc) =>
+      !Array.isArray(npc.condicoesAtivas) ||
+      (npc.visibilidade !== 'completa' && npc.visibilidade !== 'resumida'),
   )
     ? npcs.map((npc) => ({
         ...npc,
+        visibilidade: inferirVisibilidadeNpcSessao(npc),
         condicoesAtivas: Array.isArray(npc.condicoesAtivas)
           ? npc.condicoesAtivas
           : [],
-      }))
+      })) as SessaoCampanhaDetalhe['npcs']
     : npcs;
 
   return {
@@ -112,7 +143,7 @@ export function aplicarAtualizacaoOtimistaRecursosNpc(
   return {
     ...detalheNormalizado,
     npcs: detalheNormalizado.npcs.map((npc) =>
-      npc.npcSessaoId === npcSessaoId
+      npc.npcSessaoId === npcSessaoId && ehNpcSessaoCampanhaCompleto(npc)
         ? { ...npc, ...valores }
         : npc,
     ),

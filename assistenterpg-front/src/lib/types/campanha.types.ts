@@ -553,15 +553,34 @@ export type EntidadeVinculadaPersonagemPayload = Partial<
   papel?: PapelCalculoEntidadeVinculada;
 };
 
-export type NpcSessaoCampanha = {
+type NpcSessaoCampanhaBase = {
   npcSessaoId: number;
+  nome: string;
+  fichaTipo: TipoFichaNpcAmeaca;
+  tipo: TipoNpcAmeaca;
+  ocultoJogadores: boolean;
+  condicoesAtivas: CondicaoAtivaSessaoCampanha[];
+};
+
+/**
+ * Visão pública de um NPC para participantes sem controle. O backend não
+ * serializa recursos nem ficha nessa variante.
+ */
+export type NpcSessaoCampanhaResumo = NpcSessaoCampanhaBase & {
+  visibilidade: 'resumida';
+};
+
+/**
+ * Visão operacional de NPCs para mestre e controlador autorizado.
+ */
+export type NpcSessaoCampanhaCompleto = NpcSessaoCampanhaBase & {
   npcAmeacaId: number | null;
   entidadeVinculadaId?: number | null;
   personagemDonoId?: number | null;
   personagemControladorSessaoId?: number | null;
   controladorUsuarioId?: number | null;
   controlador?: { id: number; apelido: string } | null;
-  visibilidade?: 'completa' | 'resumida';
+  visibilidade: 'completa';
   tipoVinculo?: TipoEntidadeVinculadaPersonagem | null;
   vinculo?: {
     id: number;
@@ -575,9 +594,6 @@ export type NpcSessaoCampanha = {
       donoId: number;
     } | null;
   } | null;
-  nome: string;
-  fichaTipo: TipoFichaNpcAmeaca;
-  tipo: TipoNpcAmeaca;
   tamanho?: string | null;
   vd: number;
   defesa: number;
@@ -597,11 +613,13 @@ export type NpcSessaoCampanha = {
   periciasEspeciais: NpcAmeacaPericiaEspecial[];
   passivas: NpcAmeacaPassiva[];
   acoes: NpcAmeacaAcao[];
-  condicoesAtivas: CondicaoAtivaSessaoCampanha[];
-  ocultoJogadores: boolean;
   podeEditar: boolean;
   podeControlar?: boolean;
 };
+
+export type NpcSessaoCampanha =
+  | NpcSessaoCampanhaCompleto
+  | NpcSessaoCampanhaResumo;
 
 export type DuracaoCondicaoSessaoModo =
   | 'ATE_REMOVER'

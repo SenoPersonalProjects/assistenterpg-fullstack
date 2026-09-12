@@ -60,7 +60,7 @@ import type {
   MensagemChatSessao,
   NucleoAmaldicoadoCodigo,
   NpcAmeacaResumo,
-  NpcSessaoCampanha,
+  NpcSessaoCampanhaCompleto,
   ParticipanteIniciativaSessaoCampanha,
   PersonagemCampanhaResumo,
   PersonagemCampanhaLista,
@@ -73,6 +73,7 @@ import type {
   AtualizacaoInspiracaoSessaoCampanha,
   UserErrorState,
 } from '@/lib/types';
+import { ehNpcSessaoCampanhaCompleto } from '@/lib/campanha/sessao-atualizacoes';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Loading } from '@/components/ui/Loading';
@@ -275,7 +276,7 @@ function labelParticipanteIniciativa(
   return participante.nomePersonagem;
 }
 
-function montarEdicaoNpcBase(npc: NpcSessaoCampanha): NpcEditavel {
+function montarEdicaoNpcBase(npc: NpcSessaoCampanhaCompleto): NpcEditavel {
   // Resumos públicos de NPC não carregam perícias. Este rascunho também é
   // criado durante sincronizações de realtime, então precisa aceitar a
   // resposta reduzida sem tentar acessar dados que não foram autorizados.
@@ -476,7 +477,7 @@ export default function SessaoCampanhaPage() {
   const [confirmarEncerrarSessaoAberto, setConfirmarEncerrarSessaoAberto] =
     useState(false);
   const [npcRemocaoConfirmacao, setNpcRemocaoConfirmacao] =
-    useState<NpcSessaoCampanha | null>(null);
+    useState<NpcSessaoCampanhaCompleto | null>(null);
   const [escudoAberto, setEscudoAberto] = useState(true);
   const [personagemEmEdicao, setPersonagemEmEdicao] = useState<
     | (Pick<PersonagemCampanhaResumo, 'id' | 'nome' | 'recursos'> &
@@ -570,7 +571,7 @@ export default function SessaoCampanhaPage() {
   );
 
   const atualizarCampoEdicaoNpc = useCallback(
-    (npc: NpcSessaoCampanha, campo: keyof NpcEditavel, valor: string) => {
+    (npc: NpcSessaoCampanhaCompleto, campo: keyof NpcEditavel, valor: string) => {
       setEdicaoNpcs((anterior) => ({
         ...anterior,
         [npc.npcSessaoId]: {
@@ -1826,7 +1827,7 @@ export default function SessaoCampanhaPage() {
   );
 
   const handleAdicionarAlvoSocial = useCallback(
-    (npc: NpcSessaoCampanha) => {
+    (npc: NpcSessaoCampanhaCompleto) => {
       const jaExiste = alvosSociais.some(
         (alvo) => alvo.npcSessaoId === npc.npcSessaoId,
       );
@@ -1846,7 +1847,7 @@ export default function SessaoCampanhaPage() {
   );
 
   const handleRemoverAlvoSocial = useCallback(
-    (npc: NpcSessaoCampanha) => {
+    (npc: NpcSessaoCampanhaCompleto) => {
       const alvosAtualizados = alvosSociais.filter(
         (alvo) => alvo.npcSessaoId !== npc.npcSessaoId,
       );
@@ -3337,6 +3338,10 @@ export default function SessaoCampanhaPage() {
     () => detalheNormalizado?.npcs ?? [],
     [detalheNormalizado?.npcs],
   );
+  const npcsCompletos = useMemo(
+    () => npcs.filter(ehNpcSessaoCampanhaCompleto),
+    [npcs],
+  );
   const npcsAlvosSociais = useMemo(() => {
     const idsAlvos = new Set(
       alvosSociais
@@ -3973,7 +3978,7 @@ export default function SessaoCampanhaPage() {
                     elencoControladoPeloMestre={Boolean(detalhe.elencoControladoPeloMestre)}
                     participantes={detalhe.participantes}
                     personagens={cards}
-                    npcs={npcs}
+                    npcs={npcsCompletos}
                     atualizando={atualizandoElenco}
                     onAtualizarElenco={handleAtualizarElencoControlado}
                     onAtualizarControlador={handleAtualizarControladorParticipante}

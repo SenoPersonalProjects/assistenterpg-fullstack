@@ -90,7 +90,7 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | UX-06 | UI/UX | P2 | Pendente | Validação autenticada | Revisar fluxos de sessão por papel e viewport |
 | COD-01 | Código | P1 | Em validação | Política de proteção da branch | Definir checks obrigatórios para `main` |
 | COD-02 | Código | P1 | Concluído | — | — |
-| COD-03 | Código | P1 | Pendente | UX-03 | Ampliar testes de contratos e permissões |
+| COD-03 | Código | P1 | Em validação | UX-03 | Confirmar os papéis autenticados na bateria manual final |
 | COD-04 | Código | P2 | Pendente | DS-02 | Projetar seletor comum de catálogo |
 | ARQ-01 | Arquitetura | P2 | Pendente | COD-03 | Delimitar primeira extração da sessão |
 | ARQ-02 | Arquitetura | P2 | Pendente | Observabilidade | Medir polling e requisições redundantes |
@@ -437,9 +437,9 @@ Separar comandos `lint:check` e `lint:fix`; resolver os problemas existentes em 
 ### COD-03 — Contratos e permissões entre frontend e backend
 
 Prioridade: P1  
-Status: Pendente  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-12  
 Dependências: UX-03
 
 #### Diagnóstico e evidência
@@ -452,27 +452,27 @@ Ampliar testes de contrato e de permissões por papel, normalizando respostas na
 
 #### Critérios de aceitação
 
-- [ ] Matriz mestre, dono, delegado, observador e terceiro é coberta.
-- [ ] Respostas parciais não causam exceção no frontend.
-- [ ] Recursos privados não são serializados para atores sem permissão.
-- [ ] Alterações de contratos exigem testes front e back correspondentes.
+- [x] Matriz mestre, dono, delegado, observador e terceiro é coberta por testes unitários de controle.
+- [x] Respostas parciais não causam exceção no frontend.
+- [x] Recursos privados não são serializados para atores sem permissão.
+- [x] Alterações de contratos exigem testes front e back correspondentes.
 
 #### Checklist
 
-- [ ] Solução definida.
-- [ ] Implementação concluída.
-- [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Solução definida.
+- [x] Implementação concluída.
+- [x] Critérios de aceitação verificados.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados:
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: Inventariar endpoints e payloads de sessão com visibilidade variável.
+- Arquivos/PR: `assistenterpg-back/src/sessao/sessao.service.ts`, `assistenterpg-front/src/lib/types/campanha.types.ts`, `assistenterpg-front/src/lib/campanha/sessao-atualizacoes.ts`, cartões e painéis de NPC da sessão.
+- Testes e resultados: frontend — `sessao-atualizacoes.test.ts` (7 testes), suíte completa (60 arquivos, 370 testes), lint e build aprovados; backend — `sessao.service.spec.ts` (137 testes), lint, build e `prisma validate` aprovados. CI remoto será registrado após a publicação.
+- Commit: pendente deste lote.
+- Deploy/migration, se aplicável: sem migration ou seed; deploy pendente.
+- Pendências e próxima ação: executar a bateria manual autenticada dos papéis após o deploy e registrar resultado.
 
 ### COD-04 — Seletores reutilizáveis de catálogo
 
@@ -1060,6 +1060,13 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | --- | --- | --- | --- | --- |
 | — | — | — | — | — |
 
+### Sessão — contratos, privacidade e controle delegado
+
+- [ ] Como mestre, abrir uma sessão com personagens e NPCs: todos os cartões operacionais, recursos e ações devem estar disponíveis.
+- [ ] Como dono do personagem e como controlador delegado, confirmar acesso completo somente ao participante sob seu controle e ajuste de recursos atuais.
+- [ ] Como jogador sem delegação e como observador, confirmar que personagens de terceiros exibem apenas o resumo permitido e NPCs exibem somente nome/tipo, sem recursos, ações, atributos ou condições privadas.
+- [ ] Atualizar a sessão por polling e, quando disponível, Socket.IO enquanto há um cartão resumido: a tela não pode desmontar nem apresentar exceção no console.
+
 ## 13. Histórico de acompanhamento
 
 | Data | IDs | Alteração | Evidência | Próxima etapa |
@@ -1067,6 +1074,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-11 | Todos | Auditoria criada; 23 melhorias registradas como pendentes. | Testes, builds, lint, Vercel e TiDB descritos na seção 3. | Priorizar P1: OPS-01, COD-01, COD-02, DS-01, UX-01 a UX-04, COD-03 e OPS-02. |
 | 2026-09-12 | OPS-01, COD-01, COD-02 | Atualizadas dependências compatíveis, scripts de lint e workflow de qualidade; ajustados fixtures expostos pelo novo typecheck. | Frontend: audit 0, lint, 368 testes e build aprovados. Backend: lint, 868 testes, build e Prisma aprovados; 3 alertas Prisma permanecem. | Publicar e validar o workflow remoto; tratar Prisma em upgrade dedicado. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
+| 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 
 ## 14. Próxima priorização recomendada
 

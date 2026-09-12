@@ -14,7 +14,7 @@ import { SessionSegmentedBar } from '@/components/campanha/sessao/SessionSegment
 import type {
   AlvoEncontroSocialSessao,
   CondicaoAtivaSessaoCampanha,
-  NpcSessaoCampanha,
+  NpcSessaoCampanhaCompleto,
 } from '@/lib/types';
 import type {
   AjustesRecursosNpc,
@@ -76,7 +76,7 @@ function criarMetaItem(
 }
 
 function montarMetadadosAcao(
-  acao: NpcSessaoCampanha['acoes'][number],
+  acao: NpcSessaoCampanhaCompleto['acoes'][number],
 ): MetadadosAcao {
   const primario = [
     criarMetaItem('Alcance', acao.alcance),
@@ -104,7 +104,7 @@ function extrairExpressaoDice(texto?: string | null): string | null {
   return match?.[0] ?? null;
 }
 
-function formatarVinculoNpc(npc: NpcSessaoCampanha): string | null {
+function formatarVinculoNpc(npc: NpcSessaoCampanhaCompleto): string | null {
   if (!npc.vinculo) return null;
   const dono = npc.vinculo.personagemDono?.nome;
   const tipo =
@@ -117,7 +117,7 @@ function formatarVinculoNpc(npc: NpcSessaoCampanha): string | null {
 }
 
 type NpcSessionCardProps = {
-  npc: NpcSessaoCampanha;
+  npc: NpcSessaoCampanhaCompleto;
   iniciativaValor: number | null;
   podeControlarSessao: boolean;
   sessaoEncerrada: boolean;
@@ -127,7 +127,7 @@ type NpcSessionCardProps = {
   salvando: boolean;
   removendo: boolean;
   onAtualizarCampo: (
-    npc: NpcSessaoCampanha,
+    npc: NpcSessaoCampanhaCompleto,
     campo: keyof NpcEditavel,
     valor: string,
   ) => void;
@@ -637,7 +637,7 @@ export function NpcSessionCard({
     };
 
     const resolverDadosNpc = (
-      pericia: NpcSessaoCampanha['pericias'][number],
+      pericia: NpcSessaoCampanhaCompleto['pericias'][number],
     ) => {
       if (npc.atributos && pericia.atributoBase) {
         const atributoCodigo = pericia.atributoBase as AtributoBaseCodigo;
@@ -650,7 +650,7 @@ export function NpcSessionCard({
     };
 
     const handleRolarPericiaNpc = (
-      pericia: NpcSessaoCampanha['pericias'][number],
+      pericia: NpcSessaoCampanhaCompleto['pericias'][number],
     ) => {
       const { dados, keepMode } = resolverDadosNpc(pericia);
       onRolarPericia({
@@ -668,7 +668,7 @@ export function NpcSessionCard({
     };
 
     const handleRolarAtaqueNpc = (
-      pericia: NpcSessaoCampanha['pericias'][number],
+      pericia: NpcSessaoCampanhaCompleto['pericias'][number],
     ) => {
       const { dados, keepMode } = resolverDadosNpc(pericia);
       onRolarPericia({

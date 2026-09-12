@@ -344,6 +344,55 @@ describe('SessaoService', () => {
     ).toBe(false);
   });
 
+  it('mantém a matriz de controle de NPC para mestre, dono, delegado e terceiros', () => {
+    const podeControlar = (
+      ehMestre: boolean,
+      usuarioId: number,
+      npc: {
+        controladorUsuarioId: number | null;
+        personagemDono?: { donoId: number } | null;
+        personagemControladorSessao?: {
+          controladorUsuarioId: number | null;
+        } | null;
+      },
+    ) => (service as any).podeControlarNpcSessao(ehMestre, usuarioId, npc);
+    const npcSemControleDireto = {
+      controladorUsuarioId: null,
+      personagemDono: { donoId: 20 },
+      personagemControladorSessao: { controladorUsuarioId: 30 },
+    };
+
+    expect(podeControlar(true, 10, npcSemControleDireto)).toBe(true);
+    expect(podeControlar(false, 20, npcSemControleDireto)).toBe(true);
+    expect(podeControlar(false, 30, npcSemControleDireto)).toBe(true);
+    // Observador e terceiro não possuem qualquer vínculo operacional.
+    expect(podeControlar(false, 40, npcSemControleDireto)).toBe(false);
+    expect(podeControlar(false, 50, npcSemControleDireto)).toBe(false);
+  });
+
+  it('monta resumo de NPC sem dados privados e com condições como lista vazia', () => {
+    const resumo = (service as any).montarResumoNpcSessao({
+      id: 71,
+      nomeExibicao: 'Ameaça desconhecida',
+      fichaTipo: 'AMEACA',
+      tipo: 'MALDICAO',
+      ocultoJogadores: false,
+    });
+
+    expect(resumo).toEqual({
+      npcSessaoId: 71,
+      nome: 'Ameaça desconhecida',
+      fichaTipo: 'AMEACA',
+      tipo: 'MALDICAO',
+      visibilidade: 'resumida',
+      ocultoJogadores: false,
+      condicoesAtivas: [],
+    });
+    expect(resumo).not.toHaveProperty('pontosVidaAtual');
+    expect(resumo).not.toHaveProperty('acoes');
+    expect(resumo).not.toHaveProperty('atributos');
+  });
+
   it('rejeita UUID reutilizado em mutacao com intencao diferente', async () => {
     (prisma as any).eventoSessao.findFirst = jest.fn().mockResolvedValue({
       dados: {

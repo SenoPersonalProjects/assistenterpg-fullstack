@@ -5,7 +5,10 @@ import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
-import type { NpcSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
+import type {
+  NpcSessaoCampanhaCompleto,
+  SessaoCampanhaDetalhe,
+} from '@/lib/types';
 
 type AlvoControle =
   | { tipo: 'PERSONAGEM'; id: number; nome: string; controladorUsuarioId: number | null }
@@ -15,7 +18,7 @@ type Props = {
   elencoControladoPeloMestre: boolean;
   participantes: SessaoCampanhaDetalhe['participantes'];
   personagens: SessaoCampanhaDetalhe['cards'];
-  npcs: NpcSessaoCampanha[];
+  npcs: NpcSessaoCampanhaCompleto[];
   atualizando: boolean;
   onAtualizarElenco: (ativo: boolean) => void;
   onAtualizarControlador: (
@@ -42,7 +45,7 @@ export function SessionRosterControlPanel({
       nome: card.nomePersonagem,
       controladorUsuarioId: card.controladorUsuarioId ?? null,
     });
-  const abrirNpc = (npc: NpcSessaoCampanha) =>
+  const abrirNpc = (npc: NpcSessaoCampanhaCompleto) =>
     setAlvo({
       tipo: 'NPC',
       id: npc.npcSessaoId,
@@ -75,7 +78,7 @@ export function SessionRosterControlPanel({
             nome: card.nomePersonagem,
             controladorUsuarioId: card.controladorUsuarioId ?? null,
             onClick: () => abrirPersonagem(card),
-          })), ...npcs.filter((npc) => npc.visibilidade !== 'resumida').map((npc) => ({
+          })), ...npcs.map((npc) => ({
             tipo: 'NPC' as const,
             nome: npc.nome,
             controladorUsuarioId: npc.controladorUsuarioId ?? null,

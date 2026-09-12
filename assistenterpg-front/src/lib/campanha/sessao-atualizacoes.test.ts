@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { SessaoCampanhaDetalhe } from '@/lib/types';
+import type {
+  NpcSessaoCampanhaCompleto,
+  SessaoCampanhaDetalhe,
+} from '@/lib/types';
 import {
   aplicarAtualizacaoIncrementalSessao,
   aplicarAtualizacaoOtimistaRecursosNpc,
@@ -44,13 +47,43 @@ describe('atualizações incrementais de sessão', () => {
     const parcial = {
       ...detalheBase(),
       cards: [{ ...detalheBase().cards[0], condicoesAtivas: undefined }],
-      npcs: [{ npcSessaoId: 51, condicoesAtivas: null }],
+      npcs: [{ npcSessaoId: 51, condicoesAtivas: null, visibilidade: 'resumida' }],
     } as unknown as SessaoCampanhaDetalhe;
 
     const normalizado = normalizarDetalheSessao(parcial);
 
     expect(normalizado.cards[0].condicoesAtivas).toEqual([]);
     expect(normalizado.npcs[0].condicoesAtivas).toEqual([]);
+    expect(normalizado.npcs[0].visibilidade).toBe('resumida');
+  });
+
+  it('trata snapshot sem marcador e sem recursos como resumo público', () => {
+    const parcial = {
+      ...detalheBase(),
+      npcs: [{ npcSessaoId: 51, condicoesAtivas: [] }],
+    } as unknown as SessaoCampanhaDetalhe;
+
+    const normalizado = normalizarDetalheSessao(parcial);
+
+    expect(normalizado.npcs[0].visibilidade).toBe('resumida');
+  });
+
+  it('compatibiliza snapshot legado completo quando os recursos estão presentes', () => {
+    const parcial = {
+      ...detalheBase(),
+      npcs: [
+        {
+          npcSessaoId: 51,
+          pontosVidaAtual: 8,
+          pontosVidaMax: 12,
+          condicoesAtivas: [],
+        },
+      ],
+    } as unknown as SessaoCampanhaDetalhe;
+
+    const normalizado = normalizarDetalheSessao(parcial);
+
+    expect(normalizado.npcs[0].visibilidade).toBe('completa');
   });
 
   it('aplica somente o recurso e as condições do personagem alvo', () => {
@@ -117,8 +150,20 @@ describe('atualizações incrementais de sessão', () => {
     const detalhe = {
       ...detalheBase(),
       npcs: [
-        { npcSessaoId: 51, pontosVidaAtual: 12, peAtual: 5, condicoesAtivas: [] },
-        { npcSessaoId: 52, pontosVidaAtual: 9, peAtual: 2, condicoesAtivas: [] },
+        {
+          npcSessaoId: 51,
+          pontosVidaAtual: 12,
+          pontosVidaMax: 12,
+          peAtual: 5,
+          condicoesAtivas: [],
+        },
+        {
+          npcSessaoId: 52,
+          pontosVidaAtual: 9,
+          pontosVidaMax: 9,
+          peAtual: 2,
+          condicoesAtivas: [],
+        },
       ],
     } as unknown as SessaoCampanhaDetalhe;
 
@@ -127,10 +172,15 @@ describe('atualizações incrementais de sessão', () => {
       peAtual: 3,
     });
 
-    expect(atualizado.npcs[0].pontosVidaAtual).toBe(8);
-    expect(atualizado.npcs[0].peAtual).toBe(3);
-    expect(atualizado.npcs[1].pontosVidaAtual).toBe(9);
-    expect(detalhe.npcs[0].pontosVidaAtual).toBe(12);
+    const npcAtualizado = atualizado.npcs[0] as NpcSessaoCampanhaCompleto;
+    const npcNaoAlterado = atualizado.npcs[1] as NpcSessaoCampanhaCompleto;
+    expect(npcAtualizado.pontosVidaAtual).toBe(8);
+    expect(npcAtualizado.peAtual).toBe(3);
+    expect(npcNaoAlterado.pontosVidaAtual).toBe(9);
+    expect(
+      (detalhe.npcs[0] as unknown as { pontosVidaAtual: number })
+        .pontosVidaAtual,
+    ).toBe(12);
   });
 
   it('gera chaves independentes para ordenação por campo e inspiração', () => {

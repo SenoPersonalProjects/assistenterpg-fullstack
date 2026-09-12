@@ -1,10 +1,10 @@
 'use client';
 
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import type { NpcSessaoCampanha } from '@/lib/types';
+import type { NpcSessaoCampanhaCompleto } from '@/lib/types';
 
 type ConfirmNpcRemovalModalProps = {
-  npc: NpcSessaoCampanha | null;
+  npc: NpcSessaoCampanhaCompleto | null;
   onClose: () => void;
   onConfirm: (npcSessaoId: number) => void;
   removendoNpcId: number | null;
