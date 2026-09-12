@@ -15,9 +15,9 @@ import { TipoTecnicaAmaldicoada, TipoFonte } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
 
 export class CreateTecnicaDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  codigo: string;
+  codigo?: string;
 
   @IsNotEmpty()
   @IsString()

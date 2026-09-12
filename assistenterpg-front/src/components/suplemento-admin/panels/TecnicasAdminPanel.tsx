@@ -26,6 +26,7 @@ import { JsonGuideModal } from '@/components/import-export/JsonGuideModal';
 import { FONTE_OPTIONS, fonteBadgeColor, formatFonte, toOptionalNumber } from '../common/fonte-utils';
 import {
   apiAdminGetTecnicasAmaldicoadas,
+  apiAdminGetClas,
   apiAdminCreateTecnicaAmaldicoada,
   apiAdminUpdateTecnicaAmaldicoada,
   apiAdminGetGuiaImportacaoTecnicasJson,
@@ -37,6 +38,7 @@ import {
   type TecnicaAmaldicoadaCatalogo,
   type ListTecnicasFilters,
   type SuplementoCatalogo,
+  type ClaCatalogo,
   type TipoFonte,
   type CreateTecnicaPayload,
   type UpdateTecnicaPayload,
@@ -55,12 +57,11 @@ type DraftFilters = {
 };
 
 type TecnicaFormState = {
-  codigo: string;
   nome: string;
   descricao: string;
   tipo: TipoTecnicaAmaldicoada;
   hereditaria: boolean;
-  clasHereditariosCsv: string;
+  clasHereditarios: string[];
   linkExterno: string;
   requisitosJson: string;
   fonte: TipoFonte;
@@ -117,16 +118,6 @@ function parseOptionalJson(input: string): { value?: unknown } {
   }
 }
 
-function parseClasCsv(input: string): string[] | undefined {
-  const values = input
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  const unique = Array.from(new Set(values));
-  return unique.length > 0 ? unique : undefined;
-}
-
 function extractClaNomes(item?: TecnicaAmaldicoadaCatalogo | null): string[] {
   if (!item?.clasHereditarios?.length) return [];
 
@@ -137,12 +128,11 @@ function extractClaNomes(item?: TecnicaAmaldicoadaCatalogo | null): string[] {
 
 function buildFormState(item?: TecnicaAmaldicoadaCatalogo | null): TecnicaFormState {
   return {
-    codigo: item?.codigo ?? '',
     nome: item?.nome ?? '',
     descricao: item?.descricao ?? '',
     tipo: item?.tipo ?? TipoTecnicaAmaldicoada.INATA,
     hereditaria: item?.hereditaria ?? false,
-    clasHereditariosCsv: extractClaNomes(item).join(', '),
+    clasHereditarios: extractClaNomes(item),
     linkExterno: item?.linkExterno ?? '',
     requisitosJson: stringifyUnknown(item?.requisitos),
     fonte: item?.fonte ?? ('SISTEMA_BASE' as TipoFonte),
@@ -223,6 +213,8 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
   const [form, setForm] = useState<TecnicaFormState>(buildFormState(tecnica));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [clas, setClas] = useState<ClaCatalogo[]>([]);
+  const [loadingClas, setLoadingClas] = useState(false);
   const isEditing = Boolean(tecnica?.id);
 
   useEffect(() => {
@@ -230,6 +222,32 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
     setForm(buildFormState(tecnica));
     setErrors({});
   }, [isOpen, tecnica]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let active = true;
+    setLoadingClas(true);
+
+    void apiAdminGetClas()
+      .then((itens) => {
+        if (active) setClas(itens);
+      })
+      .catch((error) => {
+        if (!active) return;
+        const userError = criarErroUsuario(error);
+        showToast(`Não foi possível carregar os clãs: ${userError.message}`, 'error', {
+          support: userError,
+        });
+      })
+      .finally(() => {
+        if (active) setLoadingClas(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isOpen, showToast]);
 
   function setField<K extends keyof TecnicaFormState>(key: K, value: TecnicaFormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -244,10 +262,13 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
   function validate(): boolean {
     const next: Record<string, string> = {};
 
-    if (!isEditing && !form.codigo.trim()) next.codigo = 'Código é obrigatório.';
     if (!form.nome.trim()) next.nome = 'Nome é obrigatório.';
     if (!form.descricao.trim()) next.descricao = 'Descrição é obrigatória.';
     if (!form.tipo) next.tipo = 'Tipo é obrigatório.';
+
+    if (form.hereditaria && form.clasHereditarios.length === 0) {
+      next.clasHereditarios = 'Selecione pelo menos um clã para a técnica hereditária.';
+    }
 
     if (form.fonte === 'SUPLEMENTO' && !form.suplementoId.trim()) {
       next.suplementoId = 'Selecione um suplemento.';
@@ -262,7 +283,8 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
 
     const requisitosParsed = parseOptionalJson(form.requisitosJson);
     const suplementoId = toOptionalNumber(form.suplementoId);
-    const clasHereditarios = parseClasCsv(form.clasHereditariosCsv);
+    const clasHereditarios =
+      form.clasHereditarios.length > 0 ? form.clasHereditarios : undefined;
     const linkExterno = form.linkExterno.trim();
     const requisitos = requisitosParsed.value;
 
@@ -286,7 +308,6 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
         showToast('Técnica atualizada com sucesso.', 'success');
       } else {
         const payload: CreateTecnicaPayload = {
-          codigo: form.codigo.trim().toUpperCase(),
           nome: form.nome.trim(),
           descricao: form.descricao.trim(),
           tipo: form.tipo,
@@ -338,14 +359,6 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Input
-            label="Código *"
-            value={form.codigo}
-            onChange={(e) => setField('codigo', e.target.value.toUpperCase())}
-            disabled={isEditing}
-            error={errors.codigo}
-            helperText={isEditing ? 'Código não pode ser alterado no update.' : undefined}
-          />
-          <Input
             label="Nome *"
             value={form.nome}
             onChange={(e) => setField('nome', e.target.value)}
@@ -377,13 +390,45 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
           onChange={(e) => setField('hereditaria', e.target.checked)}
         />
 
-        <Input
-          label="Clãs hereditários (nomes CSV)"
-          value={form.clasHereditariosCsv}
-          onChange={(e) => setField('clasHereditariosCsv', e.target.value)}
-          placeholder="Ex: Gojo, Kamo, Zenin"
-          helperText="No update, deixe vazio para limpar os clãs hereditários."
-        />
+        {form.hereditaria && (
+          <div className="space-y-2 rounded-xl border border-app-border p-3">
+            <div>
+              <p className="text-sm font-semibold text-app-fg">Clãs hereditários</p>
+              <p className="text-xs text-app-muted">
+                Selecione os clãs compatíveis. Deixe todos desmarcados para limpar os vínculos.
+              </p>
+            </div>
+            {loadingClas ? (
+              <Loading size="sm" />
+            ) : clas.length === 0 ? (
+              <p className="text-sm text-app-muted">Nenhum clã disponível para seleção.</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {clas.map((cla) => {
+                  const selected = form.clasHereditarios.includes(cla.nome);
+                  return (
+                    <Checkbox
+                      key={cla.id}
+                      label={cla.nome}
+                      checked={selected}
+                      onChange={(event) =>
+                        setField(
+                          'clasHereditarios',
+                          event.target.checked
+                            ? [...form.clasHereditarios, cla.nome]
+                            : form.clasHereditarios.filter((nome) => nome !== cla.nome),
+                        )
+                      }
+                    />
+                  );
+                })}
+              </div>
+            )}
+            {errors.clasHereditarios && (
+              <p className="text-xs text-app-danger">{errors.clasHereditarios}</p>
+            )}
+          </div>
+        )}
 
         <Textarea
           label="Descrição *"
@@ -394,11 +439,12 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
         />
 
         <Textarea
-          label="Requisitos (JSON ou texto livre)"
+          label="Requisitos"
           rows={4}
           value={form.requisitosJson}
           onChange={(e) => setField('requisitosJson', e.target.value)}
-          placeholder='Ex: { "nivelMinimo": 5 }'
+          placeholder="Ex.: Nível 5 e grau 2 em Técnica Amaldiçoada."
+          helperText="Use texto claro para a consulta no sistema. Dados estruturados legados continuam compatíveis."
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

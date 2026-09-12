@@ -25,6 +25,16 @@ describe('CreateTecnicaDto', () => {
     expect(dto.clasHereditarios).toEqual(['Uchiha', 'Senju']);
   });
 
+  it('deve aceitar criação sem código para a geração automática no serviço', () => {
+    const dto = plainToInstance(CreateTecnicaDto, {
+      nome: basePayload.nome,
+      descricao: basePayload.descricao,
+      tipo: basePayload.tipo,
+    });
+
+    expect(validateSync(dto)).toHaveLength(0);
+  });
+
   it('deve falhar quando clasHereditarios contiver string vazia', () => {
     const dto = plainToInstance(CreateTecnicaDto, {
       ...basePayload,

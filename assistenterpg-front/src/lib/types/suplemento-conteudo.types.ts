@@ -194,7 +194,8 @@ export type CreateCondicaoPayload = {
 export type UpdateCondicaoPayload = Partial<CreateCondicaoPayload>;
 
 export type CreateTecnicaPayload = ConteudoComFonte & {
-  codigo: string;
+  /** Código técnico opcional, reservado a importadores administrativos. */
+  codigo?: string;
   nome: string;
   descricao: string;
   tipo: TipoTecnicaAmaldicoada;

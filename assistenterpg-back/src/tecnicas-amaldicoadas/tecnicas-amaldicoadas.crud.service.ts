@@ -33,6 +33,35 @@ export class TecnicasAmaldicoadasCrudService {
     private readonly clasService: TecnicasAmaldicoadasClasService,
   ) {}
 
+  private normalizarCodigo(nome: string): string {
+    const base = nome
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+
+    return `TECNICA_${base || 'SEM_NOME'}`;
+  }
+
+  private async gerarCodigoDisponivel(nome: string): Promise<string> {
+    const base = this.normalizarCodigo(nome);
+    let candidato = base;
+    let sufixo = 2;
+
+    while (
+      await this.prisma.tecnicaAmaldicoada.findUnique({
+        where: { codigo: candidato },
+        select: { id: true },
+      })
+    ) {
+      candidato = `${base}_${sufixo}`;
+      sufixo += 1;
+    }
+
+    return candidato;
+  }
+
   async findAllTecnicas(
     filtros: FiltrarTecnicasDto,
   ): Promise<TecnicaDetalhadaDto[]> {
@@ -121,14 +150,17 @@ export class TecnicasAmaldicoadasCrudService {
 
   async createTecnica(dto: CreateTecnicaDto): Promise<TecnicaDetalhadaDto> {
     try {
+      const codigo =
+        dto.codigo?.trim().toUpperCase() ||
+        (await this.gerarCodigoDisponivel(dto.nome));
       const existe = await this.prisma.tecnicaAmaldicoada.findFirst({
         where: {
-          OR: [{ codigo: dto.codigo }, { nome: dto.nome }],
+          OR: [{ codigo }, { nome: dto.nome }],
         },
       });
 
       if (existe) {
-        throw new TecnicaCodigoOuNomeDuplicadoException(dto.codigo, dto.nome);
+        throw new TecnicaCodigoOuNomeDuplicadoException(codigo, dto.nome);
       }
 
       if (dto.hereditaria && dto.tipo !== TipoTecnicaAmaldicoada.INATA) {
@@ -153,7 +185,7 @@ export class TecnicasAmaldicoadasCrudService {
 
       const tecnica = await this.prisma.tecnicaAmaldicoada.create({
         data: {
-          codigo: dto.codigo,
+          codigo,
           nome: dto.nome,
           descricao: dto.descricao,
           tipo: dto.tipo,
