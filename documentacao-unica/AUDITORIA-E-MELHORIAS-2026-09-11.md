@@ -224,9 +224,9 @@ Concluir seletores pesquisáveis, geração de código no backend e editores est
 
 #### Evidências
 
-- Arquivos/PR: `TecnicasAdminPanel`, `ClasAdminPanel`, `ProficienciasAdminPanel`, `RequisitosEstruturadosEditor`, `CaracteristicasEstruturadasEditor`, `MecanicasEstruturadasEditor`, DTOs e serviços de catálogo.
-- Testes e resultados: frontend — lint, 370 testes e build aprovados; backend — 6 testes direcionados, lint, build e `prisma validate` aprovados em 2026-09-12. Os Quality Gates remotos concluíram com êxito.
-- Commit: `e7a76a5 feat(catalogo): simplifica cadastro de técnicas`; correção de formatação `968f89d`; `cccee52 feat(catalogo): guia técnicas hereditárias`; `88a2f2d feat(homebrew): guia requisitos de conteúdo`; `7d32606 feat(homebrew): estrutura características de clãs`; `22f951d feat(homebrew): guia mecânicas de poderes`; `1fe1161 feat(homebrew): guia requisitos de variações`; `7ec969a feat(catalogo): automatiza códigos de proficiências`.
+- Arquivos/PR: `TecnicasAdminPanel`, `ClasAdminPanel`, `ProficienciasAdminPanel`, `EquipamentosAdminPanel`, `TiposGrauAdminPanel`, `RequisitosEstruturadosEditor`, `CaracteristicasEstruturadasEditor`, `MecanicasEstruturadasEditor`, DTOs e serviços de catálogo.
+- Testes e resultados: frontend — lint, 370 testes e build aprovados; backend — 5 suítes/12 testes direcionados, lint, build e `prisma validate` aprovados em 2026-09-12. O Quality Gate remoto do lote de equipamentos e tipos de grau foi aprovado.
+- Commit: `e7a76a5 feat(catalogo): simplifica cadastro de técnicas`; correção de formatação `968f89d`; `cccee52 feat(catalogo): guia técnicas hereditárias`; `88a2f2d feat(homebrew): guia requisitos de conteúdo`; `7d32606 feat(homebrew): estrutura características de clãs`; `22f951d feat(homebrew): guia mecânicas de poderes`; `1fe1161 feat(homebrew): guia requisitos de variações`; `7ec969a feat(catalogo): automatiza códigos de proficiências`; `a795b9f feat(catalogo): automatiza códigos de cadastros`.
 - Deploy/migration, se aplicável: sem migration ou seed; publicação automática confirmada por resposta HTTP 200 da produção.
 - Pendências e próxima ação: migrar os demais painéis de catálogo e substituir o editor textual de requisitos por controles estruturados, preservando JSON apenas para importação/exportação avançada.
 
@@ -236,7 +236,14 @@ O cadastro comum de técnicas não solicita mais código: o backend deriva um c�
 
 O cadastro de clãs também deixou de solicitar IDs de técnicas em CSV. Ele agora apresenta somente técnicas hereditárias, com nome e descrição, e mantém a persistência pelos IDs do contrato existente.
 
-Os formulários reutilizados de técnica, clã, caminho, poder genérico e variação de técnica agora compartilham um editor de requisitos. Ele oferece regras conhecidas e “Outro”, preserva valores estruturados existentes e deixa a descrição livre como opção padrão. As características de clã também deixaram o array JSON e ganharam editor de nome e descrição, preservando propriedades adicionais dos registros legados. Poderes genéricos agora possuem editor guiado de mecânicas especiais para custos, dano, alcance, duração, limite de uso e efeitos contínuos. O cadastro de proficiências não exige mais código técnico manual.
+Os formulários reutilizados de técnica, clã, caminho, poder genérico e variação de técnica agora compartilham um editor de requisitos. Ele oferece regras conhecidas e “Outro”, preserva valores estruturados existentes e deixa a descrição livre como opção padrão. As características de clã também deixaram o array JSON e ganharam editor de nome e descrição, preservando propriedades adicionais dos registros legados. Poderes genéricos agora possuem editor guiado de mecânicas especiais para custos, dano, alcance, duração, limite de uso e efeitos contínuos. Os cadastros de proficiências, equipamentos e tipos de grau não exigem mais código técnico manual: o backend o gera a partir do nome, acrescenta sufixo seguro em colisões e preserva os códigos persistidos nas edições.
+
+#### Validação manual acumulada
+
+- [ ] Criar equipamento e tipo de grau sem informar código e confirmar a geração automática.
+- [ ] Criar nomes equivalentes e confirmar o sufixo único, sem alterar o código do registro original.
+- [ ] Editar registros existentes e confirmar que seus códigos permanecem imutáveis.
+- [ ] Confirmar que importadores administrativos com código explícito seguem compatíveis.
 
 ### UX-04 — Acessibilidade dos campos básicos
 
@@ -1095,6 +1102,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-12 | UX-03 | Mecânicas especiais de poderes migraram de JSON para editor guiado. | `22f951d`; [Quality Gate 34699473681](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34699473681) aprovado e produção HTTP 200. | Revisar formulários restantes. |
 | 2026-09-12 | UX-03 | Requisitos específicos de variações de técnica migraram de JSON para editor guiado. | `1fe1161`; [Quality Gate 34699914529](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34699914529) aprovado e produção HTTP 200. | Revisar formulários restantes. |
 | 2026-09-12 | UX-03 | Cadastro de proficiências deixou de exigir código técnico manual. | `7ec969a`; validações locais direcionadas registradas em UX-03. | Publicar e validar o gate remoto; seguir para equipamentos e tipos de grau. |
+| 2026-09-12 | UX-03 | Cadastros de equipamentos e tipos de grau deixaram de exigir código técnico manual; o backend gera código estável e acrescenta sufixo em colisões. | `a795b9f`; frontend: lint, 370 testes e build; backend: 5 suítes/12 testes, lint, build e Prisma validate; [Quality Gate 34704638121](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34704638121) aprovado. | Manter a bateria manual acumulada e migrar os painéis restantes. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
