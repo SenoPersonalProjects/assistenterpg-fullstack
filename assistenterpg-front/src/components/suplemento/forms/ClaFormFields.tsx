@@ -2,9 +2,9 @@
 
 'use client';
 
-import { Textarea } from '@/components/ui/Textarea';
 import type { JsonImportGuideReferenceRow } from '@/lib/types';
 import { CatalogReferenceSelect } from './CatalogReferenceSelect';
+import { CaracteristicasEstruturadasEditor } from './CaracteristicasEstruturadasEditor';
 import { RequisitosEstruturadosEditor } from './RequisitosEstruturadosEditor';
 import type { HomebrewFormDados } from '../hooks/useHomebrewForm';
 
@@ -25,23 +25,9 @@ export function ClaFormFields({ dados, onChange, tecnicas }: Props) {
         onChange={(tecnicaInataId) => onChange({ tecnicaInataId })}
       />
 
-      <Textarea
-        label="Características do clã (JSON array)"
-        value={
-          Array.isArray(dados.caracteristicas)
-            ? JSON.stringify(dados.caracteristicas, null, 2)
-            : dados.caracteristicas || '[]'
-        }
-        onChange={(e) => {
-          try {
-            const parsed = JSON.parse(e.target.value);
-            onChange({ caracteristicas: Array.isArray(parsed) ? parsed : [] });
-          } catch {
-            onChange({ caracteristicas: e.target.value });
-          }
-        }}
-        placeholder='Ex: [{"nome": "Grande Clã", "descrição": "Pertence aos grandes clãs"}]'
-        rows={5}
+      <CaracteristicasEstruturadasEditor
+        value={dados.caracteristicas}
+        onChange={(caracteristicas) => onChange({ caracteristicas })}
       />
 
       <RequisitosEstruturadosEditor
