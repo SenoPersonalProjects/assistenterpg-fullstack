@@ -26,7 +26,9 @@ describe('TecnicasAmaldicoadasCrudService', () => {
       clasService as never,
     );
 
-    jest.spyOn(service, 'findOneTecnica').mockResolvedValue({ id: 77 } as never);
+    jest
+      .spyOn(service, 'findOneTecnica')
+      .mockResolvedValue({ id: 77 } as never);
 
     return { service, prisma, validationsService };
   }
