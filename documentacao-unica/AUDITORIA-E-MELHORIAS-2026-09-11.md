@@ -283,13 +283,13 @@ Unificar o contrato acessível de `Input`, `Select`, `Textarea` e controles equi
 
 - Arquivos/PR: Input, Select, Textarea, Checkbox, DateTimePicker e field-accessibility.
 - Testes e resultados: field-accessibility.test.ts (2 cenários), lint, 372 testes e build do frontend aprovados em 2026-09-12.
-- Commit: 1dd2a61 feat(ui): unifica acessibilidade dos campos.
+- Commit: 1dd2a61 feat(ui): unifica acessibilidade dos campos; c0ee6a8 fix(ui): corrige semântica do seletor de data.
 - Deploy/migration, se aplicável: sem migration ou seed; publicação pendente de validação automática.
 - Pendências e próxima ação: executar a verificação manual acumulada com leitor de tela e adicionar teste de interação de componente quando houver infraestrutura DOM.
 
 #### Atualização 2026-09-12
 
-Os campos-base compartilham um único resolvedor de acessibilidade. IDs explícitos e gerados produzem IDs distintos para ajuda e erro; mensagens externas, ajuda e erro são combinados em aria-describedby, enquanto o erro também é anunciado por aria-errormessage e role="alert". Ajuda deixa de desaparecer quando há erro. O seletor de data/hora e o checkbox adotaram o mesmo contrato.
+Os campos-base compartilham um único resolvedor de acessibilidade. IDs explícitos e gerados produzem IDs distintos para ajuda e erro; mensagens externas, ajuda e erro são combinados em aria-describedby. Campos nativos também expõem aria-errormessage, e todo erro usa role="alert". Ajuda deixa de desaparecer quando há erro. O seletor de data/hora e o checkbox adotaram o mesmo contrato de descrição, sem aplicar atributos inválidos ao botão do seletor.
 
 #### Validação manual acumulada
 
@@ -1116,7 +1116,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-12 | UX-03 | Cadastro de proficiências deixou de exigir código técnico manual. | `7ec969a`; validações locais direcionadas registradas em UX-03. | Publicar e validar o gate remoto; seguir para equipamentos e tipos de grau. |
 | 2026-09-12 | UX-03 | Cadastros de equipamentos e tipos de grau deixaram de exigir código técnico manual; o backend gera código estável e acrescenta sufixo em colisões. | `a795b9f`; frontend: lint, 370 testes e build; backend: 5 suítes/12 testes, lint, build e Prisma validate; [Quality Gate 34704638121](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34704638121) aprovado. | Manter a bateria manual acumulada e migrar os painéis restantes. |
 | 2026-09-12 | UX-03 | Habilidades gerais migraram requisitos e mecânicas de JSON manual para editores guiados; habilidades de técnica passaram a selecionar o tipo de grau pelo catálogo. | `4bde960`; frontend: lint, 370 testes e build; backend: 8 suítes/24 testes, lint, build e Prisma validate. | Publicar, acompanhar o Quality Gate e seguir com os cadastros relacionais restantes. |
-| 2026-09-12 | UX-04 | Campos-base passaram a compor rótulo, ajuda, erro e descrições externas pelo mesmo contrato acessível. | `1dd2a61`; 2 testes focados, lint, 372 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual com leitor de tela. |
+| 2026-09-12 | UX-04 | Campos-base passaram a compor rótulo, ajuda, erro e descrições externas pelo mesmo contrato acessível; o seletor de data/hora foi ajustado para manter semântica válida de botão. | `1dd2a61`, `c0ee6a8`; 2 testes focados, lint, 372 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual com leitor de tela. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
