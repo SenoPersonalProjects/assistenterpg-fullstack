@@ -1056,6 +1056,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 - [ ] Confirmar e cancelar diálogos por teclado: foco entra no diálogo, fica contido nele e retorna ao gatilho após fechar.
 - [ ] Forçar falha em uma confirmação assíncrona: o diálogo permanece aberto, preserva o contexto e exibe o erro junto à ação.
 - [ ] Conferir `Input`, `Select` e `Textarea` com ID explícito e gerado: rótulo aciona o campo; ajuda/erro são anunciados e o estado inválido é exposto.
+- [ ] Criar uma técnica sem informar código: conferir o código automático, a seleção de clãs por nome, a rejeição de técnica hereditária sem clã e a preservação de importações legadas com código explícito.
 - [ ] Conferir botões e badges primários, destrutivos, de aviso e desabilitados nos temas padrão, roxo, vermelho e verde, claro e escuro.
 
 ### Registro da bateria
