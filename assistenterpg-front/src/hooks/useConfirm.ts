@@ -30,7 +30,6 @@ export function useConfirm() {
     if (options?.onConfirm) {
       await options.onConfirm();
     }
-    handleClose();
   };
 
   return {

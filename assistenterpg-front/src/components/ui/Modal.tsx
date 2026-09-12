@@ -5,6 +5,7 @@ import React, { useRef } from 'react';
 import { Icon } from './Icon';
 import { Portal } from './Portal';
 import { useDialogLayer } from './DialogProvider';
+import { zIndexCamadaDialogo } from '@/lib/ui/dialog-layer';
 
 type ModalProps = {
   isOpen: boolean;
@@ -25,7 +26,7 @@ export function Modal({
 }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = React.useId();
-  const { isTopLayer } = useDialogLayer(isOpen, onClose, dialogRef);
+  const { isTopLayer, layerIndex } = useDialogLayer(isOpen, onClose, dialogRef);
 
   if (!isOpen) return null;
 
@@ -39,7 +40,10 @@ export function Modal({
 
   return (
     <Portal>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="fixed inset-0 flex items-center justify-center p-4"
+        style={{ zIndex: zIndexCamadaDialogo(layerIndex) }}
+      >
         {/* Backdrop */}
         <div
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -67,7 +71,7 @@ export function Modal({
               <h2 id={titleId} className="text-lg font-semibold text-app-fg">{title}</h2>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => isTopLayer && onClose()}
                 aria-label="Fechar diálogo"
                 className="text-app-muted hover:text-app-fg transition-colors"
               >

@@ -1,11 +1,12 @@
 // components/ui/ConfirmDialog.tsx
 'use client';
 
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Icon } from './Icon';
 import { Button } from './Button';
 import { Portal } from './Portal';
 import { useDialogLayer } from './DialogProvider';
+import { zIndexCamadaDialogo } from '@/lib/ui/dialog-layer';
 
 type ConfirmDialogProps = {
   isOpen: boolean;
@@ -39,16 +40,34 @@ export function ConfirmDialog({
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const { isTopLayer } = useDialogLayer(isOpen, onClose, dialogRef);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitting = confirmLoading || isSubmitting;
+  const solicitarFechamento = () => {
+    if (!submitting) onClose();
+  };
+  const { isTopLayer, layerIndex } = useDialogLayer(
+    isOpen,
+    solicitarFechamento,
+    dialogRef,
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setSubmissionError(null);
+    setIsSubmitting(false);
+  }, [isOpen]);
 
   const confirmar = async () => {
-    if (confirmDisabled || confirmLoading) return;
+    if (confirmDisabled || submitting) return;
     setSubmissionError(null);
+    setIsSubmitting(true);
     try {
       await onConfirm();
       onClose();
     } catch {
       setSubmissionError('Não foi possível concluir a ação. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -83,11 +102,14 @@ export function ConfirmDialog({
   return (
     <Portal>
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={() => isTopLayer && onClose()}
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ zIndex: zIndexCamadaDialogo(layerIndex) }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={() => isTopLayer && solicitarFechamento()}
+      />
 
       {/* Dialog */}
       <div
@@ -97,6 +119,7 @@ export function ConfirmDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        onClick={(event) => event.stopPropagation()}
       >
         {/* Header com ícone */}
         <div className="flex items-start gap-4 p-6 pb-4">
@@ -132,8 +155,9 @@ export function ConfirmDialog({
           <Button
             variant="ghost"
             size="md"
-            onClick={onClose}
+            onClick={solicitarFechamento}
             className="min-w-[100px]"
+            disabled={submitting}
           >
             {cancelLabel}
           </Button>
@@ -143,9 +167,9 @@ export function ConfirmDialog({
             size="md"
             onClick={confirmar}
             className={`min-w-[100px] ${config.buttonClass} ${confirmClassName}`}
-            disabled={confirmDisabled || confirmLoading}
+            disabled={confirmDisabled || submitting}
           >
-            {confirmLoading ? 'Processando...' : confirmLabel}
+            {submitting ? 'Processando...' : confirmLabel}
           </Button>
         </div>
       </div>
