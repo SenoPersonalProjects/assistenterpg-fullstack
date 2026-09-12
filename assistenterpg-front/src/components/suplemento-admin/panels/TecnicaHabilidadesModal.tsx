@@ -18,6 +18,7 @@ import { useConfirm } from '@/hooks/useConfirm';
 import { AdminPanelSurface } from '../common/AdminPanelScaffold';
 import {
   apiAdminGetHabilidadesDaTecnica,
+  apiAdminGetTiposGrau,
   apiAdminCreateHabilidadeDaTecnica,
   apiAdminUpdateHabilidadeDaTecnica,
   apiAdminDeleteHabilidadeDaTecnica,
@@ -39,6 +40,7 @@ import {
   type UpdateHabilidadeTecnicaPayload,
   type CreateVariacaoHabilidadeTecnicaPayload,
   type UpdateVariacaoHabilidadeTecnicaPayload,
+  type TipoGrauCatalogo,
 } from '@/lib/api';
 import type { UserErrorState } from '@/lib/types';
 
@@ -80,7 +82,6 @@ type DuracaoPresetValue =
   | 'PERSONALIZADA';
 
 type HabilidadeFormState = {
-  codigo: string;
   nome: string;
   descricao: string;
   execucao: TipoExecucao;
@@ -476,7 +477,6 @@ function buildHabilidadeFormState(item?: HabilidadeTecnicaCatalogo | null): Habi
   const duracao = parseDuracaoPreset(item?.duracao);
 
   return {
-    codigo: item?.codigo ?? '',
     nome: item?.nome ?? '',
     descricao: item?.descricao ?? '',
     execucao: item?.execucao ?? TipoExecucao.ACAO_PADRAO,
@@ -589,10 +589,17 @@ type HabilidadeFormModalProps = {
   isOpen: boolean;
   tecnicaId: number;
   habilidade?: HabilidadeTecnicaCatalogo | null;
+  tiposGrau: TipoGrauCatalogo[];
   onClose: (success?: boolean) => void;
 };
 
-function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: HabilidadeFormModalProps) {
+function HabilidadeFormModal({
+  isOpen,
+  tecnicaId,
+  habilidade,
+  tiposGrau,
+  onClose,
+}: HabilidadeFormModalProps) {
   const { showToast } = useToast();
   const [form, setForm] = useState<HabilidadeFormState>(buildHabilidadeFormState(habilidade));
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -883,11 +890,20 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
             error={errors.custoSustentacaoPE}
             helperText="Opcional. Sem valor = 0 PE/rodada."
           />
-          <Input
-            label="Grau tipo (código)"
+          <Select
+            label="Tipo de grau para escalonamento"
             value={form.grauTipoGrauCodigo}
             onChange={(e) => setField('grauTipoGrauCodigo', e.target.value)}
-          />
+            helperText="Opcional. Define qual grau habilita o escalonamento da habilidade."
+          >
+            <option value="">Nenhum</option>
+            {tiposGrau.map((tipoGrau) => (
+              <option key={tipoGrau.codigo} value={tipoGrau.codigo}>
+                {tipoGrau.nome}
+                {tipoGrau.descricao ? ' — ' + tipoGrau.descricao : ''}
+              </option>
+            ))}
+          </Select>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1972,6 +1988,7 @@ export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<UserErrorState | null>(null);
   const [items, setItems] = useState<HabilidadeTecnicaCatalogo[]>([]);
+  const [tiposGrau, setTiposGrau] = useState<TipoGrauCatalogo[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<HabilidadeTecnicaCatalogo | null>(null);
   const [variacoesModalOpen, setVariacoesModalOpen] = useState(false);
@@ -1991,8 +2008,12 @@ export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
     try {
       setLoading(true);
       setErro(null);
-      const data = await apiAdminGetHabilidadesDaTecnica(tecnicaId);
-      setItems(data);
+      const [habilidades, tipos] = await Promise.all([
+        apiAdminGetHabilidadesDaTecnica(tecnicaId),
+        apiAdminGetTiposGrau(),
+      ]);
+      setItems(habilidades);
+      setTiposGrau(tipos);
     } catch (error) {
       const mensagem = criarErroUsuario(error);
       setErro(mensagem);
@@ -2119,6 +2140,7 @@ export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
           isOpen={modalOpen}
           tecnicaId={tecnicaId}
           habilidade={editingItem}
+          tiposGrau={tiposGrau}
           onClose={async (success) => {
             setModalOpen(false);
             setEditingItem(null);

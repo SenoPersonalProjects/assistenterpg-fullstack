@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { MecanicasEstruturadasEditor } from '@/components/suplemento/forms/MecanicasEstruturadasEditor';
+import { RequisitosEstruturadosEditor } from '@/components/suplemento/forms/RequisitosEstruturadosEditor';
 import type {
   HabilidadeCatalogo,
   SuplementoCatalogo,
@@ -33,8 +35,8 @@ type FormState = {
   origem: string;
   fonte: TipoFonte;
   suplementoId: string;
-  requisitosJson: string;
-  mecanicasJson: string;
+  requisitos: unknown;
+  mecanicasEspeciais: unknown;
 };
 
 const TIPO_HABILIDADE_OPTIONS: Array<{ value: TipoHabilidadeCatalogo; label: string }> = [
@@ -53,28 +55,6 @@ const FONTE_OPTIONS: Array<{ value: TipoFonte; label: string }> = [
   { value: 'HOMEBREW' as TipoFonte, label: 'Homebrew' },
 ];
 
-function stringifyUnknown(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value;
-
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return '';
-  }
-}
-
-function parseOptionalJson(input: string): { value?: unknown; error?: string } {
-  const trimmed = input.trim();
-  if (!trimmed) return {};
-
-  try {
-    return { value: JSON.parse(trimmed) as unknown };
-  } catch {
-    return { error: 'JSON inválido em campo opcional.' };
-  }
-}
-
 function buildInitialState(habilidade?: HabilidadeCatalogo | null): FormState {
   return {
     nome: habilidade?.nome ?? '',
@@ -86,8 +66,8 @@ function buildInitialState(habilidade?: HabilidadeCatalogo | null): FormState {
       habilidade?.suplementoId !== undefined && habilidade?.suplementoId !== null
         ? habilidade.suplementoId.toString()
         : '',
-    requisitosJson: stringifyUnknown(habilidade?.requisitos),
-    mecanicasJson: stringifyUnknown(habilidade?.mecanicasEspeciais),
+    requisitos: habilidade?.requisitos ?? '',
+    mecanicasEspeciais: habilidade?.mecanicasEspeciais ?? '',
   };
 }
 
@@ -137,21 +117,12 @@ export function ModalHabilidadeAdminForm({
       nextErrors.suplementoId = 'Selecione um suplemento quando a fonte for SUPLEMENTO.';
     }
 
-    const reqParsed = parseOptionalJson(form.requisitosJson);
-    if (reqParsed.error) nextErrors.requisitosJson = reqParsed.error;
-
-    const mecParsed = parseOptionalJson(form.mecanicasJson);
-    if (mecParsed.error) nextErrors.mecanicasJson = mecParsed.error;
-
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
 
   async function handleSave() {
     if (!validateForm()) return;
-
-    const requisitosParsed = parseOptionalJson(form.requisitosJson);
-    const mecanicasParsed = parseOptionalJson(form.mecanicasJson);
 
     const fonte = form.fonte;
     const suplementoIdNumber =
@@ -164,8 +135,8 @@ export function ModalHabilidadeAdminForm({
       descricao: form.descricao.trim() || undefined,
       tipo: form.tipo,
       origem: form.origem.trim() || undefined,
-      requisitos: requisitosParsed.value,
-      mecanicasEspeciais: mecanicasParsed.value,
+      requisitos: form.requisitos || undefined,
+      mecanicasEspeciais: form.mecanicasEspeciais || undefined,
       fonte,
       suplementoId: fonte === 'SUPLEMENTO' ? suplementoIdNumber : undefined,
     };
@@ -262,7 +233,7 @@ export function ModalHabilidadeAdminForm({
                 <option value="">Selecione...</option>
                 {suplementosPublicados.map((suplemento) => (
                   <option key={suplemento.id} value={suplemento.id.toString()}>
-                    #{suplemento.id} - {suplemento.nome}
+                    {suplemento.nome}
                   </option>
                 ))}
               </Select>
@@ -295,21 +266,14 @@ export function ModalHabilidadeAdminForm({
 
         <Card>
           <div className="grid grid-cols-1 gap-4">
-            <Textarea
-              label="Requisitos (JSON)"
-              value={form.requisitosJson}
-              onChange={(e) => setField('requisitosJson', e.target.value)}
-              error={errors.requisitosJson}
-              rows={4}
-              placeholder='Ex: { "nivelMinimo": 3 }'
+            <RequisitosEstruturadosEditor
+              value={form.requisitos}
+              onChange={(value) => setField('requisitos', value)}
+              helperText="Escolha uma regra conhecida ou descreva uma condição específica."
             />
-            <Textarea
-              label="Mecânicas Especiais (JSON)"
-              value={form.mecanicasJson}
-              onChange={(e) => setField('mecanicasJson', e.target.value)}
-              error={errors.mecanicasJson}
-              rows={4}
-              placeholder='Ex: { "crítico": "+2d6" }'
+            <MecanicasEstruturadasEditor
+              value={form.mecanicasEspeciais}
+              onChange={(value) => setField('mecanicasEspeciais', value)}
             />
           </div>
         </Card>

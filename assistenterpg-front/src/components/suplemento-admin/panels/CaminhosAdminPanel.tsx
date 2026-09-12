@@ -167,7 +167,7 @@ function CaminhoAdminFormModal({ isOpen, onClose, trilhas, suplementos, caminho 
           <option value="">Selecione...</option>
           {trilhas.map((item) => (
             <option key={item.id} value={String(item.id)}>
-              #{item.id} - {item.nome}
+              {item.nome}
             </option>
           ))}
         </Select>
@@ -307,7 +307,7 @@ export function CaminhosAdminPanel() {
             <option value="">Selecione...</option>
             {trilhas.map((item) => (
               <option key={item.id} value={String(item.id)}>
-                #{item.id} - {item.nome}
+                {item.nome}
               </option>
             ))}
           </Select>

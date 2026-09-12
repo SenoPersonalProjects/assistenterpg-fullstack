@@ -162,7 +162,7 @@ function TrilhaAdminFormModal({ isOpen, onClose, classes, suplementos, trilha }:
           <option value="">Selecione...</option>
           {classes.map((item) => (
             <option key={item.id} value={String(item.id)}>
-              #{item.id} - {item.nome}
+              {item.nome}
             </option>
           ))}
         </Select>
@@ -300,7 +300,7 @@ export function TrilhasAdminPanel() {
             <option value="">Todas</option>
             {classes.map((item) => (
               <option key={item.id} value={String(item.id)}>
-                #{item.id} - {item.nome}
+                {item.nome}
               </option>
             ))}
           </Select>

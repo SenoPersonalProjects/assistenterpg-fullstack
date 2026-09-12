@@ -22,6 +22,35 @@ import { SuplementoNaoEncontradoException } from 'src/common/exceptions/suplemen
 export class HabilidadesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private normalizarCodigo(nome: string): string {
+    const base = nome
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+
+    return `HABILIDADE_${base || 'SEM_NOME'}`;
+  }
+
+  private async gerarCodigoDisponivel(nome: string): Promise<string> {
+    const base = this.normalizarCodigo(nome);
+    let codigo = base;
+    let sufixo = 2;
+
+    while (
+      await this.prisma.habilidade.findUnique({
+        where: { codigo },
+        select: { id: true },
+      })
+    ) {
+      codigo = `${base}_${sufixo}`;
+      sufixo += 1;
+    }
+
+    return codigo;
+  }
+
   private toNullableInputJson(
     value: unknown,
   ): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined {
@@ -85,14 +114,15 @@ export class HabilidadesService {
    * CREATE - Criar nova habilidade
    */
   async create(createDto: CreateHabilidadeDto) {
-    if (createDto.codigo) {
-      const existenteCodigo = await this.prisma.habilidade.findUnique({
-        where: { codigo: createDto.codigo },
-      });
+    const codigo =
+      createDto.codigo?.trim().toUpperCase() ||
+      (await this.gerarCodigoDisponivel(createDto.nome));
+    const existenteCodigo = await this.prisma.habilidade.findUnique({
+      where: { codigo },
+    });
 
-      if (existenteCodigo) {
-        throw new HabilidadeCodigoDuplicadoException(createDto.codigo);
-      }
+    if (existenteCodigo) {
+      throw new HabilidadeCodigoDuplicadoException(codigo);
     }
 
     // Verificar se nome já existe
@@ -132,7 +162,7 @@ export class HabilidadesService {
 
     const habilidade = await this.prisma.habilidade.create({
       data: {
-        ...(createDto.codigo && { codigo: createDto.codigo }),
+        codigo,
         nome: createDto.nome,
         descricao: createDto.descricao,
         tipo: createDto.tipo,
