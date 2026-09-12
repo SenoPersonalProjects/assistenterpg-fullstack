@@ -84,7 +84,7 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | --- | --- | --- | --- | --- | --- |
 | UX-01 | UI/UX | P1 | Em andamento | DS-02 | Cobrir pilha de diálogos com testes de foco e camadas |
 | UX-02 | UI/UX | P1 | Em andamento | UX-01 | Migrar confirmações críticas e cobrir falhas assíncronas |
-| UX-03 | UI/UX | P1 | Pendente | COD-03 | Mapear todos os campos técnicos expostos |
+| UX-03 | UI/UX | P1 | Em andamento | COD-03 | Migrar os demais cadastros de catálogo e os requisitos estruturados |
 | UX-04 | UI/UX | P1 | Em andamento | DS-02 | Cobrir IDs explícitos e descrições acessíveis com testes |
 | UX-05 | UI/UX | P2 | Pendente | ARQ-02 | Definir estados comuns de dados remotos |
 | UX-06 | UI/UX | P2 | Pendente | Validação autenticada | Revisar fluxos de sessão por papel e viewport |
@@ -193,9 +193,9 @@ Padronizar estado de envio, prevenção de duplicidade, sucesso, erro contextual
 ### UX-03 — Remoção de campos técnicos dos cadastros
 
 Prioridade: P1  
-Status: Pendente  
+Status: Em andamento  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-12  
 Dependências: COD-03
 
 #### Diagnóstico e evidência
@@ -215,7 +215,7 @@ Concluir seletores pesquisáveis, geração de código no backend e editores est
 
 #### Checklist
 
-- [ ] Solução definida.
+- [x] Solução definida.
 - [ ] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
 - [ ] Testes e validações aplicáveis registrados.
@@ -224,11 +224,15 @@ Concluir seletores pesquisáveis, geração de código no backend e editores est
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados: lint, 368 testes e build do frontend aprovados em 2026-09-12.
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: Inventariar campos técnicos restantes e priorizar por frequência de uso.
+- Arquivos/PR: `TecnicasAdminPanel`, DTO e serviço de técnicas.
+- Testes e resultados: frontend — lint, 370 testes e build aprovados; backend — 6 testes direcionados, lint, build e `prisma validate` aprovados em 2026-09-12.
+- Commit: `e7a76a5 feat(catalogo): simplifica cadastro de técnicas`.
+- Deploy/migration, se aplicável: sem migration ou seed; publicação pendente da validação remota.
+- Pendências e próxima ação: migrar os demais painéis de catálogo e substituir o editor textual de requisitos por controles estruturados, preservando JSON apenas para importação/exportação avançada.
+
+#### Atualização 2026-09-12
+
+O cadastro comum de técnicas não solicita mais código: o backend deriva um código estável do nome e acrescenta sufixo em colisões. A relação de clãs hereditários deixou de usar CSV e agora é selecionada por nome. O campo de requisitos passou a orientar texto legível; valores JSON antigos continuam aceitos para compatibilidade.
 
 ### UX-04 — Acessibilidade dos campos básicos
 
@@ -1073,6 +1077,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | --- | --- | --- | --- | --- |
 | 2026-09-11 | Todos | Auditoria criada; 23 melhorias registradas como pendentes. | Testes, builds, lint, Vercel e TiDB descritos na seção 3. | Priorizar P1: OPS-01, COD-01, COD-02, DS-01, UX-01 a UX-04, COD-03 e OPS-02. |
 | 2026-09-12 | OPS-01, COD-01, COD-02 | Atualizadas dependências compatíveis, scripts de lint e workflow de qualidade; ajustados fixtures expostos pelo novo typecheck. | Frontend: audit 0, lint, 368 testes e build aprovados. Backend: lint, 868 testes, build e Prisma aprovados; 3 alertas Prisma permanecem. | Publicar e validar o workflow remoto; tratar Prisma em upgrade dedicado. |
+| 2026-09-12 | UX-03 | Cadastro de técnica migrou código automático e seleção de clãs por nome; requisitos comuns ganharam orientação textual. | `e7a76a5`; validações locais registradas em UX-03. | Publicar e confirmar o lote no gate remoto; seguir com outros cadastros de catálogo. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
