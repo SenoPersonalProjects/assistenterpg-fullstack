@@ -65,7 +65,7 @@ export function Badge({
       outline: 'bg-transparent text-app-danger border border-app-danger/50',
     },
     blue: {
-      solid: 'bg-app-primary text-white border border-white/10 shadow-sm shadow-app-primary/20',
+      solid: 'bg-app-primary text-app-on-primary border border-white/10 shadow-sm shadow-app-primary/20',
       subtle: 'bg-app-primary/10 text-app-primary border border-app-primary/30',
       outline: 'bg-transparent text-app-primary border border-app-primary/50',
     },

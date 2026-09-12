@@ -31,7 +31,7 @@ export function Button({
 
   const variantClasses: Record<ButtonVariant, string> = {
     primary:
-      'bg-app-primary text-white shadow-[0_4px_14px_0_rgba(var(--primary-rgb),0.39)] hover:bg-app-primary-hover hover:shadow-[0_6px_20px_rgba(var(--primary-rgb),0.23)] border border-white/10',
+      'bg-app-primary text-app-on-primary shadow-[0_4px_14px_0_rgba(var(--primary-rgb),0.39)] hover:bg-app-primary-hover hover:shadow-[0_6px_20px_rgba(var(--primary-rgb),0.23)] border border-white/10',
     secondary:
       'bg-app-surface text-app-fg hover:bg-app-muted-surface border border-app-border shadow-sm',
     ghost:

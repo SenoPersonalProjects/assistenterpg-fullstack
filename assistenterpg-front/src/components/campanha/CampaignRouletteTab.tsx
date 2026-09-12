@@ -661,7 +661,7 @@ export function CampaignRouletteTab({
       <ConfirmDialog
         isOpen={confirmacao.isOpen}
         onClose={confirmacao.handleClose}
-        onConfirm={() => void confirmacao.handleConfirm()}
+        onConfirm={confirmacao.handleConfirm}
         title={confirmacao.options?.title ?? 'Confirmar ação'}
         description={confirmacao.options?.description ?? ''}
         confirmLabel={confirmacao.options?.confirmLabel}

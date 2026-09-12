@@ -202,7 +202,7 @@ export function SessionCharacterCustomMacrosSection({
         );
       })}
       {editorAberto ? <SessionCharacterMacroEditorModal key={macroEmEdicao?.id ?? 'nova'} isOpen macro={macroEmEdicao} salvando={pendente === 'SALVAR'} onClose={() => { setEditorAberto(false); setMacroEmEdicao(null); }} onSalvar={salvar} /> : null}
-      <ConfirmDialog isOpen={confirmacao.isOpen} onClose={confirmacao.handleClose} onConfirm={() => void confirmacao.handleConfirm()} title={confirmacao.options?.title ?? 'Confirmar exclusão'} description={confirmacao.options?.description ?? ''} confirmLabel={confirmacao.options?.confirmLabel} cancelLabel={confirmacao.options?.cancelLabel} variant={confirmacao.options?.variant} />
+      <ConfirmDialog isOpen={confirmacao.isOpen} onClose={confirmacao.handleClose} onConfirm={confirmacao.handleConfirm} title={confirmacao.options?.title ?? 'Confirmar exclusão'} description={confirmacao.options?.description ?? ''} confirmLabel={confirmacao.options?.confirmLabel} cancelLabel={confirmacao.options?.cancelLabel} variant={confirmacao.options?.variant} />
     </section>
   );
 }

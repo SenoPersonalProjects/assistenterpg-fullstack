@@ -1956,7 +1956,7 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
       <ConfirmDialog
         isOpen={confirmacao.isOpen}
         onClose={confirmacao.handleClose}
-        onConfirm={() => void confirmacao.handleConfirm()}
+        onConfirm={confirmacao.handleConfirm}
         title={confirmacao.options?.title ?? 'Confirmar remoção'}
         description={confirmacao.options?.description ?? ''}
         confirmLabel={confirmacao.options?.confirmLabel}
@@ -2143,7 +2143,7 @@ export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
       <ConfirmDialog
         isOpen={confirmacao.isOpen}
         onClose={confirmacao.handleClose}
-        onConfirm={() => void confirmacao.handleConfirm()}
+        onConfirm={confirmacao.handleConfirm}
         title={confirmacao.options?.title ?? 'Confirmar remoção'}
         description={confirmacao.options?.description ?? ''}
         confirmLabel={confirmacao.options?.confirmLabel}

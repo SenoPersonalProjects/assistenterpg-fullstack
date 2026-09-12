@@ -1170,7 +1170,7 @@ export function SessionCharacterInventoryTab({
       <ConfirmDialog
         isOpen={confirmacao.isOpen}
         onClose={confirmacao.handleClose}
-        onConfirm={() => void confirmacao.handleConfirm()}
+        onConfirm={confirmacao.handleConfirm}
         title={confirmacao.options?.title ?? 'Confirmar remoção'}
         description={confirmacao.options?.description ?? ''}
         confirmLabel={confirmacao.options?.confirmLabel}

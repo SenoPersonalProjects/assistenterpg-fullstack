@@ -23,6 +23,7 @@
 
   --primary: #4fd6ff;
   --primary-hover: #0891b2;
+  --on-primary: #07111d;
 
   --secondary: #7c3aed;
   --secondary-hover: #6d28d9;
@@ -63,6 +64,7 @@
 
   --primary: #4fd6ff;
   --primary-hover: #7ee3ff;
+  --on-primary: #07111d;
 
   --secondary: #7c3aed;
   --secondary-hover: #6d28d9;
@@ -103,6 +105,7 @@
 
   --primary: #4fd6ff;
   --primary-hover: #0891b2;
+  --on-primary: #07111d;
 
   --secondary: #7c3aed;
   --secondary-hover: #6d28d9;
@@ -142,6 +145,7 @@
 
   --primary: #4fd6ff;
   --primary-hover: #7ee3ff;
+  --on-primary: #07111d;
 
   --secondary: #7c3aed;
   --secondary-hover: #6d28d9;
@@ -181,6 +185,7 @@
 
   --primary: #7c5cfc;
   --primary-hover: #6d4ee8;
+  --on-primary: #0c0718;
 
   --secondary: #7f2ccb;
   --secondary-hover: #6d28d9;
@@ -220,6 +225,7 @@
 
   --primary: #7c5cfc;
   --primary-hover: #9b8cff;
+  --on-primary: #0c0718;
 
   --secondary: #9b4de0;
   --secondary-hover: #b36cff;
@@ -264,6 +270,7 @@
 
   --primary: #c1121f;
   --primary-hover: #780000;
+  --on-primary: #ffffff;
 
   --secondary: #780000;
   --secondary-hover: #5f0000;
@@ -303,6 +310,7 @@
 
   --primary: #c1121f;
   --primary-hover: #ef233c;
+  --on-primary: #ffffff;
 
   --secondary: #ef233c;
   --secondary-hover: #ff4d5e;
@@ -342,6 +350,7 @@
 
   --primary: #16db65;
   --primary-hover: #12b955;
+  --on-primary: #07111d;
 
   --secondary: #119da4;
   --secondary-hover: #0e8389;
@@ -381,6 +390,7 @@
 
   --primary: #16db65;
   --primary-hover: #45f087;
+  --on-primary: #07111d;
 
   --secondary: #119da4;
   --secondary-hover: #35c4cb;
@@ -574,6 +584,7 @@
   --color-app-muted: var(--fg-muted);
   --color-app-primary: var(--primary);
   --color-app-primary-hover: var(--primary-hover);
+  --color-app-on-primary: var(--on-primary);
   --color-app-secondary: var(--secondary);
   --color-app-secondary-hover: var(--secondary-hover);
   --color-app-danger: var(--danger);

@@ -1,9 +1,10 @@
 // src/components/ui/Modal.tsx
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useRef } from 'react';
 import { Icon } from './Icon';
 import { Portal } from './Portal';
+import { useDialogLayer } from './DialogProvider';
 
 type ModalProps = {
   isOpen: boolean;
@@ -20,31 +21,11 @@ export function Modal({
   title, 
   children, 
   footer,
-  size = 'lg' 
+  size = 'lg'
 }: ModalProps) {
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-
-    if (isOpen) {
-      window.addEventListener('keydown', handleEsc);
-    }
-
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [isOpen, onClose]);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = React.useId();
+  const { isTopLayer } = useDialogLayer(isOpen, onClose, dialogRef);
 
   if (!isOpen) return null;
 
@@ -62,11 +43,17 @@ export function Modal({
         {/* Backdrop */}
         <div
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          onClick={onClose}
+          onClick={() => isTopLayer && onClose()}
         />
 
         {/* Modal */}
         <div
+          ref={dialogRef}
+          tabIndex={-1}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={title ? titleId : undefined}
+          aria-label={title ? undefined : 'Janela de diálogo'}
           className={`
             relative w-full ${sizeClasses[size]} 
             bg-app-surface rounded-lg border border-app-border shadow-2xl 
@@ -77,9 +64,11 @@ export function Modal({
           {/* Header */}
           {title && (
             <div className="flex items-center justify-between p-4 border-b border-app-border flex-shrink-0">
-              <h2 className="text-lg font-semibold text-app-fg">{title}</h2>
+              <h2 id={titleId} className="text-lg font-semibold text-app-fg">{title}</h2>
               <button
+                type="button"
                 onClick={onClose}
+                aria-label="Fechar diálogo"
                 className="text-app-muted hover:text-app-fg transition-colors"
               >
                 <Icon name="close" className="w-5 h-5" />

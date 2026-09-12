@@ -24,7 +24,12 @@ export function Input({
   className = '',
   ...props
 }: InputProps) {
-  const inputId = React.useId();
+  const generatedId = React.useId();
+  const inputId = props.id ?? generatedId;
+  const messageId = `${inputId}-description`;
+  const describedBy = [props['aria-describedby'], error || helperText ? messageId : undefined]
+    .filter(Boolean)
+    .join(' ') || undefined;
   const hasRightIcon = Boolean(rightIcon);
   const rightIconButton = hasRightIcon && typeof onRightIconClick === 'function';
 
@@ -68,6 +73,8 @@ export function Input({
 
         <input
           id={inputId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
           className={`
             w-full rounded-xl border bg-app-surface py-2.5 text-sm ring-offset-app-bg transition-all duration-200
             placeholder:text-app-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/40 focus-visible:ring-offset-1
@@ -85,9 +92,9 @@ export function Input({
         />
       </div>
 
-      {error && <span className="text-xs font-medium text-app-danger ml-1 animate-fade-in-up">{error}</span>}
+      {error && <span id={messageId} className="text-xs font-medium text-app-danger ml-1 animate-fade-in-up">{error}</span>}
       {helperText && !error && (
-        <span className="text-xs text-app-muted ml-1">{helperText}</span>
+        <span id={messageId} className="text-xs text-app-muted ml-1">{helperText}</span>
       )}
     </div>
   );

@@ -82,10 +82,10 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 
 | ID | Área | Prioridade | Status | Dependências | Próxima ação |
 | --- | --- | --- | --- | --- | --- |
-| UX-01 | UI/UX | P1 | Pendente | DS-02 | Definir infraestrutura única de diálogos |
-| UX-02 | UI/UX | P1 | Pendente | UX-01 | Padronizar envio e fechamento assíncrono |
+| UX-01 | UI/UX | P1 | Em andamento | DS-02 | Cobrir pilha de diálogos com testes de foco e camadas |
+| UX-02 | UI/UX | P1 | Em andamento | UX-01 | Migrar confirmações críticas e cobrir falhas assíncronas |
 | UX-03 | UI/UX | P1 | Pendente | COD-03 | Mapear todos os campos técnicos expostos |
-| UX-04 | UI/UX | P1 | Pendente | DS-02 | Corrigir contratos acessíveis de campos |
+| UX-04 | UI/UX | P1 | Em andamento | DS-02 | Cobrir IDs explícitos e descrições acessíveis com testes |
 | UX-05 | UI/UX | P2 | Pendente | ARQ-02 | Definir estados comuns de dados remotos |
 | UX-06 | UI/UX | P2 | Pendente | Validação autenticada | Revisar fluxos de sessão por papel e viewport |
 | COD-01 | Código | P1 | Em validação | Política de proteção da branch | Definir checks obrigatórios para `main` |
@@ -95,7 +95,7 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | ARQ-01 | Arquitetura | P2 | Pendente | COD-03 | Delimitar primeira extração da sessão |
 | ARQ-02 | Arquitetura | P2 | Pendente | Observabilidade | Medir polling e requisições redundantes |
 | ARQ-03 | Arquitetura | P2 | Pendente | COD-03 | Mapear contratos duplicados front/back |
-| DS-01 | Design system | P1 | Pendente | DS-02 | Corrigir tokens de contraste por tema |
+| DS-01 | Design system | P1 | Em andamento | DS-02 | Medir contraste e revisar estados além do primário |
 | DS-02 | Design system | P2 | Pendente | UX-01 | Consolidar catálogo e testes de componentes |
 | DS-03 | Design system | P2 | Pendente | DS-02 | Organizar tokens e estilos por domínio |
 | OPS-01 | Operação e segurança | P1 | Em andamento | COD-01 | Planejar upgrade compatível da cadeia Prisma |
@@ -111,9 +111,9 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 ### UX-01 — Comportamento compartilhado dos modais
 
 Prioridade: P1  
-Status: Pendente  
+Status: Em andamento  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-12  
 Dependências: DS-02
 
 #### Diagnóstico e evidência
@@ -145,17 +145,17 @@ Criar uma infraestrutura única de diálogos com portal, pilha de camadas, fecha
 #### Evidências
 
 - Arquivos/PR:
-- Testes e resultados:
+- Testes e resultados: lint, 368 testes e build do frontend aprovados em 2026-09-12.
 - Commit:
 - Deploy/migration, se aplicável:
-- Pendências e próxima ação: Definir componente base e plano de migração dos consumidores.
+- Pendências e próxima ação: validar foco, camadas e retorno ao gatilho em cenário manual com diálogos aninhados; migrar os diálogos especializados gradualmente.
 
 ### UX-02 — Envio assíncrono e fechamento de formulários
 
 Prioridade: P1  
-Status: Pendente  
+Status: Em andamento  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-12  
 Dependências: UX-01
 
 #### Diagnóstico e evidência
@@ -185,10 +185,10 @@ Padronizar estado de envio, prevenção de duplicidade, sucesso, erro contextual
 #### Evidências
 
 - Arquivos/PR:
-- Testes e resultados:
+- Testes e resultados: lint, 368 testes e build do frontend aprovados em 2026-09-12; consumidores que descartavam Promises de confirmação foram migrados.
 - Commit:
 - Deploy/migration, se aplicável:
-- Pendências e próxima ação: Identificar formulários que limpam ou fecham antes do retorno remoto.
+- Pendências e próxima ação: migrar confirmações críticas para retorno assíncrono e adicionar testes de falha sem fechamento.
 
 ### UX-03 — Remoção de campos técnicos dos cadastros
 
@@ -225,7 +225,7 @@ Concluir seletores pesquisáveis, geração de código no backend e editores est
 #### Evidências
 
 - Arquivos/PR:
-- Testes e resultados:
+- Testes e resultados: lint, 368 testes e build do frontend aprovados em 2026-09-12.
 - Commit:
 - Deploy/migration, se aplicável:
 - Pendências e próxima ação: Inventariar campos técnicos restantes e priorizar por frequência de uso.
@@ -233,9 +233,9 @@ Concluir seletores pesquisáveis, geração de código no backend e editores est
 ### UX-04 — Acessibilidade dos campos básicos
 
 Prioridade: P1  
-Status: Pendente  
+Status: Em andamento  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-12  
 Dependências: DS-02
 
 #### Diagnóstico e evidência
@@ -268,7 +268,7 @@ Unificar o contrato acessível de `Input`, `Select`, `Textarea` e controles equi
 - Testes e resultados:
 - Commit:
 - Deploy/migration, se aplicável:
-- Pendências e próxima ação: Definir API comum dos controles de formulário.
+- Pendências e próxima ação: adicionar testes de IDs explícitos/gerados e revisar controles especializados.
 
 ### UX-05 — Estados de dados remotos coerentes
 
@@ -641,9 +641,9 @@ Mapear contratos duplicados e estabelecer geração, validação ou testes de co
 ### DS-01 — Contraste dos botões por tema
 
 Prioridade: P1  
-Status: Pendente  
+Status: Em andamento  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-12  
 Dependências: DS-02
 
 #### Diagnóstico e evidência
@@ -1042,7 +1042,25 @@ Validar comandos, caminhos e links internos automaticamente ou em checklist de d
 - Deploy/migration, se aplicável:
 - Pendências e próxima ação: Corrigir o comando divergente e criar inventário verificável de scripts documentados.
 
-## 12. Histórico de acompanhamento
+## 12. Bateria consolidada de validação manual
+
+Executar ao final dos lotes, em desktop e mobile autenticados, registrando data, navegador, papel e resultado em cada item.
+
+### UI/UX — diálogos, formulários e contraste
+
+- [ ] Abrir um `Modal`, abrir uma confirmação sobreposta e fechar com `Escape`: somente a camada superior fecha e a rolagem permanece bloqueada até o último diálogo.
+- [ ] Confirmar e cancelar diálogos por teclado: foco entra no diálogo, fica contido nele e retorna ao gatilho após fechar.
+- [ ] Forçar falha em uma confirmação assíncrona: o diálogo permanece aberto, preserva o contexto e exibe o erro junto à ação.
+- [ ] Conferir `Input`, `Select` e `Textarea` com ID explícito e gerado: rótulo aciona o campo; ajuda/erro são anunciados e o estado inválido é exposto.
+- [ ] Conferir botões e badges primários, destrutivos, de aviso e desabilitados nos temas padrão, roxo, vermelho e verde, claro e escuro.
+
+### Registro da bateria
+
+| Data | Ambiente/papel | Itens executados | Resultado | Evidência/pendência |
+| --- | --- | --- | --- | --- |
+| — | — | — | — | — |
+
+## 13. Histórico de acompanhamento
 
 | Data | IDs | Alteração | Evidência | Próxima etapa |
 | --- | --- | --- | --- | --- |
@@ -1050,7 +1068,7 @@ Validar comandos, caminhos e links internos automaticamente ou em checklist de d
 | 2026-09-12 | OPS-01, COD-01, COD-02 | Atualizadas dependências compatíveis, scripts de lint e workflow de qualidade; ajustados fixtures expostos pelo novo typecheck. | Frontend: audit 0, lint, 368 testes e build aprovados. Backend: lint, 868 testes, build e Prisma aprovados; 3 alertas Prisma permanecem. | Publicar e validar o workflow remoto; tratar Prisma em upgrade dedicado. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 
-## 13. Próxima priorização recomendada
+## 14. Próxima priorização recomendada
 
 1. `OPS-01`: triar e corrigir dependências expostas com validação completa.
 2. `COD-01` e `COD-02`: tornar a qualidade verificável antes da publicação.

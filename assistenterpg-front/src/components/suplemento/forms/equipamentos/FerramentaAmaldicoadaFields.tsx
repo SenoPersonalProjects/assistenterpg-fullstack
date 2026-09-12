@@ -563,7 +563,7 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
       <ConfirmDialog
         isOpen={confirmacao.isOpen}
         onClose={confirmacao.handleClose}
-        onConfirm={() => void confirmacao.handleConfirm()}
+        onConfirm={confirmacao.handleConfirm}
         title={confirmacao.options?.title ?? 'Trocar item base?'}
         description={confirmacao.options?.description ?? ''}
         confirmLabel={confirmacao.options?.confirmLabel}

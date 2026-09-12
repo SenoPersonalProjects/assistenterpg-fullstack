@@ -236,7 +236,7 @@ export function GoogleAccountSection() {
       <ConfirmDialog
         isOpen={confirmacao === 'desautorizar-calendar'}
         onClose={() => setConfirmacao(null)}
-        onConfirm={() => void desautorizarCalendar()}
+        onConfirm={desautorizarCalendar}
         title="Desautorizar Google Calendar?"
         description="Voc\u00ea deixar\u00e1 de criar e atualizar eventos no Google Calendar. Sua conta Google continuar\u00e1 vinculada para login."
         confirmLabel="Desautorizar"
@@ -247,7 +247,7 @@ export function GoogleAccountSection() {
       <ConfirmDialog
         isOpen={confirmacao === 'desvincular-google'}
         onClose={() => setConfirmacao(null)}
-        onConfirm={() => void desvincular()}
+        onConfirm={desvincular}
         title="Desvincular conta Google?"
         description="Voc\u00ea remover\u00e1 o login com Google desta conta. Confirme que voc\u00ea possui senha local antes de continuar."
         confirmLabel="Desvincular"

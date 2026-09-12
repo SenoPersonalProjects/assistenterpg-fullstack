@@ -16,6 +16,12 @@ export function Textarea({
   className = '',
   ...props
 }: TextareaProps) {
+  const generatedId = React.useId();
+  const textareaId = props.id ?? generatedId;
+  const messageId = `${textareaId}-description`;
+  const describedBy = [props['aria-describedby'], error || helperText ? messageId : undefined]
+    .filter(Boolean)
+    .join(' ') || undefined;
   const base =
     'w-full rounded border bg-app-surface text-app-fg px-3 py-2 text-sm transition-colors resize-vertical';
 
@@ -26,17 +32,20 @@ export function Textarea({
   return (
     <div className="space-y-1">
       {label && (
-        <label className="block text-sm font-medium text-app-fg">
+        <label htmlFor={textareaId} className="block text-sm font-medium text-app-fg">
           {label}
         </label>
       )}
       <textarea
+        id={textareaId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
         className={`${base} ${stateClasses} ${className}`}
         {...props}
       />
-      {error && <p className="text-xs text-app-danger">{error}</p>}
+      {error && <p id={messageId} className="text-xs text-app-danger">{error}</p>}
       {helperText && !error && (
-        <p className="text-xs text-app-muted">{helperText}</p>
+        <p id={messageId} className="text-xs text-app-muted">{helperText}</p>
       )}
     </div>
   );

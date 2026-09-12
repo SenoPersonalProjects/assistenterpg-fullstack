@@ -4465,7 +4465,7 @@ export default function SessaoCampanhaPage() {
         <AddPersonagemModal
           isOpen={modalAdicionarPersonagemAberto}
           onClose={() => setModalAdicionarPersonagemAberto(false)}
-          onConfirm={() => void handleAdicionarPersonagemNaCena()}
+          onConfirm={handleAdicionarPersonagemNaCena}
           adicionando={adicionandoPersonagem}
           sessaoEncerrada={sessaoEncerrada}
           personagensDisponiveis={personagensDisponiveis}
@@ -4480,7 +4480,7 @@ export default function SessaoCampanhaPage() {
         <InitiativeValueModal
           isOpen={Boolean(modalIniciativaAberto)}
           onClose={() => setModalIniciativaAberto(null)}
-          onConfirm={() => void handleSalvarValorIniciativa()}
+          onConfirm={handleSalvarValorIniciativa}
           salvando={salvandoIniciativa}
           nomeParticipante={
             modalIniciativaAberto
@@ -4494,7 +4494,7 @@ export default function SessaoCampanhaPage() {
         <ConfirmEndSessionModal
           isOpen={confirmarEncerrarSessaoAberto}
           onClose={() => setConfirmarEncerrarSessaoAberto(false)}
-          onConfirm={() => void handleEncerrarSessao()}
+          onConfirm={handleEncerrarSessao}
           encerrandoSessao={encerrandoSessao}
           sessaoEncerrada={sessaoEncerrada}
         />

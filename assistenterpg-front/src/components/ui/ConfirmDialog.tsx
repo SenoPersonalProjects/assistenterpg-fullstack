@@ -1,14 +1,16 @@
 // components/ui/ConfirmDialog.tsx
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useId, useRef, useState } from 'react';
 import { Icon } from './Icon';
 import { Button } from './Button';
+import { Portal } from './Portal';
+import { useDialogLayer } from './DialogProvider';
 
 type ConfirmDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   title: string;
   description: string | React.ReactNode; // ✅ MUDANÇA AQUI
   confirmLabel?: string;
@@ -35,31 +37,20 @@ export function ConfirmDialog({
   children,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const { isTopLayer } = useDialogLayer(isOpen, onClose, dialogRef);
 
-  // Fechar com ESC
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-
-    document.addEventListener('keydown', handleEsc);
-    return () => document.removeEventListener('keydown', handleEsc);
-  }, [isOpen, onClose]);
-
-  // Lock scroll quando aberto
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
+  const confirmar = async () => {
+    if (confirmDisabled || confirmLoading) return;
+    setSubmissionError(null);
+    try {
+      await onConfirm();
+      onClose();
+    } catch {
+      setSubmissionError('Não foi possível concluir a ação. Tente novamente.');
     }
-
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
+  };
 
   if (!isOpen) return null;
 
@@ -90,9 +81,10 @@ export function ConfirmDialog({
   const config = variantConfig[variant];
 
   return (
+    <Portal>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
+      onClick={() => isTopLayer && onClose()}
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -100,11 +92,11 @@ export function ConfirmDialog({
       {/* Dialog */}
       <div
         ref={dialogRef}
-        onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
         className="relative z-10 w-full max-w-md rounded-lg border border-app-border bg-app-surface shadow-2xl"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="dialog-title"
+        aria-labelledby={titleId}
       >
         {/* Header com ícone */}
         <div className="flex items-start gap-4 p-6 pb-4">
@@ -116,7 +108,7 @@ export function ConfirmDialog({
 
           <div className="flex-1 min-w-0">
             <h3
-              id="dialog-title"
+              id={titleId}
               className="text-lg font-semibold text-app-fg mb-2"
             >
               {title}
@@ -133,6 +125,7 @@ export function ConfirmDialog({
             {children}
           </div>
         )}
+        {submissionError && <p className="px-6 pb-3 text-sm text-app-danger" role="alert">{submissionError}</p>}
 
         {/* Footer com botões */}
         <div className="flex items-center justify-end gap-3 border-t border-app-border bg-app-bg px-6 py-4">
@@ -148,11 +141,7 @@ export function ConfirmDialog({
           <Button
             variant={config.buttonVariant}
             size="md"
-            onClick={() => {
-              if (confirmDisabled || confirmLoading) return;
-              onConfirm();
-              onClose();
-            }}
+            onClick={confirmar}
             className={`min-w-[100px] ${config.buttonClass} ${confirmClassName}`}
             disabled={confirmDisabled || confirmLoading}
           >
@@ -161,5 +150,6 @@ export function ConfirmDialog({
         </div>
       </div>
     </div>
+    </Portal>
   );
 }

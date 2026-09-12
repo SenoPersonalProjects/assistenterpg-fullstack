@@ -9,6 +9,7 @@ import { ToastContainer } from '@/components/ui/Toast';
 import { PresenceProvider } from '@/context/PresenceContext';
 import { FriendChatProvider } from '@/context/FriendChatContext';
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
+import { DialogProvider } from '@/components/ui/DialogProvider';
 
 export const metadata: Metadata = {
   title: 'Assistente RPG - Maledicência RPG',
@@ -91,8 +92,10 @@ export default function RootLayout({
             <PresenceProvider>
               <FriendChatProvider>
                 <ToastProvider>
-                  <LayoutWrapper>{children}</LayoutWrapper>
-                  <ToastContainer />
+                  <DialogProvider>
+                    <LayoutWrapper>{children}</LayoutWrapper>
+                    <ToastContainer />
+                  </DialogProvider>
                 </ToastProvider>
               </FriendChatProvider>
             </PresenceProvider>
