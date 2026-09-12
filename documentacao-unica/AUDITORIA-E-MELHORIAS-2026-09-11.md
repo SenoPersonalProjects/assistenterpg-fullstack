@@ -82,8 +82,8 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 
 | ID | Área | Prioridade | Status | Dependências | Próxima ação |
 | --- | --- | --- | --- | --- | --- |
-| UX-01 | UI/UX | P1 | Em andamento | DS-02 | Cobrir pilha de diálogos com testes de foco e camadas |
-| UX-02 | UI/UX | P1 | Em andamento | UX-01 | Migrar confirmações críticas e cobrir falhas assíncronas |
+| UX-01 | UI/UX | P1 | Em validação | DS-02 | Executar bateria manual de pilha, foco e camadas |
+| UX-02 | UI/UX | P1 | Em validação | UX-01 | Executar bateria manual de confirmações assíncronas |
 | UX-03 | UI/UX | P1 | Em andamento | COD-03 | Migrar os demais cadastros de catálogo e os requisitos estruturados |
 | UX-04 | UI/UX | P1 | Em andamento | DS-02 | Cobrir IDs explícitos e descrições acessíveis com testes |
 | UX-05 | UI/UX | P2 | Pendente | ARQ-02 | Definir estados comuns de dados remotos |
@@ -111,7 +111,7 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 ### UX-01 — Comportamento compartilhado dos modais
 
 Prioridade: P1  
-Status: Em andamento  
+Status: Em validação  
 Responsável: A definir  
 Última atualização: 2026-09-12  
 Dependências: DS-02
@@ -135,25 +135,35 @@ Criar uma infraestrutura única de diálogos com portal, pilha de camadas, fecha
 
 #### Checklist
 
-- [ ] Solução definida.
-- [ ] Implementação concluída.
+- [x] Solução definida.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
-- [x] Publicação validada, quando aplicável.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
+- [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados: lint, 368 testes e build do frontend aprovados em 2026-09-12.
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: validar foco, camadas e retorno ao gatilho em cenário manual com diálogos aninhados; migrar os diálogos especializados gradualmente.
+- Arquivos/PR: DialogProvider, Modal, ConfirmDialog, useConfirm e dialog-layer.
+- Testes e resultados: dialog-layer.test.ts (2 cenários), lint, 374 testes e build do frontend aprovados em 2026-09-12.
+- Commit: 1918046 feat(ui): centraliza camadas de diálogo.
+- Deploy/migration, se aplicável: sem migration ou seed; publicação pendente de validação automática.
+- Pendências e próxima ação: validar foco, camadas e retorno ao gatilho em cenário manual com diálogos aninhados.
+
+#### Atualização 2026-09-12
+
+DialogProvider agora mantém a ordem de abertura sem re-registrar camadas existentes quando uma camada nova aparece. Modal e ConfirmDialog recebem z-index determinístico por camada, bloqueiam fechamento fora da camada superior e restauram foco apenas quando o gatilho original continua no documento. O bloqueio de rolagem fica ativo até a última camada encerrar.
+
+#### Validação manual acumulada
+
+- [ ] Abrir modal, seletor e confirmação aninhados; confirmar que o último fica acima e o fundo permanece bloqueado.
+- [ ] Testar Escape e clique no fundo: apenas a camada superior permitida deve fechar.
+- [ ] Conferir foco inicial, contenção de Tab e retorno ao controle que abriu o diálogo.
 
 ### UX-02 — Envio assíncrono e fechamento de formulários
 
 Prioridade: P1  
-Status: Em andamento  
+Status: Em validação  
 Responsável: A definir  
 Última atualização: 2026-09-12  
 Dependências: UX-01
@@ -175,20 +185,30 @@ Padronizar estado de envio, prevenção de duplicidade, sucesso, erro contextual
 
 #### Checklist
 
-- [ ] Solução definida.
-- [ ] Implementação concluída.
+- [x] Solução definida.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados: lint, 368 testes e build do frontend aprovados em 2026-09-12; consumidores que descartavam Promises de confirmação foram migrados.
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: migrar confirmações críticas para retorno assíncrono e adicionar testes de falha sem fechamento.
+- Arquivos/PR: ConfirmDialog e useConfirm.
+- Testes e resultados: dialog-layer.test.ts (2 cenários), lint, 374 testes e build do frontend aprovados em 2026-09-12.
+- Commit: 1918046 feat(ui): centraliza camadas de diálogo.
+- Deploy/migration, se aplicável: sem migration ou seed; publicação pendente de validação automática.
+- Pendências e próxima ação: executar falhas reais de confirmação na bateria manual e adicionar testes de interação quando houver infraestrutura DOM.
+
+#### Atualização 2026-09-12
+
+ConfirmDialog passa a ser o único responsável por fechar a confirmação após o sucesso. Durante uma Promise pendente, os botões, Escape e o fundo não descartam o diálogo; falhas mantêm o conteúdo aberto e exibem erro junto à ação. useConfirm não fecha mais antecipadamente ou duas vezes.
+
+#### Validação manual acumulada
+
+- [ ] Em uma exclusão e em uma ação de rede, simular falha e confirmar que o diálogo conserva o contexto e mostra o erro.
+- [ ] Durante uma confirmação lenta, tentar confirmar novamente, cancelar, usar Escape e clicar no fundo.
+- [ ] Confirmar que uma operação bem-sucedida fecha o diálogo uma única vez.
 
 ### UX-03 — Remoção de campos técnicos dos cadastros
 
@@ -1117,6 +1137,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-12 | UX-03 | Cadastros de equipamentos e tipos de grau deixaram de exigir código técnico manual; o backend gera código estável e acrescenta sufixo em colisões. | `a795b9f`; frontend: lint, 370 testes e build; backend: 5 suítes/12 testes, lint, build e Prisma validate; [Quality Gate 34704638121](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34704638121) aprovado. | Manter a bateria manual acumulada e migrar os painéis restantes. |
 | 2026-09-12 | UX-03 | Habilidades gerais migraram requisitos e mecânicas de JSON manual para editores guiados; habilidades de técnica passaram a selecionar o tipo de grau pelo catálogo. | `4bde960`; frontend: lint, 370 testes e build; backend: 8 suítes/24 testes, lint, build e Prisma validate. | Publicar, acompanhar o Quality Gate e seguir com os cadastros relacionais restantes. |
 | 2026-09-12 | UX-04 | Campos-base passaram a compor rótulo, ajuda, erro e descrições externas pelo mesmo contrato acessível; o seletor de data/hora foi ajustado para manter semântica válida de botão. | `1dd2a61`, `c0ee6a8`; 2 testes focados, lint, 372 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual com leitor de tela. |
+| 2026-09-12 | UX-01, UX-02 | Diálogos agora compartilham pilha, foco, rolagem e z-index; confirmações aguardam a operação autoritativa antes de fechar. | `1918046`; 2 testes focados, lint, 374 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual de modais e falhas assíncronas. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
