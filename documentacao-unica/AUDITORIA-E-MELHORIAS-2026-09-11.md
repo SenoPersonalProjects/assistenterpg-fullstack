@@ -385,7 +385,7 @@ Criar pipeline obrigatório e reproduzível que execute instalação limpa, veri
 
 #### Evidências
 
-- Arquivos/PR: `.github/workflows/quality.yml`; scripts `lint:check` nos dois `package.json`; geração explícita do Prisma Client antes do lint do backend.
+- Arquivos/PR: `.github/workflows/quality.yml`; scripts `lint:check` nos dois `package.json`; geração explícita do Prisma Client antes do lint do backend, com URL inerte exclusiva do CI para carregar o schema sem acessar banco remoto.
 - Testes e resultados: lint, testes e builds locais aprovados em 2026-09-12.
 - Commit:
 - Deploy/migration, se aplicável:
