@@ -402,7 +402,7 @@ export function CampaignCharacterEditorModal({
     return () => {
       ativo = false;
     };
-  }, [isOpen]);
+  }, [campanhaId, isOpen, personagemId]);
 
   useEffect(() => {
     if (!isOpen || !personagem) return;

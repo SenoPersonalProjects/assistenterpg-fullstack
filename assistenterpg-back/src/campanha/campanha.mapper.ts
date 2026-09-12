@@ -8,8 +8,8 @@ import {
 import {
   calcularBonusDtFeiticosNarrativo,
   calcularBonusPorAtributoNarrativos,
-    calcularBonusPorResistenciaNarrativos,
-    calcularVulnerabilidadesNarrativas,
+  calcularBonusPorResistenciaNarrativos,
+  calcularVulnerabilidadesNarrativas,
   resolverGrausAprimoramentoEfetivosCampanha,
   resolverPericiasEfetivasCampanha,
 } from './engine/campanha-modificadores-efetivos';
@@ -202,9 +202,7 @@ export function calcularStatusPersonagemCampanhaResumo(
 
 @Injectable()
 export class CampanhaMapper {
-  mapearPersonagemCampanhaResumo(
-    personagem: PersonagemCampanhaResumoPayload,
-  ) {
+  mapearPersonagemCampanhaResumo(personagem: PersonagemCampanhaResumoPayload) {
     return {
       id: personagem.id,
       campanhaId: personagem.campanhaId,
@@ -240,11 +238,16 @@ export class CampanhaMapper {
         grausPreferenciais,
         modificadoresAtivos,
       );
-    const bonusAtributos = calcularBonusPorAtributoNarrativos(modificadoresAtivos);
-    const bonusResistencias = calcularBonusPorResistenciaNarrativos(modificadoresAtivos);
-    const vulnerabilidades = calcularVulnerabilidadesNarrativas(modificadoresAtivos);
-    const atributoEfetivo = (codigo: string, valor: number | null | undefined) =>
-      Math.max(0, Number(valor ?? 0) + (bonusAtributos.get(codigo) ?? 0));
+    const bonusAtributos =
+      calcularBonusPorAtributoNarrativos(modificadoresAtivos);
+    const bonusResistencias =
+      calcularBonusPorResistenciaNarrativos(modificadoresAtivos);
+    const vulnerabilidades =
+      calcularVulnerabilidadesNarrativas(modificadoresAtivos);
+    const atributoEfetivo = (
+      codigo: string,
+      valor: number | null | undefined,
+    ) => Math.max(0, Number(valor ?? 0) + (bonusAtributos.get(codigo) ?? 0));
 
     return {
       visibilidade: 'completa' as const,
@@ -281,10 +284,19 @@ export class CampanhaMapper {
           personagem.defesaOutros,
       },
       atributos: {
-        agilidade: atributoEfetivo('AGILIDADE', personagem.personagemBase.agilidade),
+        agilidade: atributoEfetivo(
+          'AGILIDADE',
+          personagem.personagemBase.agilidade,
+        ),
         forca: atributoEfetivo('FORCA', personagem.personagemBase.forca),
-        intelecto: atributoEfetivo('INTELECTO', personagem.personagemBase.intelecto),
-        presenca: atributoEfetivo('PRESENCA', personagem.personagemBase.presenca),
+        intelecto: atributoEfetivo(
+          'INTELECTO',
+          personagem.personagemBase.intelecto,
+        ),
+        presenca: atributoEfetivo(
+          'PRESENCA',
+          personagem.personagemBase.presenca,
+        ),
         vigor: atributoEfetivo('VIGOR', personagem.personagemBase.vigor),
         limitePeEaPorTurno: personagem.limitePeEaPorTurno,
         prestigioGeral: personagem.prestigioGeral,
@@ -305,12 +317,22 @@ export class CampanhaMapper {
       grausAprimoramento: grausAprimoramentoEfetivos,
       resistencias: (personagem.resistencias ?? []).map((resistencia) => ({
         ...resistencia,
-        valorEfetivo: resistencia.valor + (bonusResistencias.get(resistencia.resistenciaTipoId) ?? 0),
-        vulneravel: (vulnerabilidades.get(resistencia.resistenciaTipoId) ?? 0) > 0,
+        valorEfetivo:
+          resistencia.valor +
+          (bonusResistencias.get(resistencia.resistenciaTipoId) ?? 0),
+        vulneravel:
+          (vulnerabilidades.get(resistencia.resistenciaTipoId) ?? 0) > 0,
       })),
       vulnerabilidades: modificadoresAtivos
-        .filter((modificador) => modificador.campo === 'VULNERABILIDADE' && modificador.resistenciaTipoId)
-        .map((modificador) => ({ resistenciaTipoId: modificador.resistenciaTipoId, resistenciaTipo: modificador.resistenciaTipo })),
+        .filter(
+          (modificador) =>
+            modificador.campo === 'VULNERABILIDADE' &&
+            modificador.resistenciaTipoId,
+        )
+        .map((modificador) => ({
+          resistenciaTipoId: modificador.resistenciaTipoId,
+          resistenciaTipo: modificador.resistenciaTipo,
+        })),
       bonusDtFeiticos: calcularBonusDtFeiticosNarrativo(modificadoresAtivos),
       status: calcularStatusPersonagemCampanhaResumo(personagem),
     };

@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { Badge } from '@/components/ui/Badge';
 import {
   TipoExecucao,
   AreaEfeito,

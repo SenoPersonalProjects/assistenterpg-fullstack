@@ -205,7 +205,8 @@ export class SuplementosService {
 
   async create(dto: CreateSuplementoDto): Promise<SuplementoCatalogoDto> {
     try {
-      const codigo = dto.codigo?.trim() || (await this.gerarCodigoDisponivel(dto.nome));
+      const codigo =
+        dto.codigo?.trim() || (await this.gerarCodigoDisponivel(dto.nome));
       const existe = await this.prisma.suplemento.findUnique({
         where: { codigo },
       });

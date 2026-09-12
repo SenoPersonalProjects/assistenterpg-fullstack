@@ -1985,8 +1985,14 @@ export class CampanhaVinculadosService {
     if (!valor || typeof valor !== 'object' || Array.isArray(valor)) return {};
     return Object.fromEntries(
       Object.entries(valor as Record<string, unknown>)
-        .filter(([codigo]) => !['PONTARIA', 'PERCEPCAO'].includes(codigo.trim().toUpperCase()))
-        .map(([codigo, bonus]) => [codigo, this.numeroPersistencia(bonus, 0)] as const)
+        .filter(
+          ([codigo]) =>
+            !['PONTARIA', 'PERCEPCAO'].includes(codigo.trim().toUpperCase()),
+        )
+        .map(
+          ([codigo, bonus]) =>
+            [codigo, this.numeroPersistencia(bonus, 0)] as const,
+        )
         .filter(([, bonus]) => bonus > 0),
     );
   }

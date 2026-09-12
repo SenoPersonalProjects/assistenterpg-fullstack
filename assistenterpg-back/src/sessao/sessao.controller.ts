@@ -107,7 +107,11 @@ export class SessaoController {
       req.user.id,
       dto,
     );
-    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'ELENCO_ATUALIZADO');
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'ELENCO_ATUALIZADO',
+    );
     return resultado;
   }
 
@@ -618,14 +622,19 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: AtualizarControladorSessaoDto,
   ) {
-    const resultado = await this.sessaoService.atualizarControladorPersonagemSessao(
+    const resultado =
+      await this.sessaoService.atualizarControladorPersonagemSessao(
+        campanhaId,
+        sessaoId,
+        personagemSessaoId,
+        req.user.id,
+        dto,
+      );
+    this.sessaoGateway.emitirSessaoAtualizada(
       campanhaId,
       sessaoId,
-      personagemSessaoId,
-      req.user.id,
-      dto,
+      'CONTROLE_PARTICIPANTE_ATUALIZADO',
     );
-    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'CONTROLE_PARTICIPANTE_ATUALIZADO');
     return resultado;
   }
 
@@ -786,7 +795,11 @@ export class SessaoController {
       req.user.id,
       dto,
     );
-    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'CONTROLE_PARTICIPANTE_ATUALIZADO');
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'CONTROLE_PARTICIPANTE_ATUALIZADO',
+    );
     return resultado;
   }
 

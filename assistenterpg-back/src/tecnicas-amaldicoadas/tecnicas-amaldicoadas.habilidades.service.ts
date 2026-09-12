@@ -19,10 +19,22 @@ export class TecnicasAmaldicoadasHabilidadesService {
   constructor(private readonly prisma: PrismaService) {}
 
   private async gerarCodigoDisponivel(nome: string): Promise<string> {
-    const base = `HAB_${nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'SEM_NOME'}`;
+    const base = `HAB_${
+      nome
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '') || 'SEM_NOME'
+    }`;
     let codigo = base;
     let sufixo = 2;
-    while (await this.prisma.habilidadeTecnica.findUnique({ where: { codigo }, select: { id: true } })) {
+    while (
+      await this.prisma.habilidadeTecnica.findUnique({
+        where: { codigo },
+        select: { id: true },
+      })
+    ) {
       codigo = `${base}_${sufixo}`;
       sufixo += 1;
     }
@@ -93,7 +105,8 @@ export class TecnicasAmaldicoadasHabilidadesService {
         throw new TecnicaNaoEncontradaException(dto.tecnicaId);
       }
 
-      const codigo = dto.codigo?.trim() || (await this.gerarCodigoDisponivel(dto.nome));
+      const codigo =
+        dto.codigo?.trim() || (await this.gerarCodigoDisponivel(dto.nome));
       const existe = await this.prisma.habilidadeTecnica.findUnique({
         where: { codigo },
       });

@@ -36,7 +36,7 @@ function detalheBase(): SessaoCampanhaDetalhe {
         estado: { pontosPorPersonagem: { '41': 1 } },
       },
     },
-  } as SessaoCampanhaDetalhe;
+  } as unknown as SessaoCampanhaDetalhe;
 }
 
 describe('atualizações incrementais de sessão', () => {

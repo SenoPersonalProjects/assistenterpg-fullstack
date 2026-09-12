@@ -189,7 +189,10 @@ export function calcularFichaAutomaticaVinculado(
         input.distribuicao.jujutsu,
         input.distribuicao.percepcao ?? 0,
         ...Object.entries(input.distribuicao.periciasExtras ?? {})
-          .filter(([codigo]) => !['PONTARIA', 'PERCEPCAO'].includes(codigo.trim().toUpperCase()))
+          .filter(
+            ([codigo]) =>
+              !['PONTARIA', 'PERCEPCAO'].includes(codigo.trim().toUpperCase()),
+          )
           .map(([, valor]) => valor),
       ])
     : 0;

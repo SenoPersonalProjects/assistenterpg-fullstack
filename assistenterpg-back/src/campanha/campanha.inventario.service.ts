@@ -119,24 +119,32 @@ export class CampanhaInventarioService {
       select: { fontesConteudo: true },
     });
     // Campanhas criadas antes deste recurso continuam compatíveis até serem configuradas.
-    if (campanha?.fontesConteudo === null || campanha?.fontesConteudo === undefined) {
+    if (
+      campanha?.fontesConteudo === null ||
+      campanha?.fontesConteudo === undefined
+    ) {
       return;
     }
     const fontesCampanha = campanha.fontesConteudo;
     if (
       equipamento.fonte === TipoFonte.SUPLEMENTO &&
       equipamento.suplementoId !== null &&
-      this.idsFontes(fontesCampanha, 'suplementoIds').has(equipamento.suplementoId)
+      this.idsFontes(fontesCampanha, 'suplementoIds').has(
+        equipamento.suplementoId,
+      )
     ) {
       return;
     }
     if (
       equipamento.fonte === TipoFonte.HOMEBREW &&
       equipamento.homebrewOrigemId !== null &&
-      this.idsFontes(fontesCampanha, 'homebrewIds').has(equipamento.homebrewOrigemId) &&
-      this.idsFontes(contexto?.personagemBase.fontesConteudo, 'homebrewIds').has(
+      this.idsFontes(fontesCampanha, 'homebrewIds').has(
         equipamento.homebrewOrigemId,
-      )
+      ) &&
+      this.idsFontes(
+        contexto?.personagemBase.fontesConteudo,
+        'homebrewIds',
+      ).has(equipamento.homebrewOrigemId)
     ) {
       return;
     }
@@ -167,10 +175,20 @@ export class CampanhaInventarioService {
       OR: [
         { fonte: TipoFonte.SISTEMA_BASE },
         ...(suplementoIds.length > 0
-          ? [{ fonte: TipoFonte.SUPLEMENTO, suplementoId: { in: suplementoIds } }]
+          ? [
+              {
+                fonte: TipoFonte.SUPLEMENTO,
+                suplementoId: { in: suplementoIds },
+              },
+            ]
           : []),
         ...(homebrewIds.length > 0
-          ? [{ fonte: TipoFonte.HOMEBREW, homebrewOrigemId: { in: homebrewIds } }]
+          ? [
+              {
+                fonte: TipoFonte.HOMEBREW,
+                homebrewOrigemId: { in: homebrewIds },
+              },
+            ]
           : []),
       ],
     };
@@ -1092,7 +1110,11 @@ export class CampanhaInventarioService {
     try {
       const item = await this.prisma.inventarioItemCampanha.findUnique({
         where: { id: itemId },
-        select: { id: true, personagemCampanhaId: true, itemBaseOrigemId: true },
+        select: {
+          id: true,
+          personagemCampanhaId: true,
+          itemBaseOrigemId: true,
+        },
       });
 
       if (!item || item.personagemCampanhaId !== personagemCampanhaId) {

@@ -118,7 +118,7 @@ export function VerticalCampaignRoulette({
     return () => {
       cancelado = true;
     };
-  }, [controls, giro?.animacaoId, quantidade, reduzirMovimento]);
+  }, [controls, giro, quantidade, reduzirMovimento]);
 
   if (quantidade === 0) {
     return (

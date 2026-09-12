@@ -18,9 +18,14 @@ export function calcularBonusPorAtributoNarrativos(
 ): Map<string, number> {
   const deltas = new Map<string, number>();
   for (const modificador of modificadores ?? []) {
-    if (modificador.ativo === false || modificador.campo !== 'ATRIBUTO') continue;
+    if (modificador.ativo === false || modificador.campo !== 'ATRIBUTO')
+      continue;
     const codigo = normalizarCodigo(modificador.atributoCodigo);
-    if (codigo) deltas.set(codigo, (deltas.get(codigo) ?? 0) + normalizarInteiro(modificador.valor));
+    if (codigo)
+      deltas.set(
+        codigo,
+        (deltas.get(codigo) ?? 0) + normalizarInteiro(modificador.valor),
+      );
   }
   return deltas;
 }
@@ -30,9 +35,17 @@ export function calcularBonusPorResistenciaNarrativos(
 ): Map<number, number> {
   const deltas = new Map<number, number>();
   for (const modificador of modificadores ?? []) {
-    if (modificador.ativo === false || modificador.campo !== 'RESISTENCIA' || !modificador.resistenciaTipoId) continue;
+    if (
+      modificador.ativo === false ||
+      modificador.campo !== 'RESISTENCIA' ||
+      !modificador.resistenciaTipoId
+    )
+      continue;
     const id = modificador.resistenciaTipoId;
-    deltas.set(id, (deltas.get(id) ?? 0) + normalizarInteiro(modificador.valor));
+    deltas.set(
+      id,
+      (deltas.get(id) ?? 0) + normalizarInteiro(modificador.valor),
+    );
   }
   return deltas;
 }
@@ -42,7 +55,12 @@ export function calcularVulnerabilidadesNarrativas(
 ): Map<number, number> {
   const deltas = new Map<number, number>();
   for (const modificador of modificadores ?? []) {
-    if (modificador.ativo === false || modificador.campo !== 'VULNERABILIDADE' || !modificador.resistenciaTipoId) continue;
+    if (
+      modificador.ativo === false ||
+      modificador.campo !== 'VULNERABILIDADE' ||
+      !modificador.resistenciaTipoId
+    )
+      continue;
     const id = modificador.resistenciaTipoId;
     deltas.set(id, (deltas.get(id) ?? 0) + 1);
   }
@@ -53,7 +71,11 @@ export function calcularBonusDtFeiticosNarrativo(
   modificadores: ModificadorNarrativoEfetivo[] | null | undefined,
 ): number {
   return (modificadores ?? []).reduce(
-    (total, modificador) => total + (modificador.ativo === false || modificador.campo !== 'BONUS_DT_FEITICOS' ? 0 : normalizarInteiro(modificador.valor)),
+    (total, modificador) =>
+      total +
+      (modificador.ativo === false || modificador.campo !== 'BONUS_DT_FEITICOS'
+        ? 0
+        : normalizarInteiro(modificador.valor)),
     0,
   );
 }
@@ -63,9 +85,14 @@ export function calcularDeltasPericiaBonusNarrativos(
 ): Map<string, number> {
   const deltas = new Map<string, number>();
   for (const modificador of modificadores ?? []) {
-    if (modificador.ativo === false || modificador.campo !== 'PERICIA_BONUS') continue;
+    if (modificador.ativo === false || modificador.campo !== 'PERICIA_BONUS')
+      continue;
     const codigo = normalizarCodigo(modificador.periciaCodigo);
-    if (codigo) deltas.set(codigo, (deltas.get(codigo) ?? 0) + normalizarInteiro(modificador.valor));
+    if (codigo)
+      deltas.set(
+        codigo,
+        (deltas.get(codigo) ?? 0) + normalizarInteiro(modificador.valor),
+      );
   }
   return deltas;
 }
@@ -247,8 +274,12 @@ export function resolverPericiasEfetivasCampanha(
         atributoBase: pericia.atributoBase,
         grauTreinamento: pericia.grauTreinamento,
         bonusTreinamento,
-        bonusOutros: pericia.bonusExtra + (deltasBonus.get(pericia.codigo) ?? 0),
-        bonusTotal: bonusTreinamento + pericia.bonusExtra + (deltasBonus.get(pericia.codigo) ?? 0),
+        bonusOutros:
+          pericia.bonusExtra + (deltasBonus.get(pericia.codigo) ?? 0),
+        bonusTotal:
+          bonusTreinamento +
+          pericia.bonusExtra +
+          (deltasBonus.get(pericia.codigo) ?? 0),
       };
     })
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));

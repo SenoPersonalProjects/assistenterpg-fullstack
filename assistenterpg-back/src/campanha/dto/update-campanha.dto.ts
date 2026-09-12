@@ -1,5 +1,11 @@
 // src/campanha/dto/update-campanha.dto.ts
-import { IsString, IsOptional, MinLength, MaxLength, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  MinLength,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { FontesConteudoCampanhaDto } from './fontes-conteudo-campanha.dto';
 

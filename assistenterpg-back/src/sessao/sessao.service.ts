@@ -2020,7 +2020,10 @@ export class SessaoService {
           donoId: personagem.personagemCampanha.donoId,
           controladorUsuarioId: personagem.controladorUsuarioId,
           controlador: personagem.controladorUsuario
-            ? { id: personagem.controladorUsuario.id, apelido: personagem.controladorUsuario.apelido }
+            ? {
+                id: personagem.controladorUsuario.id,
+                apelido: personagem.controladorUsuario.apelido,
+              }
             : null,
           nomeJogador: personagem.personagemCampanha.dono.apelido,
           nomePersonagem: personagem.personagemCampanha.nome,
@@ -2364,7 +2367,10 @@ export class SessaoService {
           personagemControladorSessaoId: npc.personagemControladorSessaoId,
           controladorUsuarioId: npc.controladorUsuarioId,
           controlador: npc.controladorUsuario
-            ? { id: npc.controladorUsuario.id, apelido: npc.controladorUsuario.apelido }
+            ? {
+                id: npc.controladorUsuario.id,
+                apelido: npc.controladorUsuario.apelido,
+              }
             : null,
           tipoVinculo: npc.tipoVinculo,
           vinculo: npc.entidadeVinculada
@@ -6521,8 +6527,9 @@ export class SessaoService {
         sessaoId,
         'atualizar elenco da sessao',
       );
-      const anterior = (sessao as { elencoControladoPeloMestre?: boolean })
-        .elencoControladoPeloMestre ?? false;
+      const anterior =
+        (sessao as { elencoControladoPeloMestre?: boolean })
+          .elencoControladoPeloMestre ?? false;
       await tx.sessao.update({
         where: { id: sessaoId },
         data: { elencoControladoPeloMestre: dto.elencoControladoPeloMestre },
@@ -6567,11 +6574,23 @@ export class SessaoService {
         'delegar controle de personagem',
       );
       const personagem = await tx.personagemSessao.findFirst({
-        where: { id: personagemSessaoId, sessaoId, personagemCampanha: { campanhaId } },
-        select: { id: true, controladorUsuarioId: true, personagemCampanha: { select: { nome: true } } },
+        where: {
+          id: personagemSessaoId,
+          sessaoId,
+          personagemCampanha: { campanhaId },
+        },
+        select: {
+          id: true,
+          controladorUsuarioId: true,
+          personagemCampanha: { select: { nome: true } },
+        },
       });
       if (!personagem) {
-        throw new PersonagemSessaoNaoEncontradoException(personagemSessaoId, sessaoId, campanhaId);
+        throw new PersonagemSessaoNaoEncontradoException(
+          personagemSessaoId,
+          sessaoId,
+          campanhaId,
+        );
       }
       await tx.personagemSessao.update({
         where: { id: personagemSessaoId },
@@ -6612,12 +6631,27 @@ export class SessaoService {
     this.validarControladorDelegado(acesso, dto.controladorUsuarioId);
 
     await this.prisma.$transaction(async (tx) => {
-      await this.assertSessaoMutavelTx(tx, campanhaId, sessaoId, 'delegar controle de NPC');
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'delegar controle de NPC',
+      );
       const npc = await tx.npcAmeacaSessao.findFirst({
         where: { id: npcSessaoId, sessaoId },
-        select: { id: true, nomeExibicao: true, entidadeVinculadaId: true, controladorUsuarioId: true },
+        select: {
+          id: true,
+          nomeExibicao: true,
+          entidadeVinculadaId: true,
+          controladorUsuarioId: true,
+        },
       });
-      if (!npc) throw new NpcSessaoNaoEncontradoException(npcSessaoId, sessaoId, campanhaId);
+      if (!npc)
+        throw new NpcSessaoNaoEncontradoException(
+          npcSessaoId,
+          sessaoId,
+          campanhaId,
+        );
       if (npc.entidadeVinculadaId) {
         throw new BusinessException(
           'Entidades vinculadas seguem automaticamente o controlador do personagem de origem.',
@@ -6885,7 +6919,9 @@ export class SessaoService {
           select: {
             id: true,
             controladorUsuarioId: true,
-            personagemControladorSessao: { select: { controladorUsuarioId: true } },
+            personagemControladorSessao: {
+              select: { controladorUsuarioId: true },
+            },
             personagemDono: { select: { donoId: true } },
           },
         });
@@ -7225,21 +7261,19 @@ export class SessaoService {
   private podeControlarNpcSessao(
     ehMestre: boolean,
     usuarioId: number,
-    npc:
-      | {
-          controladorUsuarioId: number | null;
-          personagemDono?: { donoId: number } | null;
-          personagemControladorSessao?: {
-            controladorUsuarioId: number | null;
-          } | null;
-        }
-      | null,
+    npc: {
+      controladorUsuarioId: number | null;
+      personagemDono?: { donoId: number } | null;
+      personagemControladorSessao?: {
+        controladorUsuarioId: number | null;
+      } | null;
+    } | null,
   ): boolean {
     return Boolean(
       ehMestre ||
-        npc?.controladorUsuarioId === usuarioId ||
-        npc?.personagemDono?.donoId === usuarioId ||
-        npc?.personagemControladorSessao?.controladorUsuarioId === usuarioId,
+      npc?.controladorUsuarioId === usuarioId ||
+      npc?.personagemDono?.donoId === usuarioId ||
+      npc?.personagemControladorSessao?.controladorUsuarioId === usuarioId,
     );
   }
 
@@ -7257,11 +7291,32 @@ export class SessaoService {
       'editar NPC ou ameaça',
     );
     const camposRestritosAoMestre = [
-      'nomeExibicao', 'vd', 'fichaTipo', 'tipo', 'tamanho', 'defesa',
-      'pontosVidaMax', 'sanMax', 'eaMax', 'peMax', 'machucado',
-      'deslocamentoMetros', 'agilidade', 'forca', 'intelecto', 'presenca',
-      'vigor', 'percepcao', 'iniciativa', 'fortitude', 'reflexos',
-      'vontade', 'luta', 'jujutsu', 'notasCena', 'ocultoJogadores',
+      'nomeExibicao',
+      'vd',
+      'fichaTipo',
+      'tipo',
+      'tamanho',
+      'defesa',
+      'pontosVidaMax',
+      'sanMax',
+      'eaMax',
+      'peMax',
+      'machucado',
+      'deslocamentoMetros',
+      'agilidade',
+      'forca',
+      'intelecto',
+      'presenca',
+      'vigor',
+      'percepcao',
+      'iniciativa',
+      'fortitude',
+      'reflexos',
+      'vontade',
+      'luta',
+      'jujutsu',
+      'notasCena',
+      'ocultoJogadores',
     ] as const;
     if (!acesso.ehMestre) {
       const npcControle = await this.prisma.npcAmeacaSessao.findFirst({
@@ -7269,7 +7324,9 @@ export class SessaoService {
         select: {
           controladorUsuarioId: true,
           personagemDono: { select: { donoId: true } },
-          personagemControladorSessao: { select: { controladorUsuarioId: true } },
+          personagemControladorSessao: {
+            select: { controladorUsuarioId: true },
+          },
         },
       });
       const podeControlar = this.podeControlarNpcSessao(
@@ -8411,21 +8468,21 @@ export class SessaoService {
           ) {
             const sustentacaoCriada =
               await tx.personagemSessaoHabilidadeSustentada.create({
-              data: {
-                sessaoId,
-                personagemSessaoId,
-                habilidadeTecnicaId: habilidade.id,
-                variacaoHabilidadeId: custo.variacaoHabilidadeId,
-                nomeHabilidade: habilidade.nome,
-                nomeVariacao: custo.nomeVariacao,
-                custoSustentacaoEA: custo.custoSustentacaoEA ?? 0,
-                custoSustentacaoPE: custo.custoSustentacaoPE ?? 0,
-                acumulos: Math.max(1, custo.acumulosAplicados || 1),
-                ativadaNaRodada: sessao.rodadaAtual,
-                ultimaCobrancaRodada: sessao.rodadaAtual,
-                criadaPorUsuarioId: usuarioId,
-              },
-            });
+                data: {
+                  sessaoId,
+                  personagemSessaoId,
+                  habilidadeTecnicaId: habilidade.id,
+                  variacaoHabilidadeId: custo.variacaoHabilidadeId,
+                  nomeHabilidade: habilidade.nome,
+                  nomeVariacao: custo.nomeVariacao,
+                  custoSustentacaoEA: custo.custoSustentacaoEA ?? 0,
+                  custoSustentacaoPE: custo.custoSustentacaoPE ?? 0,
+                  acumulos: Math.max(1, custo.acumulosAplicados || 1),
+                  ativadaNaRodada: sessao.rodadaAtual,
+                  ultimaCobrancaRodada: sessao.rodadaAtual,
+                  criadaPorUsuarioId: usuarioId,
+                },
+              });
             await this.criarCondicaoDaSustentacaoTx(tx, {
               sessaoId,
               cenaId: cenaAtual.id,
@@ -13399,10 +13456,7 @@ export class SessaoService {
       mecanica,
       'condicaoCodigo',
     );
-    const fonteCodigo = this.lerTextoOpcionalRegistro(
-      mecanica,
-      'fonteCodigo',
-    );
+    const fonteCodigo = this.lerTextoOpcionalRegistro(mecanica, 'fonteCodigo');
     if (!condicaoCodigo || !fonteCodigo) return;
 
     const condicao = await tx.condicao.findUnique({
@@ -13421,8 +13475,10 @@ export class SessaoService {
       1,
       this.lerInteiroOpcionalRegistro(mecanica, 'multiplicadorAcumulos') ?? 1,
     );
-    const acumulos = Math.max(1, args.custo.acumulosAplicados || 1) * multiplicador;
-    const limiteFonte = Math.max(1, args.custo.acumulosMaximos || 1) * multiplicador;
+    const acumulos =
+      Math.max(1, args.custo.acumulosAplicados || 1) * multiplicador;
+    const limiteFonte =
+      Math.max(1, args.custo.acumulosMaximos || 1) * multiplicador;
     const criada = await tx.condicaoPersonagemSessao.create({
       data: {
         sessaoId: args.sessaoId,
@@ -13482,7 +13538,11 @@ export class SessaoService {
     if (!condicoes.length) return;
     await tx.condicaoPersonagemSessao.updateMany({
       where: { id: { in: condicoes.map((condicao) => condicao.id) } },
-      data: { ativo: false, removidaEm: new Date(), motivoRemocao: args.motivo },
+      data: {
+        ativo: false,
+        removidaEm: new Date(),
+        motivoRemocao: args.motivo,
+      },
     });
     for (const condicao of condicoes) {
       await tx.eventoSessao.create({
@@ -15223,7 +15283,7 @@ export class SessaoService {
     ];
     return poderes.reduce((total, poder) => {
       const mecanicas = this.extrairRegistro(
-        poder.habilidade.mecanicasEspeciais as Prisma.JsonValue | null,
+        poder.habilidade.mecanicasEspeciais,
       );
       const escolha = this.extrairRegistro(
         mecanicas.escolha as Prisma.JsonValue | null,
@@ -15823,7 +15883,9 @@ export class SessaoService {
       nomeExibicao: string;
       iniciativaValor: number | null;
       controladorUsuarioId: number | null;
-      personagemControladorSessao?: { controladorUsuarioId: number | null } | null;
+      personagemControladorSessao?: {
+        controladorUsuarioId: number | null;
+      } | null;
     }>,
     ehMestre: boolean,
     usuarioId: number,

@@ -50,7 +50,11 @@ import { criarPresetsPadraoRoleta } from './campanha-roleta';
 import { bloquearCampanhaTx } from './campanha-concorrencia';
 import { UpdateCampanhaDto } from './dto/update-campanha.dto';
 import { CampanhaConcessoesService } from './campanha.concessoes.service';
-import { ConcederPoderGenericoCampanhaDto, ConcederProficienciaCampanhaDto, CriarHabilidadePersonalizadaCampanhaDto } from './dto/concessoes-personagem-campanha.dto';
+import {
+  ConcederPoderGenericoCampanhaDto,
+  ConcederProficienciaCampanhaDto,
+  CriarHabilidadePersonalizadaCampanhaDto,
+} from './dto/concessoes-personagem-campanha.dto';
 
 const usuarioAtivoVerificadoWhere = {
   emailVerificadoEm: { not: null },
@@ -104,14 +108,102 @@ export class CampanhaService {
     });
   }
 
-  listarConcessoesPersonagemCampanha(campanhaId: number, personagemId: number, usuarioId: number) { return this.concessoesService.listar(campanhaId, personagemId, usuarioId); }
-  listarTiposResistenciaPersonagemCampanha(campanhaId: number, personagemId: number, usuarioId: number) { return this.concessoesService.listarTiposResistencia(campanhaId, personagemId, usuarioId); }
-  concederPoderGenericoCampanha(campanhaId: number, personagemId: number, usuarioId: number, dto: ConcederPoderGenericoCampanhaDto) { return this.concessoesService.concederPoder(campanhaId, personagemId, usuarioId, dto); }
-  removerPoderGenericoCampanha(campanhaId: number, personagemId: number, poderId: number, usuarioId: number) { return this.concessoesService.removerPoder(campanhaId, personagemId, poderId, usuarioId); }
-  concederProficienciaCampanha(campanhaId: number, personagemId: number, usuarioId: number, dto: ConcederProficienciaCampanhaDto) { return this.concessoesService.concederProficiencia(campanhaId, personagemId, usuarioId, dto); }
-  removerProficienciaCampanha(campanhaId: number, personagemId: number, proficienciaId: number, usuarioId: number) { return this.concessoesService.removerProficiencia(campanhaId, personagemId, proficienciaId, usuarioId); }
-  criarHabilidadePersonalizadaCampanha(campanhaId: number, personagemId: number, usuarioId: number, dto: CriarHabilidadePersonalizadaCampanhaDto) { return this.concessoesService.criarHabilidadePersonalizada(campanhaId, personagemId, usuarioId, dto); }
-  removerHabilidadePersonalizadaCampanha(campanhaId: number, personagemId: number, habilidadeId: number, usuarioId: number) { return this.concessoesService.removerHabilidadePersonalizada(campanhaId, personagemId, habilidadeId, usuarioId); }
+  listarConcessoesPersonagemCampanha(
+    campanhaId: number,
+    personagemId: number,
+    usuarioId: number,
+  ) {
+    return this.concessoesService.listar(campanhaId, personagemId, usuarioId);
+  }
+  listarTiposResistenciaPersonagemCampanha(
+    campanhaId: number,
+    personagemId: number,
+    usuarioId: number,
+  ) {
+    return this.concessoesService.listarTiposResistencia(
+      campanhaId,
+      personagemId,
+      usuarioId,
+    );
+  }
+  concederPoderGenericoCampanha(
+    campanhaId: number,
+    personagemId: number,
+    usuarioId: number,
+    dto: ConcederPoderGenericoCampanhaDto,
+  ) {
+    return this.concessoesService.concederPoder(
+      campanhaId,
+      personagemId,
+      usuarioId,
+      dto,
+    );
+  }
+  removerPoderGenericoCampanha(
+    campanhaId: number,
+    personagemId: number,
+    poderId: number,
+    usuarioId: number,
+  ) {
+    return this.concessoesService.removerPoder(
+      campanhaId,
+      personagemId,
+      poderId,
+      usuarioId,
+    );
+  }
+  concederProficienciaCampanha(
+    campanhaId: number,
+    personagemId: number,
+    usuarioId: number,
+    dto: ConcederProficienciaCampanhaDto,
+  ) {
+    return this.concessoesService.concederProficiencia(
+      campanhaId,
+      personagemId,
+      usuarioId,
+      dto,
+    );
+  }
+  removerProficienciaCampanha(
+    campanhaId: number,
+    personagemId: number,
+    proficienciaId: number,
+    usuarioId: number,
+  ) {
+    return this.concessoesService.removerProficiencia(
+      campanhaId,
+      personagemId,
+      proficienciaId,
+      usuarioId,
+    );
+  }
+  criarHabilidadePersonalizadaCampanha(
+    campanhaId: number,
+    personagemId: number,
+    usuarioId: number,
+    dto: CriarHabilidadePersonalizadaCampanhaDto,
+  ) {
+    return this.concessoesService.criarHabilidadePersonalizada(
+      campanhaId,
+      personagemId,
+      usuarioId,
+      dto,
+    );
+  }
+  removerHabilidadePersonalizadaCampanha(
+    campanhaId: number,
+    personagemId: number,
+    habilidadeId: number,
+    usuarioId: number,
+  ) {
+    return this.concessoesService.removerHabilidadePersonalizada(
+      campanhaId,
+      personagemId,
+      habilidadeId,
+      usuarioId,
+    );
+  }
 
   async atualizarCampanha(
     campanhaId: number,

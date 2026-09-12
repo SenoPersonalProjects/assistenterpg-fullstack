@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Request } from 'express';
-import { StatusContaUsuario } from '@prisma/client';
+import { RoleUsuario, StatusContaUsuario } from '@prisma/client';
 import {
   TokenInvalidoException,
   UsuarioTokenNaoEncontradoException,
@@ -17,6 +17,15 @@ import {
   isBearerFallbackEnabled,
   resolveJwtSecret,
 } from './auth-security.config';
+
+type UsuarioAutenticado = {
+  id: number;
+  email: string;
+  apelido: string;
+  role: RoleUsuario;
+  status: StatusContaUsuario;
+  emailVerificadoEm: Date | null;
+};
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -53,9 +62,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new TokenInvalidoException('Sessão inválida ou expirada');
     }
 
-    let usuario;
+    let usuario: UsuarioAutenticado;
     try {
-      usuario = await this.usuarioService.buscarPorId(payload.sub);
+      usuario = (await this.usuarioService.buscarPorId(
+        payload.sub,
+      )) as UsuarioAutenticado;
     } catch (error) {
       if (error instanceof UsuarioNaoEncontradoException) {
         throw new UsuarioTokenNaoEncontradoException(payload.sub);

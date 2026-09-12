@@ -355,7 +355,8 @@ describe('CompendioService', () => {
       titulo: 'Rituais avançados',
       categoriaCodigo: 'tecnicas',
       subcategoriaCodigo: 'rituais',
-      conteudo: '# Rituais avançados\n\nO custo de energia é reduzido nesta situação.',
+      conteudo:
+        '# Rituais avançados\n\nO custo de energia é reduzido nesta situação.',
       livroCodigo: 'sobrevivendo-ao-jujutsu',
       livroTitulo: 'Sobrevivendo ao Jujutsu',
     });
@@ -368,8 +369,7 @@ describe('CompendioService', () => {
       expect.objectContaining({
         titulo: 'Rituais avançados',
         fonte: 'SUPLEMENTO',
-        referenciaCompendio:
-          'Sobrevivendo ao Jujutsu › tecnicas › rituais',
+        referenciaCompendio: 'Sobrevivendo ao Jujutsu › tecnicas › rituais',
         resumoMarkdown: expect.stringContaining('energia'),
         detalhadoMarkdown: expect.stringContaining('O custo de energia'),
       }),
@@ -377,9 +377,7 @@ describe('CompendioService', () => {
     expect(prisma.compendioArtigo.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          OR: expect.arrayContaining([
-            { conteudo: { contains: 'energia' } },
-          ]),
+          OR: expect.arrayContaining([{ conteudo: { contains: 'energia' } }]),
         }),
         take: 30,
       }),

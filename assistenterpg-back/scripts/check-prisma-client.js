@@ -10,6 +10,7 @@
  */
 
 const { spawnSync } = require('node:child_process');
+const path = require('node:path');
 
 const REQUIRED_EXPORTS = ['PrismaClient', 'RoleUsuario'];
 
@@ -51,8 +52,13 @@ function validateClient() {
 }
 
 function runGenerate() {
-  const cmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-  const result = spawnSync(cmd, ['prisma', 'generate'], {
+  const prismaBin = path.join(
+    process.cwd(),
+    'node_modules',
+    '.bin',
+    process.platform === 'win32' ? 'prisma.cmd' : 'prisma',
+  );
+  const result = spawnSync(prismaBin, ['generate'], {
     stdio: 'inherit',
     env: process.env,
   });

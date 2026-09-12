@@ -204,7 +204,9 @@ describe('CampanhaController', () => {
   });
 
   it('deve encaminhar o catálogo contextual de inventário para o service', async () => {
-    campanhaServiceMock.listarCatalogoInventarioPersonagemCampanha.mockResolvedValue([]);
+    campanhaServiceMock.listarCatalogoInventarioPersonagemCampanha.mockResolvedValue(
+      [],
+    );
 
     await controller.listarCatalogoInventarioPersonagemCampanha(2, 9, {
       user: { id: 10 },

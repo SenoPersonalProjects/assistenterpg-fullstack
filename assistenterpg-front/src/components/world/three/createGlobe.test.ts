@@ -5,6 +5,7 @@ import {
   WORLD_GLOBE_TEXTURE_PATHS,
   areGlobeLayerRadiiOrdered,
   createWorldGlobe,
+  type AtlasTextureLoader,
 } from './createGlobe';
 
 describe('createWorldGlobe', () => {
@@ -19,20 +20,15 @@ describe('createWorldGlobe', () => {
   });
 
   it('loads preferred base texture and keeps border overlay hidden when border texture fails', () => {
-    const baseTexture = new THREE.Texture();
-    const loader = {
-      load: (
-        url: string,
-        onLoad?: (texture: THREE.Texture) => void,
-        _onProgress?: (event: ProgressEvent) => void,
-        onError?: (error: unknown) => void,
-      ) => {
+    const baseTexture = new THREE.Texture<HTMLImageElement>();
+    const loader: AtlasTextureLoader = {
+      load: (url, onLoad, _onProgress, onError) => {
         if (url === WORLD_GLOBE_TEXTURE_PATHS.base[0]) {
           onLoad?.(baseTexture);
         } else {
           onError?.(new Error('missing optional texture'));
         }
-        return new THREE.Texture();
+        return new THREE.Texture<HTMLImageElement>();
       },
     };
 
@@ -44,22 +40,17 @@ describe('createWorldGlobe', () => {
   });
 
   it('falls back to PNG texture when preferred WebP texture fails', () => {
-    const fallbackTexture = new THREE.Texture();
+    const fallbackTexture = new THREE.Texture<HTMLImageElement>();
     const attemptedUrls: string[] = [];
-    const loader = {
-      load: (
-        url: string,
-        onLoad?: (texture: THREE.Texture) => void,
-        _onProgress?: (event: ProgressEvent) => void,
-        onError?: (error: unknown) => void,
-      ) => {
+    const loader: AtlasTextureLoader = {
+      load: (url, onLoad, _onProgress, onError) => {
         attemptedUrls.push(url);
         if (url === WORLD_GLOBE_TEXTURE_PATHS.base[1]) {
           onLoad?.(fallbackTexture);
         } else {
           onError?.(new Error('missing texture'));
         }
-        return new THREE.Texture();
+        return new THREE.Texture<HTMLImageElement>();
       },
     };
 
@@ -71,17 +62,14 @@ describe('createWorldGlobe', () => {
   });
 
   it('disposes late textures instead of applying them after cleanup', () => {
-    const pendingLoads: Array<(texture: THREE.Texture) => void> = [];
-    const loader = {
-      load: (
-        _url: string,
-        onLoad?: (texture: THREE.Texture) => void,
-      ) => {
+    const pendingLoads: Array<(texture: THREE.Texture<HTMLImageElement>) => void> = [];
+    const loader: AtlasTextureLoader = {
+      load: (_url, onLoad) => {
         if (onLoad) pendingLoads.push(onLoad);
-        return new THREE.Texture();
+        return new THREE.Texture<HTMLImageElement>();
       },
     };
-    const lateTexture = new THREE.Texture();
+    const lateTexture = new THREE.Texture<HTMLImageElement>();
     const disposeSpy = vi.spyOn(lateTexture, 'dispose');
 
     const globe = createWorldGlobe(loader);

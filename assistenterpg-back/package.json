@@ -12,7 +12,9 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint": "npm run lint:fix",
+    "lint:check": "eslint \"{src,apps,libs,test}/**/*.ts\"",
+    "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
@@ -33,20 +35,20 @@
     "seed:sobrevivendo": "ts-node prisma/seeds/suplementos/seed-sobrevivendo-ao-jujutsu.ts",
     "seed:compendio": "ts-node prisma/seeds/compendio/seed-compendio.ts",
     "prebuild": "node scripts/check-prisma-client.js",
-    "prisma:generate:safe": "PRISMA_PREBUILD_AUTO_GENERATE=true node scripts/check-prisma-client.js"
+    "prisma:generate:safe": "node scripts/check-prisma-client.js"
   },
   "dependencies": {
-    "@nestjs/common": "^11.1.23",
+    "@nestjs/common": "11.2.3",
     "@nestjs/config": "^4.0.4",
-    "@nestjs/core": "^11.1.23",
+    "@nestjs/core": "11.2.3",
     "@nestjs/jwt": "^11.0.1",
     "@nestjs/mapped-types": "^2.1.0",
     "@nestjs/passport": "^11.0.5",
-    "@nestjs/platform-express": "^11.1.23",
-    "@nestjs/platform-socket.io": "^11.1.23",
-    "@nestjs/swagger": "^11.4.4",
-    "@nestjs/websockets": "^11.1.23",
-    "@prisma/client": "^6.19.0",
+    "@nestjs/platform-express": "11.2.3",
+    "@nestjs/platform-socket.io": "11.2.3",
+    "@nestjs/swagger": "11.4.7",
+    "@nestjs/websockets": "11.2.3",
+    "@prisma/client": "6.19.3",
     "@types/nodemailer": "^7.0.11",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
@@ -55,7 +57,7 @@
     "google-auth-library": "^10.9.0",
     "googleapis": "^173.0.0",
     "helmet": "^8.2.0",
-    "nodemailer": "^8.0.7",
+    "nodemailer": "10.0.8",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
@@ -70,7 +72,7 @@
     "@eslint/js": "^9.18.0",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
-    "@nestjs/testing": "^11.1.23",
+    "@nestjs/testing": "11.2.3",
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
@@ -84,7 +86,7 @@
     "globals": "^16.0.0",
     "jest": "^30.0.0",
     "prettier": "^3.4.2",
-    "prisma": "^6.19.0",
+    "prisma": "6.19.3",
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
@@ -96,6 +98,9 @@
   },
   "prisma": {
     "seed": "ts-node prisma/seeds.ts"
+  },
+  "overrides": {
+    "multer": "2.3.0"
   },
   "jest": {
     "moduleFileExtensions": [

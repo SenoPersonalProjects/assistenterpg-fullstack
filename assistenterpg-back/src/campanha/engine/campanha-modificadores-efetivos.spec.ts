@@ -14,7 +14,9 @@ describe('campanha-modificadores-efetivos', () => {
       { campo: 'BONUS_DT_FEITICOS' as const, valor: 1 },
     ];
 
-    expect(calcularBonusPorAtributoNarrativos(modificadores).get('AGILIDADE')).toBe(-1);
+    expect(
+      calcularBonusPorAtributoNarrativos(modificadores).get('AGILIDADE'),
+    ).toBe(-1);
     expect(calcularBonusPorResistenciaNarrativos(modificadores).get(3)).toBe(2);
     expect(calcularBonusDtFeiticosNarrativo(modificadores)).toBe(1);
   });

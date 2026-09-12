@@ -43,13 +43,24 @@ describe('CampanhaMapper', () => {
   });
 
   it.each([
-    [{ pvAtual: 0, sanAtual: 0 }, { fisico: 'Morrendo', mental: 'Enlouquecendo' }],
-    [{ pvAtual: 50, sanAtual: 50 }, { fisico: 'Machucado', mental: 'Ruim' }],
-    [{ pvAtual: 100, sanAtual: 100 }, { fisico: 'Vivo', mental: 'Bom' }],
+    [
+      { pvAtual: 0, sanAtual: 0 },
+      { fisico: 'Morrendo', mental: 'Enlouquecendo' },
+    ],
+    [
+      { pvAtual: 50, sanAtual: 50 },
+      { fisico: 'Machucado', mental: 'Ruim' },
+    ],
+    [
+      { pvAtual: 100, sanAtual: 100 },
+      { fisico: 'Vivo', mental: 'Bom' },
+    ],
   ])('calcula os limites de status: %o', (entrada, esperado) => {
-    expect(calcularStatusPersonagemCampanhaResumo({
-      ...resumo(),
-      ...entrada,
-    })).toEqual(esperado);
+    expect(
+      calcularStatusPersonagemCampanhaResumo({
+        ...resumo(),
+        ...entrada,
+      }),
+    ).toEqual(esperado);
   });
 });

@@ -15,108 +15,382 @@ export class CampanhaConcessoesService {
     private readonly accessService: CampanhaAccessService,
   ) {}
 
-  private fontePermitida(fontes: Prisma.JsonValue | null, fonte: TipoFonte, suplementoId: number | null) {
+  private fontePermitida(
+    fontes: Prisma.JsonValue | null,
+    fonte: TipoFonte,
+    suplementoId: number | null,
+  ) {
     if (fontes === null) return true;
     if (fonte === TipoFonte.SISTEMA_BASE) return true;
-    if (!fontes || typeof fontes !== 'object' || Array.isArray(fontes)) return false;
+    if (!fontes || typeof fontes !== 'object' || Array.isArray(fontes))
+      return false;
     const ids = (fontes as Record<string, unknown>).suplementoIds;
-    return fonte === TipoFonte.SUPLEMENTO && suplementoId !== null && Array.isArray(ids) && ids.includes(suplementoId);
+    return (
+      fonte === TipoFonte.SUPLEMENTO &&
+      suplementoId !== null &&
+      Array.isArray(ids) &&
+      ids.includes(suplementoId)
+    );
   }
 
-  async listar(campanhaId: number, personagemCampanhaId: number, usuarioId: number) {
-    await this.accessService.obterPersonagemCampanhaComPermissao(campanhaId, personagemCampanhaId, usuarioId, false);
+  async listar(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+  ) {
+    await this.accessService.obterPersonagemCampanhaComPermissao(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      false,
+    );
     const personagem = await this.prisma.personagemCampanha.findUniqueOrThrow({
       where: { id: personagemCampanhaId },
       select: {
-        poderesGenericos: { include: { habilidade: { select: { id: true, nome: true, descricao: true, mecanicasEspeciais: true } } } },
+        poderesGenericos: {
+          include: {
+            habilidade: {
+              select: {
+                id: true,
+                nome: true,
+                descricao: true,
+                mecanicasEspeciais: true,
+              },
+            },
+          },
+        },
         proficienciasConcedidas: { include: { proficiencia: true } },
         habilidadesPersonalizadas: true,
-        tecnicaInataPropria: { select: { id: true, nome: true, habilidades: { where: { habilitada: true }, select: { id: true, nome: true, descricao: true, custoPE: true, custoEA: true }, orderBy: { ordem: 'asc' } } } },
-        tecnicaInata: { select: { id: true, nome: true, habilidades: { where: { habilitada: true }, select: { id: true, nome: true, descricao: true, custoPE: true, custoEA: true }, orderBy: { ordem: 'asc' } } } },
+        tecnicaInataPropria: {
+          select: {
+            id: true,
+            nome: true,
+            habilidades: {
+              where: { habilitada: true },
+              select: {
+                id: true,
+                nome: true,
+                descricao: true,
+                custoPE: true,
+                custoEA: true,
+              },
+              orderBy: { ordem: 'asc' },
+            },
+          },
+        },
+        tecnicaInata: {
+          select: {
+            id: true,
+            nome: true,
+            habilidades: {
+              where: { habilitada: true },
+              select: {
+                id: true,
+                nome: true,
+                descricao: true,
+                custoPE: true,
+                custoEA: true,
+              },
+              orderBy: { ordem: 'asc' },
+            },
+          },
+        },
       },
     });
     const tecnica = personagem.tecnicaInataPropria ?? personagem.tecnicaInata;
-    return { ...personagem, opcoesRitualPredileto: tecnica ? { tecnicaId: tecnica.id, tecnicaNome: tecnica.nome, habilidades: tecnica.habilidades } : null };
+    return {
+      ...personagem,
+      opcoesRitualPredileto: tecnica
+        ? {
+            tecnicaId: tecnica.id,
+            tecnicaNome: tecnica.nome,
+            habilidades: tecnica.habilidades,
+          }
+        : null,
+    };
   }
 
-  async listarTiposResistencia(campanhaId: number, personagemCampanhaId: number, usuarioId: number) {
-    await this.accessService.obterPersonagemCampanhaComPermissao(campanhaId, personagemCampanhaId, usuarioId, false);
-    return this.prisma.resistenciaTipo.findMany({ select: { id: true, codigo: true, nome: true, descricao: true }, orderBy: { nome: 'asc' } });
+  async listarTiposResistencia(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+  ) {
+    await this.accessService.obterPersonagemCampanhaComPermissao(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      false,
+    );
+    return this.prisma.resistenciaTipo.findMany({
+      select: { id: true, codigo: true, nome: true, descricao: true },
+      orderBy: { nome: 'asc' },
+    });
   }
 
-  async concederPoder(campanhaId: number, personagemCampanhaId: number, usuarioId: number, dto: ConcederPoderGenericoCampanhaDto) {
-    await this.accessService.obterPersonagemCampanhaComPermissao(campanhaId, personagemCampanhaId, usuarioId, true);
+  async concederPoder(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    dto: ConcederPoderGenericoCampanhaDto,
+  ) {
+    await this.accessService.obterPersonagemCampanhaComPermissao(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      true,
+    );
     const [poder, campanha] = await Promise.all([
       this.prisma.habilidade.findUnique({ where: { id: dto.habilidadeId } }),
-      this.prisma.campanha.findUnique({ where: { id: campanhaId }, select: { fontesConteudo: true } }),
+      this.prisma.campanha.findUnique({
+        where: { id: campanhaId },
+        select: { fontesConteudo: true },
+      }),
     ]);
-    if (!poder || poder.tipo !== 'PODER_GENERICO' || !campanha || !this.fontePermitida(campanha.fontesConteudo, poder.fonte, poder.suplementoId)) {
-      throw new BadRequestException('Poder genérico indisponível para esta campanha.');
+    if (
+      !poder ||
+      poder.tipo !== 'PODER_GENERICO' ||
+      !campanha ||
+      !this.fontePermitida(
+        campanha.fontesConteudo,
+        poder.fonte,
+        poder.suplementoId,
+      )
+    ) {
+      throw new BadRequestException(
+        'Poder genérico indisponível para esta campanha.',
+      );
     }
-    const mecanicas = poder.mecanicasEspeciais && typeof poder.mecanicasEspeciais === 'object' && !Array.isArray(poder.mecanicasEspeciais) ? poder.mecanicasEspeciais as Record<string, unknown> : null;
-    const escolha = mecanicas?.escolha && typeof mecanicas.escolha === 'object' && !Array.isArray(mecanicas.escolha) ? mecanicas.escolha as Record<string, unknown> : null;
-    if (escolha && (!dto.config || Object.keys(dto.config).length === 0)) throw new BadRequestException('Este poder exige uma configuração antes de ser concedido.');
+    const mecanicas =
+      poder.mecanicasEspeciais &&
+      typeof poder.mecanicasEspeciais === 'object' &&
+      !Array.isArray(poder.mecanicasEspeciais)
+        ? (poder.mecanicasEspeciais as Record<string, unknown>)
+        : null;
+    const escolha =
+      mecanicas?.escolha &&
+      typeof mecanicas.escolha === 'object' &&
+      !Array.isArray(mecanicas.escolha)
+        ? (mecanicas.escolha as Record<string, unknown>)
+        : null;
+    if (escolha && (!dto.config || Object.keys(dto.config).length === 0))
+      throw new BadRequestException(
+        'Este poder exige uma configuração antes de ser concedido.',
+      );
     if (escolha?.tipo === 'SHIKIGAMI') {
       const shikigamiId = Number(dto.config?.shikigamiId);
-      const vinculado = Number.isInteger(shikigamiId) && await this.prisma.personagemCampanhaEntidadeVinculada.findFirst({ where: { id: shikigamiId, personagemCampanhaId, tipo: 'SHIKIGAMI' }, select: { id: true } });
-      if (!vinculado) throw new BadRequestException('Selecione um shikigami válido vinculado ao personagem.');
+      const vinculado =
+        Number.isInteger(shikigamiId) &&
+        (await this.prisma.personagemCampanhaEntidadeVinculada.findFirst({
+          where: { id: shikigamiId, personagemCampanhaId, tipo: 'SHIKIGAMI' },
+          select: { id: true },
+        }));
+      if (!vinculado)
+        throw new BadRequestException(
+          'Selecione um shikigami válido vinculado ao personagem.',
+        );
     }
     if (escolha?.tipo === 'FEITICO_CONHECIDO') {
       const habilidadeTecnicaId = Number(dto.config?.habilidadeTecnicaId);
-      const personagem = await this.prisma.personagemCampanha.findUnique({ where: { id: personagemCampanhaId }, select: { tecnicaInataId: true, tecnicaInataPropriaId: true } });
-      const tecnicaIds = [personagem?.tecnicaInataPropriaId, personagem?.tecnicaInataId].filter((id): id is number => Number.isInteger(id));
-      const habilidade = Number.isInteger(habilidadeTecnicaId) && tecnicaIds.length > 0
-        ? await this.prisma.habilidadeTecnica.findFirst({ where: { id: habilidadeTecnicaId, habilitada: true, tecnicaId: { in: tecnicaIds } }, select: { id: true } })
-        : null;
-      if (!habilidade) throw new BadRequestException('Selecione uma habilidade vÃ¡lida da tÃ©cnica inata do personagem.');
+      const personagem = await this.prisma.personagemCampanha.findUnique({
+        where: { id: personagemCampanhaId },
+        select: { tecnicaInataId: true, tecnicaInataPropriaId: true },
+      });
+      const tecnicaIds = [
+        personagem?.tecnicaInataPropriaId,
+        personagem?.tecnicaInataId,
+      ].filter((id): id is number => Number.isInteger(id));
+      const habilidade =
+        Number.isInteger(habilidadeTecnicaId) && tecnicaIds.length > 0
+          ? await this.prisma.habilidadeTecnica.findFirst({
+              where: {
+                id: habilidadeTecnicaId,
+                habilitada: true,
+                tecnicaId: { in: tecnicaIds },
+              },
+              select: { id: true },
+            })
+          : null;
+      if (!habilidade)
+        throw new BadRequestException(
+          'Selecione uma habilidade vÃ¡lida da tÃ©cnica inata do personagem.',
+        );
     }
     const registro = await this.prisma.poderGenericoPersonagemCampanha.create({
-      data: { personagemCampanhaId, habilidadeId: poder.id, config: dto.config as Prisma.InputJsonValue | undefined },
+      data: {
+        personagemCampanhaId,
+        habilidadeId: poder.id,
+        config: dto.config as Prisma.InputJsonValue | undefined,
+      },
       include: { habilidade: true },
     });
     await this.prisma.personagemCampanhaHistorico.create({
-      data: { personagemCampanhaId, campanhaId, criadoPorId: usuarioId, tipo: 'PODER_CONCEDIDO', descricao: `Poder genérico concedido: ${poder.nome}`, dados: { poderId: registro.id, habilidadeId: poder.id, config: (dto.config ?? null) as Prisma.InputJsonValue } },
+      data: {
+        personagemCampanhaId,
+        campanhaId,
+        criadoPorId: usuarioId,
+        tipo: 'PODER_CONCEDIDO',
+        descricao: `Poder genérico concedido: ${poder.nome}`,
+        dados: {
+          poderId: registro.id,
+          habilidadeId: poder.id,
+          config: (dto.config ?? null) as Prisma.InputJsonValue,
+        },
+      },
     });
     return registro;
   }
 
-  async removerPoder(campanhaId: number, personagemCampanhaId: number, poderId: number, usuarioId: number) {
-    await this.accessService.obterPersonagemCampanhaComPermissao(campanhaId, personagemCampanhaId, usuarioId, true);
-    const registro = await this.prisma.poderGenericoPersonagemCampanha.findFirst({ where: { id: poderId, personagemCampanhaId }, include: { habilidade: { select: { nome: true, id: true } } } });
-    await this.prisma.poderGenericoPersonagemCampanha.deleteMany({ where: { id: poderId, personagemCampanhaId } });
-    if (registro) await this.prisma.personagemCampanhaHistorico.create({ data: { personagemCampanhaId, campanhaId, criadoPorId: usuarioId, tipo: 'PODER_REMOVIDO', descricao: `Poder genérico removido: ${registro.habilidade.nome}`, dados: { poderId, habilidadeId: registro.habilidade.id } } });
+  async removerPoder(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    poderId: number,
+    usuarioId: number,
+  ) {
+    await this.accessService.obterPersonagemCampanhaComPermissao(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      true,
+    );
+    const registro =
+      await this.prisma.poderGenericoPersonagemCampanha.findFirst({
+        where: { id: poderId, personagemCampanhaId },
+        include: { habilidade: { select: { nome: true, id: true } } },
+      });
+    await this.prisma.poderGenericoPersonagemCampanha.deleteMany({
+      where: { id: poderId, personagemCampanhaId },
+    });
+    if (registro)
+      await this.prisma.personagemCampanhaHistorico.create({
+        data: {
+          personagemCampanhaId,
+          campanhaId,
+          criadoPorId: usuarioId,
+          tipo: 'PODER_REMOVIDO',
+          descricao: `Poder genérico removido: ${registro.habilidade.nome}`,
+          dados: { poderId, habilidadeId: registro.habilidade.id },
+        },
+      });
     return { sucesso: true };
   }
 
-  async concederProficiencia(campanhaId: number, personagemCampanhaId: number, usuarioId: number, dto: ConcederProficienciaCampanhaDto) {
-    await this.accessService.obterPersonagemCampanhaComPermissao(campanhaId, personagemCampanhaId, usuarioId, true);
+  async concederProficiencia(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    dto: ConcederProficienciaCampanhaDto,
+  ) {
+    await this.accessService.obterPersonagemCampanhaComPermissao(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      true,
+    );
     const registro = await this.prisma.personagemCampanhaProficiencia.upsert({
-      where: { personagemCampanhaId_proficienciaId: { personagemCampanhaId, proficienciaId: dto.proficienciaId } },
-      create: { personagemCampanhaId, proficienciaId: dto.proficienciaId, criadoPorId: usuarioId },
-      update: {}, include: { proficiencia: true },
+      where: {
+        personagemCampanhaId_proficienciaId: {
+          personagemCampanhaId,
+          proficienciaId: dto.proficienciaId,
+        },
+      },
+      create: {
+        personagemCampanhaId,
+        proficienciaId: dto.proficienciaId,
+        criadoPorId: usuarioId,
+      },
+      update: {},
+      include: { proficiencia: true },
     });
-    await this.prisma.personagemCampanhaHistorico.create({ data: { personagemCampanhaId, campanhaId, criadoPorId: usuarioId, tipo: 'PROFICIENCIA_CONCEDIDA', descricao: `Proficiência concedida: ${registro.proficiencia.nome}`, dados: { proficienciaId: registro.proficienciaId } } });
+    await this.prisma.personagemCampanhaHistorico.create({
+      data: {
+        personagemCampanhaId,
+        campanhaId,
+        criadoPorId: usuarioId,
+        tipo: 'PROFICIENCIA_CONCEDIDA',
+        descricao: `Proficiência concedida: ${registro.proficiencia.nome}`,
+        dados: { proficienciaId: registro.proficienciaId },
+      },
+    });
     return registro;
   }
 
-  async removerProficiencia(campanhaId: number, personagemCampanhaId: number, proficienciaId: number, usuarioId: number) {
-    await this.accessService.obterPersonagemCampanhaComPermissao(campanhaId, personagemCampanhaId, usuarioId, true);
-    const registro = await this.prisma.personagemCampanhaProficiencia.findUnique({ where: { personagemCampanhaId_proficienciaId: { personagemCampanhaId, proficienciaId } }, include: { proficiencia: { select: { nome: true } } } });
-    await this.prisma.personagemCampanhaProficiencia.deleteMany({ where: { personagemCampanhaId, proficienciaId } });
-    if (registro) await this.prisma.personagemCampanhaHistorico.create({ data: { personagemCampanhaId, campanhaId, criadoPorId: usuarioId, tipo: 'PROFICIENCIA_REMOVIDA', descricao: `Proficiência removida: ${registro.proficiencia.nome}`, dados: { proficienciaId } } });
+  async removerProficiencia(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    proficienciaId: number,
+    usuarioId: number,
+  ) {
+    await this.accessService.obterPersonagemCampanhaComPermissao(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      true,
+    );
+    const registro =
+      await this.prisma.personagemCampanhaProficiencia.findUnique({
+        where: {
+          personagemCampanhaId_proficienciaId: {
+            personagemCampanhaId,
+            proficienciaId,
+          },
+        },
+        include: { proficiencia: { select: { nome: true } } },
+      });
+    await this.prisma.personagemCampanhaProficiencia.deleteMany({
+      where: { personagemCampanhaId, proficienciaId },
+    });
+    if (registro)
+      await this.prisma.personagemCampanhaHistorico.create({
+        data: {
+          personagemCampanhaId,
+          campanhaId,
+          criadoPorId: usuarioId,
+          tipo: 'PROFICIENCIA_REMOVIDA',
+          descricao: `Proficiência removida: ${registro.proficiencia.nome}`,
+          dados: { proficienciaId },
+        },
+      });
     return { sucesso: true };
   }
 
-  async criarHabilidadePersonalizada(campanhaId: number, personagemCampanhaId: number, usuarioId: number, dto: CriarHabilidadePersonalizadaCampanhaDto) {
-    await this.accessService.obterPersonagemCampanhaComPermissao(campanhaId, personagemCampanhaId, usuarioId, true);
+  async criarHabilidadePersonalizada(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    dto: CriarHabilidadePersonalizadaCampanhaDto,
+  ) {
+    await this.accessService.obterPersonagemCampanhaComPermissao(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      true,
+    );
     return this.prisma.personagemCampanhaHabilidadePersonalizada.create({
-      data: { campanhaId, personagemCampanhaId, criadoPorId: usuarioId, nome: dto.nome.trim(), descricao: dto.descricao.trim() },
+      data: {
+        campanhaId,
+        personagemCampanhaId,
+        criadoPorId: usuarioId,
+        nome: dto.nome.trim(),
+        descricao: dto.descricao.trim(),
+      },
     });
   }
 
-  async removerHabilidadePersonalizada(campanhaId: number, personagemCampanhaId: number, habilidadeId: number, usuarioId: number) {
-    await this.accessService.obterPersonagemCampanhaComPermissao(campanhaId, personagemCampanhaId, usuarioId, true);
-    await this.prisma.personagemCampanhaHabilidadePersonalizada.deleteMany({ where: { id: habilidadeId, campanhaId, personagemCampanhaId } });
+  async removerHabilidadePersonalizada(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    habilidadeId: number,
+    usuarioId: number,
+  ) {
+    await this.accessService.obterPersonagemCampanhaComPermissao(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      true,
+    );
+    await this.prisma.personagemCampanhaHabilidadePersonalizada.deleteMany({
+      where: { id: habilidadeId, campanhaId, personagemCampanhaId },
+    });
     return { sucesso: true };
   }
 }

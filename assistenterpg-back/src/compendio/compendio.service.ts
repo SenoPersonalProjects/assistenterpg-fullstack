@@ -634,12 +634,17 @@ export class CompendioService {
     artigo: EscudoMestreArtigo,
     termo: string,
   ): string {
-    const fonte = [artigo.titulo, artigo.resumo, artigo.palavrasChave, artigo.conteudo]
+    const fonte = [
+      artigo.titulo,
+      artigo.resumo,
+      artigo.palavrasChave,
+      artigo.conteudo,
+    ]
       .filter((item): item is string => Boolean(item))
       .join('\n\n');
-    const indice = fonte.toLocaleLowerCase('pt-BR').indexOf(
-      termo.toLocaleLowerCase('pt-BR'),
-    );
+    const indice = fonte
+      .toLocaleLowerCase('pt-BR')
+      .indexOf(termo.toLocaleLowerCase('pt-BR'));
 
     if (indice < 0) return this.resumoArtigoEscudo(artigo);
 

@@ -23,6 +23,13 @@ import {
 
 type CatalogoAberto = 'PODER' | 'PROFICIENCIA' | null;
 
+type DadosCarregados = {
+  concessoes: ConcessoesCampanha;
+  listaPoderes: PoderGenericoCatalogo[];
+  listaProficiencias: ProficienciaCatalogo[];
+  listaVinculados: EntidadeVinculadaPersonagem[];
+};
+
 export function CampaignCharacterConcessionsSection({ campanhaId, personagemId, ativo }: { campanhaId: number; personagemId: number; ativo: boolean }) {
   const [dados, setDados] = useState<ConcessoesCampanha | null>(null);
   const [poderes, setPoderes] = useState<PoderGenericoCatalogo[]>([]);
@@ -36,27 +43,49 @@ export function CampaignCharacterConcessionsSection({ campanhaId, personagemId, 
   const [configPoder, setConfigPoder] = useState<Record<string, unknown>>({});
 
   const carregar = useCallback(async () => {
-    try {
-      const [concessoes, listaPoderes, listaProficiencias, listaVinculados] = await Promise.all([
-        apiGetConcessoesCampanha(campanhaId, personagemId),
-        apiGetPoderesGenericos(),
-        apiGetProficiencias(),
-        apiListarEntidadesVinculadasPersonagem(campanhaId, personagemId),
-      ]);
-      setDados(concessoes);
-      setPoderes(listaPoderes);
-      setProficiencias(listaProficiencias);
-      setVinculados(listaVinculados);
-    } catch (error) {
-      setErro(criarErroUsuario(error).message);
-    }
+    const [concessoes, listaPoderes, listaProficiencias, listaVinculados] = await Promise.all([
+      apiGetConcessoesCampanha(campanhaId, personagemId),
+      apiGetPoderesGenericos(),
+      apiGetProficiencias(),
+      apiListarEntidadesVinculadasPersonagem(campanhaId, personagemId),
+    ]);
+
+    return { concessoes, listaPoderes, listaProficiencias, listaVinculados } satisfies DadosCarregados;
   }, [campanhaId, personagemId]);
 
-  useEffect(() => { if (ativo) void carregar(); }, [ativo, carregar]);
+  const aplicarDados = useCallback((dadosCarregados: DadosCarregados) => {
+    setDados(dadosCarregados.concessoes);
+    setPoderes(dadosCarregados.listaPoderes);
+    setProficiencias(dadosCarregados.listaProficiencias);
+    setVinculados(dadosCarregados.listaVinculados);
+  }, []);
+
+  useEffect(() => {
+    if (!ativo) return;
+
+    let cancelado = false;
+
+    void carregar()
+      .then((dadosCarregados) => {
+        if (!cancelado) aplicarDados(dadosCarregados);
+      })
+      .catch((error: unknown) => {
+        if (!cancelado) setErro(criarErroUsuario(error).message);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [ativo, aplicarDados, carregar]);
 
   const executar = async (acao: () => Promise<unknown>) => {
     setErro(null);
-    try { await acao(); await carregar(); } catch (error) { setErro(criarErroUsuario(error).message); }
+    try {
+      await acao();
+      aplicarDados(await carregar());
+    } catch (error) {
+      setErro(criarErroUsuario(error).message);
+    }
   };
 
   const catalogoSelecionado = catalogoAberto === 'PODER' ? poderes : proficiencias;

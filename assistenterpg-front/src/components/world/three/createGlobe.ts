@@ -32,7 +32,7 @@ export type WorldGlobeResources = {
   disposeTextureLoading: () => void;
 };
 
-type AtlasTextureLoader = Pick<THREE.TextureLoader, 'load'>;
+export type AtlasTextureLoader = Pick<THREE.TextureLoader, 'load'>;
 type AtlasTexturePath =
   (typeof WORLD_GLOBE_TEXTURE_PATHS)[keyof typeof WORLD_GLOBE_TEXTURE_PATHS][number];
 

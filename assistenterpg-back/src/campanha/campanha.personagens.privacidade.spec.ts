@@ -51,16 +51,17 @@ describe('CampanhaPersonagensService - privacidade', () => {
     const resumos = [resumo(1, 7), resumo(2, 8)];
     accessService.garantirAcesso.mockResolvedValue({ ehMestre: false });
     persistence.listarPersonagensCampanhaResumo.mockResolvedValue(resumos);
-    persistence.listarPersonagensCampanhaDetalhados.mockResolvedValue([resumos[0]]);
+    persistence.listarPersonagensCampanhaDetalhados.mockResolvedValue([
+      resumos[0],
+    ]);
 
     await expect(service.listarPersonagensCampanha(1, 7)).resolves.toEqual([
       { id: 1, visibilidade: 'completa' },
       { id: 2, visibilidade: 'resumida' },
     ]);
-    expect(persistence.listarPersonagensCampanhaDetalhados).toHaveBeenCalledWith(
-      1,
-      [1],
-    );
+    expect(
+      persistence.listarPersonagensCampanhaDetalhados,
+    ).toHaveBeenCalledWith(1, [1]);
   });
 
   it('entrega detalhe completo de todos para mestre', async () => {

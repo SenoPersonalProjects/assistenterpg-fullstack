@@ -291,11 +291,10 @@ export class CampanhaPersonagensService {
     const idsProprios = resumos
       .filter((personagem) => personagem.donoId === usuarioId)
       .map((personagem) => personagem.id);
-    const proprios =
-      await this.persistence.listarPersonagensCampanhaDetalhados(
-        campanhaId,
-        idsProprios,
-      );
+    const proprios = await this.persistence.listarPersonagensCampanhaDetalhados(
+      campanhaId,
+      idsProprios,
+    );
     const propriosPorId = new Map(
       proprios.map((personagem) => [personagem.id, personagem]),
     );

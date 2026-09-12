@@ -4,6 +4,7 @@ import {
   filtrarModificacoesCompativeis,
 } from './inventario';
 import type { EquipamentoCatalogo, ModificacaoCatalogo } from '@/lib/types';
+import { TipoFonte } from '../types/homebrew-enums';
 
 function criarProtecao(
   overrides: Partial<EquipamentoCatalogo>,
@@ -132,7 +133,7 @@ describe('categorizarEquipamentosPorCategoria', () => {
       },
       {
         ...criarProtecao({ id: 3, nome: 'Item homebrew' }),
-        fonte: 'HOMEBREW',
+        fonte: TipoFonte.HOMEBREW,
       },
       {
         ...criarProtecao({ id: 4, nome: 'Lanterna' }),

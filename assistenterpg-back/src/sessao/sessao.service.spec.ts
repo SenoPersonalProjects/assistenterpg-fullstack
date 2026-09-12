@@ -316,9 +316,10 @@ describe('SessaoService', () => {
     const podeControlar = (npc: {
       controladorUsuarioId: number | null;
       personagemDono?: { donoId: number } | null;
-      personagemControladorSessao?: { controladorUsuarioId: number | null } | null;
-    }) =>
-      (service as any).podeControlarNpcSessao(false, 10, npc);
+      personagemControladorSessao?: {
+        controladorUsuarioId: number | null;
+      } | null;
+    }) => (service as any).podeControlarNpcSessao(false, 10, npc);
 
     expect(
       podeControlar({

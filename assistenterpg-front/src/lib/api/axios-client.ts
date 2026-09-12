@@ -372,7 +372,7 @@ function redirectToLogin() {
     window.location.pathname !== '/auth/login'
   ) {
     isRedirectingToLogin = true;
-    window.location.assign('/auth/login');
+    window.location.replace('/auth/login');
   }
 }
 
