@@ -86,6 +86,7 @@ export type UpdateCompendioArtigoPayload = {
   tags?: string[];
   palavrasChave?: string;
   nivelDificuldade?: 'iniciante' | 'intermediario' | 'avancado';
+  artigosRelacionados?: string[];
   destaque?: boolean;
   ativo?: boolean;
 };

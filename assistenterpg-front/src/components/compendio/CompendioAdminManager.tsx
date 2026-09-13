@@ -25,6 +25,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 import { Textarea } from '@/components/ui/Textarea';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { CatalogReferenceMultiSelect } from '@/components/ui/CatalogReferenceMultiSelect';
 import { Select } from '@/components/ui/Select';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -97,7 +98,7 @@ type ArtigoForm = {
   tags: string;
   palavrasChave: string;
   nivelDificuldade: '' | 'iniciante' | 'intermediario' | 'avancado';
-  artigosRelacionados: string;
+  artigosRelacionados: string[];
   ativo: boolean;
   destaque: boolean;
 };
@@ -187,8 +188,8 @@ function createArtigoForm(
         ? completo.nivelDificuldade
         : '',
     artigosRelacionados: Array.isArray(completo?.artigosRelacionados)
-      ? completo.artigosRelacionados.join(', ')
-      : '',
+      ? [...completo.artigosRelacionados]
+      : [],
     ativo: artigo?.ativo ?? true,
     destaque: artigo?.destaque ?? false,
   };
@@ -623,7 +624,7 @@ export function CompendioAdminManager() {
         tags: splitCsv(artigoForm.tags),
         palavrasChave: optionalString(artigoForm.palavrasChave),
         nivelDificuldade: artigoForm.nivelDificuldade || undefined,
-        artigosRelacionados: splitCsv(artigoForm.artigosRelacionados),
+        artigosRelacionados: artigoForm.artigosRelacionados,
         ativo: artigoForm.ativo,
         destaque: artigoForm.destaque,
       };
@@ -891,6 +892,12 @@ export function CompendioAdminManager() {
                     setForm={setArtigoForm}
                     preview={preview}
                     setPreview={setPreview}
+                    artigosDisponiveis={Array.from(lookup.artigos.values())}
+                    artigoEmEdicaoCodigo={
+                      selection.mode === 'edit'
+                        ? lookup.artigos.get(selection.id)?.codigo
+                        : undefined
+                    }
                   />
                 ) : null}
               </div>
@@ -1252,15 +1259,33 @@ function ArticleEditor({
   setForm,
   preview,
   setPreview,
+  artigosDisponiveis,
+  artigoEmEdicaoCodigo,
 }: {
   form: ArtigoForm;
   setForm: Dispatch<SetStateAction<ArtigoForm>>;
   preview: boolean;
   setPreview: (value: boolean) => void;
+  artigosDisponiveis: CompendioArtigoResumido[];
+  artigoEmEdicaoCodigo?: string;
 }) {
   const bytes = new TextEncoder().encode(form.conteudo).length;
   const patch = <K extends keyof ArtigoForm>(field: K, value: ArtigoForm[K]) =>
     setForm((current) => ({ ...current, [field]: value }));
+  const opcoesArtigosRelacionados = useMemo(
+    () =>
+      artigosDisponiveis
+        .filter((artigo) => artigo.codigo !== artigoEmEdicaoCodigo)
+        .sort((a, b) => a.titulo.localeCompare(b.titulo, 'pt-BR'))
+        .map((artigo) => ({
+          value: artigo.codigo,
+          label: artigo.titulo,
+          description: artigo.resumo,
+          badges: artigo.destaque ? [{ text: 'Destaque', color: 'purple' as const }] : undefined,
+          searchTerms: [artigo.codigo],
+        })),
+    [artigoEmEdicaoCodigo, artigosDisponiveis],
+  );
 
   return (
     <div className="space-y-4">
@@ -1289,7 +1314,16 @@ function ArticleEditor({
           <Textarea className="font-mono xl:col-span-2" label="Conteúdo Markdown" rows={18} value={form.conteudo} onChange={(e) => patch('conteudo', e.target.value)} error={bytes > SAFE_TEXT_BYTES ? 'Conteúdo acima do limite seguro.' : undefined} />
           <Input label="Tags" value={form.tags} onChange={(e) => patch('tags', e.target.value)} helperText="Separe por vírgulas." />
           <Input label="Palavras-chave" value={form.palavrasChave} onChange={(e) => patch('palavrasChave', e.target.value)} />
-          <Input label="Artigos relacionados" value={form.artigosRelacionados} onChange={(e) => patch('artigosRelacionados', e.target.value)} helperText="Códigos separados por vírgula." />
+          <div className="xl:col-span-2">
+            <CatalogReferenceMultiSelect
+              label="Artigos relacionados"
+              value={form.artigosRelacionados}
+              options={opcoesArtigosRelacionados}
+              onChange={(artigosRelacionados) => patch('artigosRelacionados', artigosRelacionados)}
+              helperText="Selecione pelo título e resumo; os códigos permanecem internos ao sistema."
+              placeholder="Selecionar artigos relacionados"
+            />
+          </div>
           <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />
           <label className="space-y-1">
             <span className="block text-sm font-semibold text-app-fg">Dificuldade</span>
