@@ -3315,11 +3315,7 @@ export class PersonagemBaseService {
       await tx.habilidadeTecnica.create({
         data: {
           tecnicaId: tecnicaInataPropriaId,
-          codigo:
-            typeof payload.codigo === 'string' &&
-            payload.codigo.trim().length > 0
-              ? payload.codigo.trim()
-              : `PB_HAB_${personagemBaseId}_${Date.now()}`,
+          codigo: `PB_HAB_${personagemBaseId}_${Date.now()}`,
           nome: this.stringOuPadrao(payload.nome, 'Nova habilidade'),
           descricao: this.stringOuPadrao(payload.descricao, ''),
           requisitos:
@@ -3457,10 +3453,6 @@ export class PersonagemBaseService {
       await tx.habilidadeTecnica.update({
         where: { id: habilidadeId },
         data: this.limparUndefined({
-          codigo:
-            typeof payload.codigo === 'string'
-              ? payload.codigo.trim()
-              : undefined,
           nome: typeof payload.nome === 'string' ? payload.nome : undefined,
           descricao:
             typeof payload.descricao === 'string'

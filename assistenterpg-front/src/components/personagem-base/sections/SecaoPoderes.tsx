@@ -10,7 +10,9 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
+import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
+import { RequisitosEstruturadosEditor } from '@/components/suplemento/forms/RequisitosEstruturadosEditor';
 import { PoderesGenericosSection } from '@/components/personagem-base/sections/PoderesGenericosSection';
 import { TrainingGradesSection } from '@/components/personagem-base/sections/TrainingGradesSection';
 import {
@@ -52,7 +54,6 @@ type TecnicaHabilidade = NonNullable<TecnicaAmaldicoadaCatalogo['habilidades']>[
 type TecnicaVariacao = NonNullable<TecnicaHabilidade['variacoes']>[number];
 
 type HabilidadeFormState = {
-  codigo: string;
   nome: string;
   descricao: string;
   execucao: string;
@@ -63,7 +64,7 @@ type HabilidadeFormState = {
   custoPE: string;
   efeito: string;
   ordem: string;
-  requisitos: string;
+  requisitos: unknown;
   habilitada: boolean;
 };
 
@@ -74,7 +75,7 @@ type VariacaoFormState = {
   custoPE: string;
   efeitoAdicional: string;
   ordem: string;
-  requisitos: string;
+  requisitos: unknown;
 };
 
 const HABILITY_TYPES = {
@@ -133,26 +134,10 @@ function formatRequisitos(value: unknown): string[] {
   return linhas;
 }
 
-function formatJsonTextarea(value: unknown): string {
-  if (value == null) return '';
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return '';
-  }
-}
-
-function parseJsonTextarea(value: string): unknown | undefined {
-  const trimmed = value.trim();
-  if (!trimmed) return undefined;
-  return JSON.parse(trimmed);
-}
-
 function createHabilidadeFormState(
   habilidade?: TecnicaHabilidade | null,
 ): HabilidadeFormState {
   return {
-    codigo: habilidade?.codigo ?? '',
     nome: habilidade?.nome ?? '',
     descricao: habilidade?.descricao ?? '',
     execucao: habilidade?.execucao ?? 'ACAO_PADRAO',
@@ -163,7 +148,7 @@ function createHabilidadeFormState(
     custoPE: String(habilidade?.custoPE ?? 0),
     efeito: habilidade?.efeito ?? '',
     ordem: String(habilidade?.ordem ?? 10),
-    requisitos: formatJsonTextarea(habilidade?.requisitos),
+    requisitos: habilidade?.requisitos ?? '',
     habilitada: habilidade?.habilitada ?? true,
   };
 }
@@ -180,7 +165,7 @@ function createVariacaoFormState(
       variacao?.custoPE == null ? '' : String(variacao.custoPE),
     efeitoAdicional: variacao?.efeitoAdicional ?? '',
     ordem: String(variacao?.ordem ?? 10),
-    requisitos: formatJsonTextarea(variacao?.requisitos),
+    requisitos: variacao?.requisitos ?? '',
   };
 }
 
@@ -220,17 +205,22 @@ function HabilidadeTecnicaFormModal({
       <div className="space-y-4">
         {erro ? <ErrorAlert message={erro} /> : null}
         <div className="grid gap-3 md:grid-cols-2">
-          <Input
-            label="Código"
-            value={value.codigo}
-            onChange={(e) => onChange({ ...value, codigo: e.target.value })}
-            placeholder="Opcional"
-          />
-          <Input
+          <Select
             label="Execução"
             value={value.execucao}
-            onChange={(e) => onChange({ ...value, execucao: e.target.value })}
-          />
+            onChange={(e) =>
+              onChange({ ...value, execucao: e.target.value as TipoExecucao })
+            }
+            helperText="Define a ação necessária para usar a habilidade."
+          >
+            {(Object.entries(TIPO_EXECUCAO_LABELS) as [TipoExecucao, string][]).map(
+              ([codigo, nome]) => (
+                <option key={codigo} value={codigo}>
+                  {nome}
+                </option>
+              ),
+            )}
+          </Select>
           <Input
             label="Nome"
             value={value.nome}
@@ -246,27 +236,33 @@ function HabilidadeTecnicaFormModal({
             label="Alcance"
             value={value.alcance}
             onChange={(e) => onChange({ ...value, alcance: e.target.value })}
+            placeholder="Ex.: pessoal, curto, médio"
+            helperText="Use uma medida ou alcance da regra quando não houver opção fechada."
           />
           <Input
             label="Alvo"
             value={value.alvo}
             onChange={(e) => onChange({ ...value, alvo: e.target.value })}
+            placeholder="Ex.: você, um ser, área"
           />
           <Input
             label="Duração"
             value={value.duracao}
             onChange={(e) => onChange({ ...value, duracao: e.target.value })}
+            placeholder="Ex.: instantânea, sustentada"
           />
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="Custo EA"
               type="number"
+              min={0}
               value={value.custoEA}
               onChange={(e) => onChange({ ...value, custoEA: e.target.value })}
             />
             <Input
               label="Custo PE"
               type="number"
+              min={0}
               value={value.custoPE}
               onChange={(e) => onChange({ ...value, custoPE: e.target.value })}
             />
@@ -284,12 +280,10 @@ function HabilidadeTecnicaFormModal({
           onChange={(e) => onChange({ ...value, efeito: e.target.value })}
           rows={4}
         />
-        <Textarea
-          label="Requisitos (JSON)"
+        <RequisitosEstruturadosEditor
           value={value.requisitos}
-          onChange={(e) => onChange({ ...value, requisitos: e.target.value })}
-          rows={4}
-          placeholder='Ex: {"graus":[{"valorMinimo":1,"tipoGrauCodigo":"TECNICA_AMALDICOADA"}]}'
+          onChange={(requisitos) => onChange({ ...value, requisitos })}
+          helperText="Use regras conhecidas ou “Outro” para uma condição descritiva. JSON não é necessário."
         />
         <Checkbox
           checked={value.habilitada}
@@ -381,11 +375,10 @@ function VariacaoTecnicaFormModal({
           onChange={(e) => onChange({ ...value, efeitoAdicional: e.target.value })}
           rows={4}
         />
-        <Textarea
-          label="Requisitos (JSON)"
+        <RequisitosEstruturadosEditor
           value={value.requisitos}
-          onChange={(e) => onChange({ ...value, requisitos: e.target.value })}
-          rows={4}
+          onChange={(requisitos) => onChange({ ...value, requisitos })}
+          helperText="Use regras conhecidas ou “Outro” para uma condição descritiva. JSON não é necessário."
         />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose} disabled={salvando}>
@@ -690,7 +683,6 @@ export function SecaoPoderes({
   async function salvarHabilidade() {
     if (!personagemId) return;
     const payload = {
-      codigo: formHabilidade.codigo || undefined,
       nome: formHabilidade.nome,
       descricao: formHabilidade.descricao,
       execucao: formHabilidade.execucao,
@@ -701,7 +693,10 @@ export function SecaoPoderes({
       custoPE: Number(formHabilidade.custoPE || 0),
       efeito: formHabilidade.efeito,
       ordem: Number(formHabilidade.ordem || 10),
-      requisitos: parseJsonTextarea(formHabilidade.requisitos),
+      requisitos:
+        typeof formHabilidade.requisitos === 'string' && !formHabilidade.requisitos.trim()
+          ? undefined
+          : formHabilidade.requisitos,
       habilitada: formHabilidade.habilitada,
     };
 
@@ -726,7 +721,10 @@ export function SecaoPoderes({
       custoPE: formVariacao.custoPE ? Number(formVariacao.custoPE) : null,
       efeitoAdicional: formVariacao.efeitoAdicional || null,
       ordem: Number(formVariacao.ordem || 10),
-      requisitos: parseJsonTextarea(formVariacao.requisitos),
+      requisitos:
+        typeof formVariacao.requisitos === 'string' && !formVariacao.requisitos.trim()
+          ? undefined
+          : formVariacao.requisitos,
     };
 
     if (variacaoEditando) {
