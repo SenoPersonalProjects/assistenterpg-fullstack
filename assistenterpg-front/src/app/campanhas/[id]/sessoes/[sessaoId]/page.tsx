@@ -3286,9 +3286,10 @@ export default function SessaoCampanhaPage() {
         if (!ativo) return;
         setNpcsDisponiveis(resposta.items);
 
-        if (!npcSelecionadoId && resposta.items.length > 0) {
-          setNpcSelecionadoId(String(resposta.items[0].id));
-        }
+        setNpcSelecionadoId((atual) => {
+          if (atual || resposta.items.length === 0) return atual;
+          return String(resposta.items[0].id);
+        });
       } catch {
         if (!ativo) return;
         setNpcsDisponiveis([]);
@@ -3298,7 +3299,7 @@ export default function SessaoCampanhaPage() {
     return () => {
       ativo = false;
     };
-  }, [detalhe?.permissoes.ehMestre, idsValidos, npcSelecionadoId, usuario]);
+  }, [detalhe?.permissoes.ehMestre, idsValidos, usuario]);
 
   useEffect(() => {
     if (!idsValidos || !usuario || !detalhe?.permissoes.ehMestre) {

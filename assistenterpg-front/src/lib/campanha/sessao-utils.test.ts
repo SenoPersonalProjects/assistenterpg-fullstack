@@ -3,6 +3,7 @@ import type { SessaoCampanhaDetalhe } from '../types/campanha.types';
 import {
   calcularIndiceProximoTurno,
   calcularIntervaloPolling,
+  deveExecutarPollingSessao,
   calcularRestanteCooldown,
   montarPayloadOrdemIniciativa,
   podeMutarItensSessao,
@@ -38,6 +39,13 @@ describe('sessao-utils', () => {
   it('calcula intervalo de polling baseado no socket', () => {
     expect(calcularIntervaloPolling(true)).toBe(15000);
     expect(calcularIntervaloPolling(false)).toBe(3000);
+  });
+
+  it('suspende polling somente enquanto a aba estiver oculta', () => {
+    expect(deveExecutarPollingSessao('visible')).toBe(true);
+    expect(deveExecutarPollingSessao('prerender')).toBe(true);
+    expect(deveExecutarPollingSessao(undefined)).toBe(true);
+    expect(deveExecutarPollingSessao('hidden')).toBe(false);
   });
 
   it('mantem itens somente leitura quando a sessao esta encerrada', () => {

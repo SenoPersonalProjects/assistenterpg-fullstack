@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { calcularIntervaloPolling } from '@/lib/campanha/sessao-utils';
+import {
+  calcularIntervaloPolling,
+  deveExecutarPollingSessao,
+} from '@/lib/campanha/sessao-utils';
 import {
   type AckSessaoRealtime,
   conectarSocketSessao,
@@ -54,12 +57,28 @@ export function useSessaoRealtime({
     const intervaloMs = calcularIntervaloPolling(
       estadoRealtime.socketConectado,
     );
-    const intervalo = window.setInterval(() => {
+    const sincronizarSeVisivel = () => {
+      if (
+        typeof document !== 'undefined' &&
+        !deveExecutarPollingSessao(document.visibilityState)
+      ) {
+        return;
+      }
       void sincronizarTempoReal();
+    };
+    const intervalo = window.setInterval(() => {
+      sincronizarSeVisivel();
     }, intervaloMs);
+    const handleVisibilidade = () => {
+      if (document.visibilityState === 'visible') {
+        void sincronizarTempoReal();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilidade);
 
     return () => {
       window.clearInterval(intervalo);
+      document.removeEventListener('visibilitychange', handleVisibilidade);
     };
   }, [
     estadoRealtime.socketConectado,

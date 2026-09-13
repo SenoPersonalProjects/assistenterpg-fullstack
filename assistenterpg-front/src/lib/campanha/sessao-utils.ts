@@ -41,6 +41,13 @@ export function calcularIntervaloPolling(socketConectado: boolean): number {
   return socketConectado ? 15000 : 3000;
 }
 
+/** O polling é contingência do tempo real e não deve manter requisições com a aba oculta. */
+export function deveExecutarPollingSessao(
+  visibilidade: string | undefined,
+): boolean {
+  return visibilidade !== 'hidden';
+}
+
 export function podeMutarItensSessao(sessaoEncerrada: boolean): boolean {
   return !sessaoEncerrada;
 }
