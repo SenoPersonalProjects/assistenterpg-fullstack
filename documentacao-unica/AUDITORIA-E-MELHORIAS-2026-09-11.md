@@ -190,7 +190,7 @@ Padronizar estado de envio, prevenção de duplicidade, sucesso, erro contextual
 - [ ] Critérios de aceitação verificados.
 - [x] Testes e validações aplicáveis registrados.
 - [x] Documentação atualizada.
-- [ ] Publicação validada, quando aplicável.
+- [x] Publicação validada, quando aplicável.
 
 #### Evidências
 
@@ -404,9 +404,9 @@ Revisar os fluxos por papel e viewport, priorizando orientação contextual sem 
 #### Evidências
 
 - Arquivos/PR: `SessionAccessNotice`, `SessionPlayerSummaryPanel` e página da sessão.
-- Testes e resultados: frontend — lint, suíte completa com 63 arquivos/376 testes e build aprovados em 2026-09-13.
-- Commit: pendente de publicação deste lote.
-- Deploy/migration, se aplicável: sem migration ou seed; deploy pendente deste lote.
+- Testes e resultados: frontend — lint, suíte completa com 63 arquivos/376 testes e build aprovados em 2026-09-13. Quality Gate remoto com frontend e backend aprovados.
+- Commit: `51ed559 feat(sessao): esclarece controles delegados`; documentação inicial `678a4fc`.
+- Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34736533336](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34736533336) aprovado e produção HTTP 200 confirmada.
 - Pendências e próxima ação: validar a comunicação de acesso em contas de mestre, jogador dono, controlador delegado, observador e terceiro.
 
 #### Atualização 2026-09-13
@@ -1165,7 +1165,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-12 | UX-04 | Campos-base passaram a compor rótulo, ajuda, erro e descrições externas pelo mesmo contrato acessível; o seletor de data/hora foi ajustado para manter semântica válida de botão. | `1dd2a61`, `c0ee6a8`; 2 testes focados, lint, 372 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual com leitor de tela. |
 | 2026-09-12 | UX-01, UX-02 | Diálogos agora compartilham pilha, foco, rolagem e z-index; confirmações aguardam a operação autoritativa antes de fechar. | `1918046`; 2 testes focados, lint, 374 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual de modais e falhas assíncronas. |
 | 2026-09-12 | UX-05 | Dados remotos passaram a preservar conteúdo válido durante falhas e a oferecer repetição contextual em notificações, resumo de sessão e itens da sessão. | `bb28de8`, `1a3fee9`; 2 testes focados; frontend: lint, 376 testes e build; [Quality Gate 34730804299](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34730804299) aprovado; produção HTTP 200. | Executar a bateria manual de rede acumulada. |
-| 2026-09-13 | UX-06 | A sessão passou a comunicar papel, elenco do mestre, modo leitura e participantes delegados; o resumo diferencia personagem próprio de delegado. | Frontend: lint, 376 testes e build aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual por papel e viewport. |
+| 2026-09-13 | UX-06 | A sessão passou a comunicar papel, elenco do mestre, modo leitura e participantes delegados; o resumo diferencia personagem próprio de delegado. | `51ed559`, `678a4fc`; frontend: lint, 376 testes e build; [Quality Gate 34736533336](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34736533336) aprovado; produção HTTP 200. | Executar a bateria manual por papel e viewport. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
