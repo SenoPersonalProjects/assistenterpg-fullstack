@@ -87,7 +87,7 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | UX-03 | UI/UX | P1 | Em andamento | COD-03 | Migrar os demais cadastros de catálogo e os requisitos estruturados |
 | UX-04 | UI/UX | P1 | Em andamento | DS-02 | Cobrir IDs explícitos e descrições acessíveis com testes |
 | UX-05 | UI/UX | P2 | Em validação | ARQ-02 | Executar bateria manual de falha, conteúdo preservado e repetição contextual |
-| UX-06 | UI/UX | P2 | Pendente | Validação autenticada | Revisar fluxos de sessão por papel e viewport |
+| UX-06 | UI/UX | P2 | Em validação | Validação autenticada | Executar bateria manual por papel, desktop e mobile |
 | COD-01 | Código | P1 | Em validação | Política de proteção da branch | Definir checks obrigatórios para `main` |
 | COD-02 | Código | P1 | Concluído | — | — |
 | COD-03 | Código | P1 | Em validação | UX-03 | Confirmar os papéis autenticados na bateria manual final |
@@ -372,9 +372,9 @@ O contador da topbar não zera mais por falha transitória. O painel de notifica
 ### UX-06 — Descoberta de ações na sessão
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-13  
 Dependências: Validação autenticada
 
 #### Diagnóstico e evidência
@@ -394,20 +394,34 @@ Revisar os fluxos por papel e viewport, priorizando orientação contextual sem 
 
 #### Checklist
 
-- [ ] Solução definida.
-- [ ] Implementação concluída.
+- [x] Solução definida.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados:
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: Agendar roteiro de teste exploratório por papel.
+- Arquivos/PR: `SessionAccessNotice`, `SessionPlayerSummaryPanel` e página da sessão.
+- Testes e resultados: frontend — lint, suíte completa com 63 arquivos/376 testes e build aprovados em 2026-09-13.
+- Commit: pendente de publicação deste lote.
+- Deploy/migration, se aplicável: sem migration ou seed; deploy pendente deste lote.
+- Pendências e próxima ação: validar a comunicação de acesso em contas de mestre, jogador dono, controlador delegado, observador e terceiro.
+
+#### Atualização 2026-09-13
+
+Jogadores agora veem um aviso de acesso no próprio painel da sessão. Ele identifica papel, modo de elenco do mestre, sessão encerrada e os personagens/NPCs delegados ao usuário, explicando que recursos, habilidades, ações e rolagens são operacionais enquanto edição estrutural, condições e composição da cena continuam com o mestre.
+
+Quando o personagem exibido foi delegado, o painel deixa de chamá-lo de “Meu personagem” e passa a usar “Personagem sob seu controle”. O painel de NPCs delegados já existente continua sendo apresentado no centro da sessão, sem liberar botões estruturais.
+
+#### Validação manual acumulada
+
+- [ ] Mestre: confirmar painel de elenco, delegações e controles estruturais em desktop e mobile.
+- [ ] Jogador com personagem próprio: confirmar resumo “Meu personagem”, recursos e ações disponíveis.
+- [ ] Jogador com personagem/NPC delegado: confirmar aviso, rótulo “Personagem sob seu controle”, recursos, ações e rolagens; edição estrutural deve continuar ausente.
+- [ ] Observador e membro sem delegação: confirmar aviso de modo leitura/aguardo e ausência de ações operacionais.
+- [ ] Sessão encerrada: confirmar aviso de modo leitura e controles desabilitados.
 
 ## 7. Código e qualidade
 
@@ -1151,6 +1165,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-12 | UX-04 | Campos-base passaram a compor rótulo, ajuda, erro e descrições externas pelo mesmo contrato acessível; o seletor de data/hora foi ajustado para manter semântica válida de botão. | `1dd2a61`, `c0ee6a8`; 2 testes focados, lint, 372 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual com leitor de tela. |
 | 2026-09-12 | UX-01, UX-02 | Diálogos agora compartilham pilha, foco, rolagem e z-index; confirmações aguardam a operação autoritativa antes de fechar. | `1918046`; 2 testes focados, lint, 374 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual de modais e falhas assíncronas. |
 | 2026-09-12 | UX-05 | Dados remotos passaram a preservar conteúdo válido durante falhas e a oferecer repetição contextual em notificações, resumo de sessão e itens da sessão. | `bb28de8`, `1a3fee9`; 2 testes focados; frontend: lint, 376 testes e build; [Quality Gate 34730804299](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34730804299) aprovado; produção HTTP 200. | Executar a bateria manual de rede acumulada. |
+| 2026-09-13 | UX-06 | A sessão passou a comunicar papel, elenco do mestre, modo leitura e participantes delegados; o resumo diferencia personagem próprio de delegado. | Frontend: lint, 376 testes e build aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual por papel e viewport. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
