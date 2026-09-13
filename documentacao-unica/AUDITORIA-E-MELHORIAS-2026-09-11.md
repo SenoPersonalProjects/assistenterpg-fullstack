@@ -86,7 +86,7 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | UX-02 | UI/UX | P1 | Em validação | UX-01 | Executar bateria manual de confirmações assíncronas |
 | UX-03 | UI/UX | P1 | Em andamento | COD-03 | Migrar os demais cadastros de catálogo e os requisitos estruturados |
 | UX-04 | UI/UX | P1 | Em andamento | DS-02 | Cobrir IDs explícitos e descrições acessíveis com testes |
-| UX-05 | UI/UX | P2 | Pendente | ARQ-02 | Definir estados comuns de dados remotos |
+| UX-05 | UI/UX | P2 | Em validação | ARQ-02 | Executar bateria manual de falha, conteúdo preservado e repetição contextual |
 | UX-06 | UI/UX | P2 | Pendente | Validação autenticada | Revisar fluxos de sessão por papel e viewport |
 | COD-01 | Código | P1 | Em validação | Política de proteção da branch | Definir checks obrigatórios para `main` |
 | COD-02 | Código | P1 | Concluído | — | — |
@@ -320,9 +320,9 @@ Os campos-base compartilham um único resolvedor de acessibilidade. IDs explíci
 ### UX-05 — Estados de dados remotos coerentes
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-12  
 Dependências: ARQ-02
 
 #### Diagnóstico e evidência
@@ -342,20 +342,32 @@ Padronizar os estados carregando, vazio, erro, conteúdo anterior e desatualizad
 
 #### Checklist
 
-- [ ] Solução definida.
-- [ ] Implementação concluída.
+- [x] Solução definida.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados:
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: Levantar padrões atuais de carregamento e erro por módulo.
+- Arquivos/PR: `src/lib/ui/remote-data.ts`, `src/hooks/useRemoteData.ts`, `usePendingNotifications`, `PendingNotificationsPanel`, `CampaignNextSessionBanner` e `SessionItemsPanel`.
+- Testes e resultados: frontend — 2 testes unitários do estado remoto, suíte completa com 63 arquivos/376 testes, lint e build aprovados em 2026-09-12.
+- Commit: pendente de publicação deste lote.
+- Deploy/migration, se aplicável: sem migration ou seed; deploy pendente deste lote.
+- Pendências e próxima ação: em uma conta autenticada, simular falha de rede no sino, no resumo de sessão e nos itens da sessão; confirmar conteúdo preservado, mensagem clara e repetição contextual.
+
+#### Atualização 2026-09-12
+
+Foi criado um estado remoto reutilizável que separa primeira carga, atualização e erro. Ao falhar uma atualização, ele preserva os dados anteriores e identifica que a tela está desatualizada, em vez de substituir conteúdo por lista vazia.
+
+O contador da topbar não zera mais por falha transitória. O painel de notificações, o resumo de sessões da campanha e os itens da sessão agora mostram erro contextual, preservam o último resultado conhecido quando houver um e oferecem “Tentar novamente” no próprio local.
+
+#### Validação manual acumulada
+
+- [ ] Com dados já carregados, bloquear temporariamente a rede e atualizar notificações: o contador e a lista devem permanecer visíveis, com aviso de desatualização.
+- [ ] Sem dados carregados, bloquear a rede e abrir notificações: deve aparecer erro e “Tentar novamente”, nunca “nenhuma notificação”.
+- [ ] Repetir a falha/recuperação no resumo de próxima sessão e nos itens da sessão, confirmando que o conteúdo anterior não some e a tentativa contextual recarrega os dados.
 
 ### UX-06 — Descoberta de ações na sessão
 
@@ -1138,6 +1150,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-12 | UX-03 | Habilidades gerais migraram requisitos e mecânicas de JSON manual para editores guiados; habilidades de técnica passaram a selecionar o tipo de grau pelo catálogo. | `4bde960`; frontend: lint, 370 testes e build; backend: 8 suítes/24 testes, lint, build e Prisma validate. | Publicar, acompanhar o Quality Gate e seguir com os cadastros relacionais restantes. |
 | 2026-09-12 | UX-04 | Campos-base passaram a compor rótulo, ajuda, erro e descrições externas pelo mesmo contrato acessível; o seletor de data/hora foi ajustado para manter semântica válida de botão. | `1dd2a61`, `c0ee6a8`; 2 testes focados, lint, 372 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual com leitor de tela. |
 | 2026-09-12 | UX-01, UX-02 | Diálogos agora compartilham pilha, foco, rolagem e z-index; confirmações aguardam a operação autoritativa antes de fechar. | `1918046`; 2 testes focados, lint, 374 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual de modais e falhas assíncronas. |
+| 2026-09-12 | UX-05 | Dados remotos passaram a preservar conteúdo válido durante falhas e a oferecer repetição contextual em notificações, resumo de sessão e itens da sessão. | 2 testes focados; frontend: lint, 376 testes e build aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual de rede acumulada. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
