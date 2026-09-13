@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { Badge } from "@/components/ui/Badge";
+import { CatalogTagSelector } from "@/components/ui/CatalogTagSelector";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { StatusPublicacao } from "@/lib/types/homebrew-enums";
@@ -81,21 +81,6 @@ function extrairMensagensDetalhes(details: unknown): string[] {
   return [];
 }
 
-function parseTagsInput(value: string): string[] {
-  return value
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter((tag) => tag.length > 0);
-}
-
-function tagsIguais(atual: string[], proxima: string[]): boolean {
-  if (atual.length !== proxima.length) {
-    return false;
-  }
-
-  return atual.every((tag, index) => tag === proxima[index]);
-}
-
 export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
   const {
     tipo,
@@ -121,7 +106,6 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
     reset,
   } = useHomebrewForm({ initialValues });
 
-  const [tagsInput, setTagsInput] = useState(() => tags.join(", "));
   const [referencias, setReferencias] = useState<Record<string, JsonImportGuideReferenceRow[]>>({});
 
   useEffect(() => {
@@ -129,18 +113,6 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
       .then((guia) => setReferencias(Object.fromEntries(guia.referencias.map((item) => [item.key, item.rows]))))
       .catch(() => undefined);
   }, []);
-
-  useEffect(() => {
-    setTagsInput(tags.join(", "));
-  }, [tags]);
-
-  function handleTagsChange(value: string) {
-    setTagsInput(value);
-    const tagsArray = parseTagsInput(value);
-    if (!tagsIguais(tags, tagsArray)) {
-      setTags(tagsArray);
-    }
-  }
 
   async function handleSubmit(e: React.FormEvent, criarOutro = false) {
     e.preventDefault();
@@ -265,11 +237,12 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
         />
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Input
+          <CatalogTagSelector
             label="Tags"
-            value={tagsInput}
-            onChange={(e) => handleTagsChange(e.target.value)}
-            placeholder="Ex: combate, suporte (separar por vírgula)"
+            helperText="Adicione termos curtos para facilitar a busca na biblioteca."
+            value={tags}
+            onChange={setTags}
+            otherLabel="Nova tag"
           />
 
           <Input
@@ -277,18 +250,9 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
             value={versao}
             onChange={(e) => setVersao(e.target.value)}
             placeholder="1.0.0"
+            helperText="Use uma versão curta para identificar revisões deste conteúdo."
           />
         </div>
-
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {tags.map((tag, idx) => (
-              <Badge key={idx} color="blue" size="sm">
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        )}
       </section>
 
       <section className="space-y-4 rounded-xl border border-white/5 bg-app-surface/45 p-4">

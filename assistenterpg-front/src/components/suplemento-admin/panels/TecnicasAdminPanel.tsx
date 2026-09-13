@@ -721,25 +721,13 @@ export function TecnicasAdminPanel() {
       }
       toolbar={
         <div className="w-full space-y-3">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-6">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
           <Input
             label="Nome"
             value={draftFilters.nome}
             onChange={(e) => setDraftFilters((prev) => ({ ...prev, nome: e.target.value }))}
             icon="search"
             placeholder="Busca por nome..."
-          />
-
-          <Input
-            label="Código"
-            value={draftFilters.codigo}
-            onChange={(e) =>
-              setDraftFilters((prev) => ({
-                ...prev,
-                codigo: e.target.value.toUpperCase(),
-              }))
-            }
-            placeholder="Ex: TEC_..."
           />
 
           <Select

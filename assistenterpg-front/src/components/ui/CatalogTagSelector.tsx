@@ -9,7 +9,7 @@ import { Select } from './Select';
 type CatalogTagSelectorProps = {
   label: string;
   helperText?: string;
-  options: readonly string[];
+  options?: readonly string[];
   value: string[];
   onChange: (value: string[]) => void;
   otherLabel?: string;
@@ -19,7 +19,7 @@ type CatalogTagSelectorProps = {
 export function CatalogTagSelector({
   label,
   helperText,
-  options,
+  options = [],
   value,
   onChange,
   otherLabel = 'Outro',
@@ -42,7 +42,7 @@ export function CatalogTagSelector({
         {helperText ? <p className="text-xs text-app-muted">{helperText}</p> : null}
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Select
+        {options.length > 0 ? <Select
           aria-label={label}
           value={selectedOption}
           onChange={(event) => {
@@ -57,7 +57,7 @@ export function CatalogTagSelector({
             .map((option) => (
               <option key={option} value={option}>{option}</option>
             ))}
-        </Select>
+        </Select> : null}
         {allowCustom ? <div className="flex gap-2">
           <Input
             aria-label={`${otherLabel} ${label}`}
