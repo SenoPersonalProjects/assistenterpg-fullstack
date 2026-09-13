@@ -8,6 +8,8 @@ import { Input } from './Input';
 import { Button } from './Button';
 import { Badge } from './Badge';
 import { ClickableCard } from './ClickableCard';
+import { Loading } from './Loading';
+import { filtrarItensCatalogo } from '@/lib/ui/catalog-search';
 
 export type SelectModalOption<T = unknown> = {
   value: string | number;
@@ -15,6 +17,7 @@ export type SelectModalOption<T = unknown> = {
   description?: string | null;
   badges?: { text: string; color?: 'blue' | 'green' | 'yellow' | 'purple' | 'red' }[];
   details?: React.ReactNode;
+  searchTerms?: string[];
   data?: T;
 };
 
@@ -28,8 +31,11 @@ type SelectModalProps = {
   onChange: (value: string | number) => void;
   disabled?: boolean;
   searchable?: boolean;
+  forceSearch?: boolean;
   emptyText?: string;
   allowClear?: boolean;
+  loading?: boolean;
+  loadingText?: string;
 };
 
 export function SelectModal({
@@ -42,8 +48,11 @@ export function SelectModal({
   onChange,
   disabled = false,
   searchable = true,
+  forceSearch = false,
   emptyText = 'Nenhuma opção disponível',
   allowClear = true,
+  loading = false,
+  loadingText = 'Carregando opções...',
 }: SelectModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,10 +62,10 @@ export function SelectModal({
   const selectedOption = options.find((opt) => String(opt.value) === String(value));
 
   const filteredOptions = searchable
-    ? options.filter((opt) =>
-        opt.label.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    ? filtrarItensCatalogo(options, searchTerm)
     : options;
+  const possuiValorIncompativel =
+    value !== '' && value !== null && value !== undefined && !selectedOption;
 
   const handleConfirm = () => {
     if (selectedValue !== null) {
@@ -151,6 +160,16 @@ export function SelectModal({
                 </div>
               )}
             </div>
+          ) : possuiValorIncompativel ? (
+            <div className="flex items-center gap-2 py-2 text-app-danger">
+              <Icon name="warning" className="h-5 w-5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium">Seleção indisponível</p>
+                <p className="text-xs text-app-muted">
+                  Escolha uma opção válida para continuar.
+                </p>
+              </div>
+            </div>
           ) : (
             // ✅ ESTADO VAZIO
             <div className="flex flex-col items-center justify-center gap-2 py-2">
@@ -181,7 +200,7 @@ export function SelectModal({
       >
         <div className="flex flex-col h-full max-h-[70vh]">
           {/* Search */}
-          {searchable && options.length > 5 && (
+          {searchable && (forceSearch || options.length > 5) && !loading && (
             <div className="mb-3 flex-shrink-0">
               <Input
                 placeholder="Buscar..."
@@ -194,7 +213,9 @@ export function SelectModal({
 
           {/* Lista com scroll */}
           <div className="flex-1 overflow-y-auto pr-2 space-y-2 mb-4 min-h-0">
-            {filteredOptions.length === 0 ? (
+            {loading ? (
+              <Loading message={loadingText} size="sm" className="py-10" />
+            ) : filteredOptions.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-12">
                 <Icon name="search" className="w-12 h-12 text-app-muted mb-3 opacity-50" />
                 <p className="text-app-muted text-sm">{emptyText}</p>
@@ -292,7 +313,7 @@ export function SelectModal({
             <Button
               variant="primary"
               onClick={handleConfirm}
-              disabled={selectedValue === null}
+              disabled={selectedValue === null || loading}
               className="flex-1"
             >
               <Icon name="check" className="w-4 h-4" />

@@ -11,6 +11,9 @@ import { SectionTitle } from '@/components/ui/SectionTitle';
 import { Icon, ICON_NAMES } from '@/components/ui/Icon';
 import { NotificationsButton } from '@/components/layout/NotificationsButton';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { Loading } from '@/components/ui/Loading';
+import { SelectModal } from '@/components/ui/SelectModal';
 
 const selectOptions = [
   { value: 'combatente', label: 'Combatente' },
@@ -56,6 +59,38 @@ export default function ComponentsShowcasePage() {
       <SectionTitle>Select</SectionTitle>
       <div className="max-w-xs">
         <Select label="Classe" options={selectOptions} defaultValue="combatente" />
+      </div>
+
+      <SectionTitle>Estados de dados e seleção</SectionTitle>
+      <div className="grid max-w-4xl gap-4 md:grid-cols-2">
+        <Card className="space-y-3">
+          <h3 className="font-semibold text-app-fg">Feedback remoto</h3>
+          <Loading message="Carregando catálogo..." size="sm" />
+          <ErrorAlert message="Não foi possível atualizar o catálogo. Tente novamente." />
+        </Card>
+        <SelectModal
+          label="Poder genérico"
+          placeholder="Selecionar poder..."
+          helperText="A busca considera nome, descrição, tipo e fonte."
+          value=""
+          onChange={() => undefined}
+          forceSearch
+          options={[
+            {
+              value: 'ritual-predileto',
+              label: 'Ritual Predileto',
+              description: 'Reduz o custo de energia da habilidade escolhida.',
+              badges: [{ text: 'Poder genérico', color: 'purple' }],
+              searchTerms: ['Sistema-base'],
+            },
+            {
+              value: 'nevoa-lilas',
+              label: 'Névoa Lilás',
+              description: 'Uma técnica de visão obscurecida.',
+              badges: [{ text: 'Homebrew', color: 'blue' }],
+            },
+          ]}
+        />
       </div>
 
       <SectionTitle>Badges</SectionTitle>
