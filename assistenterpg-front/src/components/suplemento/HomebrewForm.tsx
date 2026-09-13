@@ -266,7 +266,13 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
         {tipo === "ORIGEM" && <OrigemFormFields dados={dados} onChange={updateDados} pericias={referencias.pericias ?? []} />}
         {tipo === "TRILHA" && <TrilhaFormFields dados={dados} onChange={updateDados} classes={referencias.classes ?? []} />}
         {tipo === "CAMINHO" && <CaminhoFormFields dados={dados} onChange={updateDados} />}
-        {tipo === "EQUIPAMENTO" && <EquipamentoFormFields dados={dados} onChange={updateDados} />}
+        {tipo === "EQUIPAMENTO" && (
+          <EquipamentoFormFields
+            dados={dados}
+            onChange={updateDados}
+            pericias={referencias.pericias ?? []}
+          />
+        )}
         {tipo === "PODER_GENERICO" && (
           <PoderGenericoFormFields dados={dados} onChange={updateDados} />
         )}

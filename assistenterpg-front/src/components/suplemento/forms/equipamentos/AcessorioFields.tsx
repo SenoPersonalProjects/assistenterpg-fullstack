@@ -6,18 +6,21 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { CatalogStringSelect } from '@/components/ui/CatalogStringSelect';
 import {
   TipoAcessorio,
   TIPO_ACESSORIO_LABELS,
 } from '@/lib/types/homebrew-enums';
 import type { HomebrewFormDados } from '../../hooks/useHomebrewForm';
+import type { JsonImportGuideReferenceRow } from '@/lib/types';
 
 type Props = {
   dados: HomebrewFormDados;
   onChange: (dados: Partial<HomebrewFormDados>) => void;
+  pericias: JsonImportGuideReferenceRow[];
 };
 
-export function AcessorioFields({ dados, onChange }: Props) {
+export function AcessorioFields({ dados, onChange, pericias }: Props) {
   return (
     <div className="space-y-4">
       <Select
@@ -36,11 +39,12 @@ export function AcessorioFields({ dados, onChange }: Props) {
 
       {/* Campos de bônus de perícia */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <Input
+        <CatalogStringSelect
           label="Perícia bonificada"
+          helperText="Escolha uma perícia conhecida ou informe uma referência local."
+          options={pericias.map((pericia) => pericia.nome)}
           value={dados.periciaBonificada ?? ''}
-          onChange={(e) => onChange({ periciaBonificada: e.target.value })}
-          placeholder="Ex: Atletismo, Furto"
+          onChange={(periciaBonificada) => onChange({ periciaBonificada })}
         />
 
         <Input

@@ -4,22 +4,26 @@
 
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
+import { CatalogStringSelect } from '@/components/ui/CatalogStringSelect';
 import type { HomebrewFormDados } from '../../hooks/useHomebrewForm';
+import type { JsonImportGuideReferenceRow } from '@/lib/types';
 
 type Props = {
   dados: HomebrewFormDados;
   onChange: (dados: Partial<HomebrewFormDados>) => void;
+  pericias: JsonImportGuideReferenceRow[];
 };
 
-export function ItemOperacionalFields({ dados, onChange }: Props) {
+export function ItemOperacionalFields({ dados, onChange, pericias }: Props) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <Input
+        <CatalogStringSelect
           label="Perícia bonificada"
+          helperText="Escolha uma perícia conhecida ou informe uma referência local."
+          options={pericias.map((pericia) => pericia.nome)}
           value={dados.periciaBonificada ?? ''}
-          onChange={(e) => onChange({ periciaBonificada: e.target.value })}
-          placeholder="Ex: Atletismo, Percepção, Força"
+          onChange={(periciaBonificada) => onChange({ periciaBonificada })}
         />
 
         <Input

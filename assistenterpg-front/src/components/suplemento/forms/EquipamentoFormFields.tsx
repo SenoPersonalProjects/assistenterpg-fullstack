@@ -13,15 +13,17 @@ import { FerramentaAmaldicoadaFields } from './equipamentos/FerramentaAmaldicoad
 import { ItemOperacionalFields } from './equipamentos/ItemOperacionalFields';
 import { ItemAmaldicoadoFields } from './equipamentos/ItemAmaldicoadoFields';
 import type { HomebrewFormDados } from '../hooks/useHomebrewForm';
+import type { JsonImportGuideReferenceRow } from '@/lib/types';
 
 type EquipamentoFormData = HomebrewFormDados;
 
 type Props = {
   dados: EquipamentoFormData;
   onChange: (dados: Partial<EquipamentoFormData>) => void;
+  pericias: JsonImportGuideReferenceRow[];
 };
 
-export function EquipamentoFormFields({ dados, onChange }: Props) {
+export function EquipamentoFormFields({ dados, onChange, pericias }: Props) {
   const tipo = dados.tipo as TipoEquipamento | undefined;
 
   // Handler para mudanças nos campos base (categoria, espaços, tipoUso)
@@ -91,7 +93,11 @@ export function EquipamentoFormFields({ dados, onChange }: Props) {
           )}
 
           {tipo === TipoEquipamento.ACESSORIO && (
-            <AcessorioFields dados={dados} onChange={handleSpecificChange} />
+            <AcessorioFields
+              dados={dados}
+              onChange={handleSpecificChange}
+              pericias={pericias}
+            />
           )}
 
           {tipo === TipoEquipamento.MUNICAO && (
@@ -107,7 +113,11 @@ export function EquipamentoFormFields({ dados, onChange }: Props) {
           )}
 
           {tipo === TipoEquipamento.ITEM_OPERACIONAL && (
-            <ItemOperacionalFields dados={dados} onChange={handleSpecificChange} />
+            <ItemOperacionalFields
+              dados={dados}
+              onChange={handleSpecificChange}
+              pericias={pericias}
+            />
           )}
 
           {tipo === TipoEquipamento.ITEM_AMALDICOADO && (
