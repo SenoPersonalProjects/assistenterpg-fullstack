@@ -113,9 +113,12 @@ type EscudoMestreLivro = {
   }>;
 };
 
-function removerCodigoDeAtualizacao<T extends object>(payload: T): Omit<T, 'codigo'> {
-  const { codigo: _codigo, ...dados } = payload as T & { codigo?: unknown };
-  return dados as Omit<T, 'codigo'>;
+function removerCodigoDeAtualizacao<T extends object>(
+  payload: T,
+): Omit<T, 'codigo'> {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([chave]) => chave !== 'codigo'),
+  ) as Omit<T, 'codigo'>;
 }
 
 const ESCUDO_MESTRE_SECOES_ARTIGOS: EscudoMestreSecaoConfig[] = [
