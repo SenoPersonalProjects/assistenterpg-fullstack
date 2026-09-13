@@ -26,6 +26,7 @@ import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 import { Textarea } from '@/components/ui/Textarea';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CatalogReferenceMultiSelect } from '@/components/ui/CatalogReferenceMultiSelect';
+import { CatalogTagSelector } from '@/components/ui/CatalogTagSelector';
 import { Select } from '@/components/ui/Select';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -95,7 +96,7 @@ type ArtigoForm = {
   resumo: string;
   conteudo: string;
   ordem: string;
-  tags: string;
+  tags: string[];
   palavrasChave: string;
   nivelDificuldade: '' | 'iniciante' | 'intermediario' | 'avancado';
   artigosRelacionados: string[];
@@ -104,13 +105,6 @@ type ArtigoForm = {
 };
 
 const SAFE_TEXT_BYTES = 50_000;
-
-function splitCsv(value: string): string[] {
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
 
 function optionalString(value: string): string | undefined {
   const trimmed = value.trim();
@@ -179,7 +173,7 @@ function createArtigoForm(
     resumo: artigo?.resumo ?? '',
     conteudo: completo?.conteudo ?? '# Novo artigo\n\n',
     ordem: String(artigo?.ordem ?? 0),
-    tags: Array.isArray(completo?.tags) ? completo.tags.join(', ') : '',
+    tags: Array.isArray(completo?.tags) ? completo.tags : [],
     palavrasChave: completo?.palavrasChave ?? '',
     nivelDificuldade:
       completo?.nivelDificuldade === 'iniciante' ||
@@ -621,7 +615,7 @@ export function CompendioAdminManager() {
         conteudo: artigoForm.conteudo,
         subcategoriaId,
         ordem: optionalNumber(artigoForm.ordem),
-        tags: splitCsv(artigoForm.tags),
+        tags: artigoForm.tags,
         palavrasChave: optionalString(artigoForm.palavrasChave),
         nivelDificuldade: artigoForm.nivelDificuldade || undefined,
         artigosRelacionados: artigoForm.artigosRelacionados,
@@ -1312,7 +1306,12 @@ function ArticleEditor({
           <Input label="Título" value={form.titulo} onChange={(e) => patch('titulo', e.target.value)} />
           <Textarea className="xl:col-span-2" label="Resumo" rows={3} value={form.resumo} onChange={(e) => patch('resumo', e.target.value)} />
           <Textarea className="font-mono xl:col-span-2" label="Conteúdo Markdown" rows={18} value={form.conteudo} onChange={(e) => patch('conteudo', e.target.value)} error={bytes > SAFE_TEXT_BYTES ? 'Conteúdo acima do limite seguro.' : undefined} />
-          <Input label="Tags" value={form.tags} onChange={(e) => patch('tags', e.target.value)} helperText="Separe por vírgulas." />
+          <CatalogTagSelector
+            label="Tags"
+            value={form.tags}
+            onChange={(tags) => patch('tags', tags)}
+            helperText="Adicione termos para facilitar a busca. Cada tag pertence apenas a este artigo."
+          />
           <Input label="Palavras-chave" value={form.palavrasChave} onChange={(e) => patch('palavrasChave', e.target.value)} />
           <div className="xl:col-span-2">
             <CatalogReferenceMultiSelect

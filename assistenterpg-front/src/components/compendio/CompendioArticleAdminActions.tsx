@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArtigoContent } from '@/components/compendio/ArtigoContent';
 import { Button } from '@/components/ui/Button';
+import { CatalogTagSelector } from '@/components/ui/CatalogTagSelector';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { Icon } from '@/components/ui/Icon';
@@ -27,7 +28,7 @@ type FormState = {
   titulo: string;
   resumo: string;
   conteudo: string;
-  tags: string;
+  tags: string[];
   palavrasChave: string;
   nivelDificuldade: '' | 'iniciante' | 'intermediario' | 'avancado';
   destaque: boolean;
@@ -36,19 +37,12 @@ type FormState = {
 
 const SAFE_TEXT_BYTES = 50_000;
 
-function splitCsv(value: string): string[] {
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 function createInitialState(artigo: CompendioArtigoCompleto): FormState {
   return {
     titulo: artigo.titulo,
     resumo: artigo.resumo ?? '',
     conteudo: artigo.conteudo,
-    tags: Array.isArray(artigo.tags) ? artigo.tags.join(', ') : '',
+    tags: Array.isArray(artigo.tags) ? artigo.tags : [],
     palavrasChave: artigo.palavrasChave ?? '',
     nivelDificuldade:
       artigo.nivelDificuldade === 'iniciante' ||
@@ -105,7 +99,7 @@ export function CompendioArticleAdminActions({ artigo }: Props) {
       titulo: form.titulo.trim(),
       resumo: form.resumo.trim() || undefined,
       conteudo: form.conteudo,
-      tags: splitCsv(form.tags),
+      tags: form.tags,
       palavrasChave: form.palavrasChave.trim() || undefined,
       nivelDificuldade: form.nivelDificuldade || undefined,
       destaque: form.destaque,
@@ -190,11 +184,11 @@ export function CompendioArticleAdminActions({ artigo }: Props) {
             />
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Input
+              <CatalogTagSelector
                 label="Tags"
                 value={form.tags}
-                onChange={(event) => updateField('tags', event.target.value)}
-                helperText="Separe por vírgulas."
+                onChange={(tags) => updateField('tags', tags)}
+                helperText="Adicione termos que ajudam a localizar este artigo."
               />
 
               <Input
