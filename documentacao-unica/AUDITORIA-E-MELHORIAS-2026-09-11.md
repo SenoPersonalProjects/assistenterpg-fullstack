@@ -91,12 +91,12 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | COD-01 | Código | P1 | Em validação | Política de proteção da branch | Definir checks obrigatórios para `main` |
 | COD-02 | Código | P1 | Concluído | — | — |
 | COD-03 | Código | P1 | Em validação | UX-03 | Confirmar os papéis autenticados na bateria manual final |
-| COD-04 | Código | P2 | Pendente | DS-02 | Projetar seletor comum de catálogo |
+| COD-04 | Código | P2 | Em validação | DS-02 | Executar a bateria manual de busca, carregamento e seleção incompatível |
 | ARQ-01 | Arquitetura | P2 | Pendente | COD-03 | Delimitar primeira extração da sessão |
 | ARQ-02 | Arquitetura | P2 | Pendente | Observabilidade | Medir polling e requisições redundantes |
 | ARQ-03 | Arquitetura | P2 | Pendente | COD-03 | Mapear contratos duplicados front/back |
 | DS-01 | Design system | P1 | Em andamento | DS-02 | Medir contraste e revisar estados além do primário |
-| DS-02 | Design system | P2 | Pendente | UX-01 | Consolidar catálogo e testes de componentes |
+| DS-02 | Design system | P2 | Em andamento | UX-01 | Ampliar o catálogo com cenários de teclado, conteúdo longo e camadas |
 | DS-03 | Design system | P2 | Pendente | DS-02 | Organizar tokens e estilos por domínio |
 | OPS-01 | Operação e segurança | P1 | Em andamento | COD-01 | Planejar upgrade compatível da cadeia Prisma |
 | OPS-02 | Operação e segurança | P1 | Pendente | Acesso de observabilidade | Instrumentar erros de navegador e saúde |
@@ -550,9 +550,9 @@ Ampliar testes de contrato e de permissões por papel, normalizando respostas na
 ### COD-04 — Seletores reutilizáveis de catálogo
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-13  
 Dependências: DS-02
 
 #### Diagnóstico e evidência
@@ -572,29 +572,33 @@ Definir componente e contrato comuns para seleção pesquisável de catálogo, c
 
 #### Checklist
 
-- [ ] Solução definida.
-- [ ] Implementação concluída.
+- [x] Solução definida.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados:
+- Arquivos/PR: `SelectModal`, `catalog-search` e catálogo interno de componentes.
+- Testes e resultados: busca de catálogo (2 cenários), lint, 378 testes e build do frontend aprovados em 2026-09-13.
 - Commit:
 - Deploy/migration, se aplicável:
-- Pendências e próxima ação: Comparar seletores existentes e extrair interface mínima comum.
+- Pendências e próxima ação: publicar, validar manualmente busca por nome/descrição/fonte, carregamento e seleção que deixou de existir; depois migrar os seletores especializados remanescentes quando houver ganho real de contexto.
+
+#### Atualização 2026-09-13
+
+`SelectModal`, já reutilizado pelo wizard de personagem, passou a pesquisar rótulo, descrição, badges e termos de fonte sem distinção de maiúsculas ou acentos. O contrato também suporta carregamento, texto contextual e aviso para seleção persistida que não está mais disponível, sem exibir IDs ou códigos técnicos.
 
 ## 8. Arquitetura e desempenho
 
 ### ARQ-01 — Extração incremental das responsabilidades da sessão
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em andamento  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-13  
 Dependências: COD-03
 
 #### Diagnóstico e evidência
@@ -614,11 +618,11 @@ Extrair casos de uso por domínio — recursos, turnos, habilidades, elenco, con
 
 #### Checklist
 
-- [ ] Solução definida.
+- [x] Solução definida.
 - [ ] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
@@ -785,11 +789,15 @@ Ampliar o catálogo com estados de erro, carregamento, desabilitado, conteúdo l
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados:
+- Arquivos/PR: `app/dev/components/page.tsx`, `SelectModal` e `catalog-search`.
+- Testes e resultados: catálogo interno atualizado; testes unitários da busca, lint, 378 testes e build do frontend aprovados em 2026-09-13.
 - Commit:
 - Deploy/migration, se aplicável:
-- Pendências e próxima ação: Inventariar componentes e seus estados críticos.
+- Pendências e próxima ação: acrescentar estados de conteúdo longo, teclado e camadas sobrepostas, além de revisar o escopo de acesso da rota de desenvolvimento.
+
+#### Atualização 2026-09-13
+
+O catálogo interno agora demonstra feedback de carregamento e erro remoto, além de um seletor pesquisável com descrição, tipo e fonte. O contrato de busca foi extraído e recebeu testes próprios; os demais cenários críticos continuam planejados para este item.
 
 ### DS-03 — Organização de tokens e estilos por domínio
 
@@ -1166,6 +1174,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-12 | UX-01, UX-02 | Diálogos agora compartilham pilha, foco, rolagem e z-index; confirmações aguardam a operação autoritativa antes de fechar. | `1918046`; 2 testes focados, lint, 374 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual de modais e falhas assíncronas. |
 | 2026-09-12 | UX-05 | Dados remotos passaram a preservar conteúdo válido durante falhas e a oferecer repetição contextual em notificações, resumo de sessão e itens da sessão. | `bb28de8`, `1a3fee9`; 2 testes focados; frontend: lint, 376 testes e build; [Quality Gate 34730804299](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34730804299) aprovado; produção HTTP 200. | Executar a bateria manual de rede acumulada. |
 | 2026-09-13 | UX-06 | A sessão passou a comunicar papel, elenco do mestre, modo leitura e participantes delegados; o resumo diferencia personagem próprio de delegado. | `51ed559`, `678a4fc`; frontend: lint, 376 testes e build; [Quality Gate 34736533336](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34736533336) aprovado; produção HTTP 200. | Executar a bateria manual por papel e viewport. |
+| 2026-09-13 | COD-04, DS-02 | Busca de catálogo foi centralizada no `SelectModal`; o catálogo interno passou a demonstrar feedback remoto e seleção contextual. | Testes unitários de busca, lint, 378 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar os casos manuais acumulados. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
