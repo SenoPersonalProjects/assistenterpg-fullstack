@@ -85,7 +85,7 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | UX-01 | UI/UX | P1 | Em validação | DS-02 | Executar bateria manual de pilha, foco e camadas |
 | UX-02 | UI/UX | P1 | Em validação | UX-01 | Executar bateria manual de confirmações assíncronas |
 | UX-03 | UI/UX | P1 | Em andamento | COD-03 | Migrar os demais cadastros de catálogo e os requisitos estruturados |
-| UX-04 | UI/UX | P1 | Em andamento | DS-02 | Cobrir IDs explícitos e descrições acessíveis com testes |
+| UX-04 | UI/UX | P1 | Em validação | DS-02 | Executar bateria manual de acessibilidade e registrar evidências |
 | UX-05 | UI/UX | P2 | Em validação | ARQ-02 | Executar bateria manual de falha, conteúdo preservado e repetição contextual |
 | UX-06 | UI/UX | P2 | Em validação | Validação autenticada | Executar bateria manual por papel, desktop e mobile |
 | COD-01 | Código | P1 | Em validação | Política de proteção da branch | Definir checks obrigatórios para `main` |
