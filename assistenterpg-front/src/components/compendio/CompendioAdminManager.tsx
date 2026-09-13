@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
+import { IconPicker } from '@/components/ui/IconPicker';
 import { Input } from '@/components/ui/Input';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { PageToolbar } from '@/components/ui/PageToolbar';
@@ -1157,7 +1158,7 @@ function BookEditor({
     <div className="grid gap-4 md:grid-cols-2">
       <Input label="Título" value={form.titulo} onChange={(e) => patch('titulo', e.target.value)} />
       <Textarea className="md:col-span-2" label="Descrição" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
-      <Input label="Ícone" value={form.icone} onChange={(e) => patch('icone', e.target.value)} />
+      <IconPicker label="Ícone" value={form.icone} onChange={(icone) => patch('icone', icone)} helperText="Escolha um ícone disponível no sistema." />
       <Input label="Cor" value={form.cor} onChange={(e) => patch('cor', e.target.value)} />
       <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />
       <Select label="Suplemento vinculado" value={form.suplementoId} onChange={(e) => patch('suplementoId', e.target.value)} helperText="Opcional. O livro ficará identificado pela fonte selecionada.">
@@ -1195,7 +1196,7 @@ function CategoryEditor({
       <div className="grid gap-4 md:grid-cols-2">
         <Input label="Nome" value={form.nome} onChange={(e) => patch('nome', e.target.value)} />
         <Textarea className="md:col-span-2" label="Descrição" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
-        <Input label="Ícone" value={form.icone} onChange={(e) => patch('icone', e.target.value)} />
+        <IconPicker label="Ícone" value={form.icone} onChange={(icone) => patch('icone', icone)} helperText="Escolha um ícone disponível no sistema." />
         <Input label="Cor" value={form.cor} onChange={(e) => patch('cor', e.target.value)} />
         <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />
         <div className="flex items-end">
