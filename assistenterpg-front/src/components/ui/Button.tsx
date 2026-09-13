@@ -37,7 +37,7 @@ export function Button({
     ghost:
       'bg-transparent text-app-primary hover:bg-app-primary/10 border border-transparent',
     destructive:
-      'bg-app-danger text-white shadow-[0_4px_14px_0_rgba(var(--danger-rgb),0.39)] hover:bg-app-danger-hover border border-white/10',
+      'bg-app-danger text-app-on-danger shadow-[0_4px_14px_0_rgba(var(--danger-rgb),0.39)] hover:bg-app-danger-hover border border-white/10',
     glass:
       'bg-white/10 backdrop-blur-md text-app-fg border border-white/20 hover:bg-white/20 shadow-lg',
   };

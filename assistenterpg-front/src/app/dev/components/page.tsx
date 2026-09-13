@@ -40,8 +40,15 @@ export default function ComponentsShowcasePage() {
         <Button variant="primary">Primário</Button>
         <Button variant="secondary">Secundário</Button>
         <Button variant="ghost">Ghost</Button>
+        <Button variant="destructive">Destrutivo</Button>
         <Button disabled>Desabilitado</Button>
         <NotificationsButton pendingNotifications={3} />
+      </div>
+      <div className="flex gap-2 flex-wrap items-center">
+        <Badge color="green" variant="solid">Sucesso</Badge>
+        <Badge color="red" variant="solid">Erro</Badge>
+        <Badge color="yellow" variant="solid">Aviso</Badge>
+        <Badge color="cyan" variant="solid">Informação</Badge>
       </div>
 
       <SectionTitle>Inputs</SectionTitle>

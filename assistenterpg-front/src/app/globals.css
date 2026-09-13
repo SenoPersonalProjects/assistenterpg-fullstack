@@ -24,6 +24,12 @@
   --primary: #4fd6ff;
   --primary-hover: #0891b2;
   --on-primary: #07111d;
+  --on-secondary: #ffffff;
+  --on-danger: #07111d;
+  --on-success: #07111d;
+  --on-warning: #07111d;
+  --on-info: #07111d;
+  --on-orange: #07111d;
 
   --secondary: #7c3aed;
   --secondary-hover: #6d28d9;
@@ -271,6 +277,9 @@
   --primary: #c1121f;
   --primary-hover: #780000;
   --on-primary: #ffffff;
+  --on-danger: #ffffff;
+  --on-info: #ffffff;
+  --on-orange: #ffffff;
 
   --secondary: #780000;
   --secondary-hover: #5f0000;
@@ -351,6 +360,7 @@
   --primary: #16db65;
   --primary-hover: #12b955;
   --on-primary: #07111d;
+  --on-secondary: #07111d;
 
   --secondary: #119da4;
   --secondary-hover: #0e8389;
@@ -391,6 +401,7 @@
   --primary: #16db65;
   --primary-hover: #45f087;
   --on-primary: #07111d;
+  --on-secondary: #07111d;
 
   --secondary: #119da4;
   --secondary-hover: #35c4cb;
@@ -585,18 +596,24 @@
   --color-app-primary: var(--primary);
   --color-app-primary-hover: var(--primary-hover);
   --color-app-on-primary: var(--on-primary);
+  --color-app-on-secondary: var(--on-secondary);
   --color-app-secondary: var(--secondary);
   --color-app-secondary-hover: var(--secondary-hover);
   --color-app-danger: var(--danger);
   --color-app-danger-hover: var(--danger-hover);
+  --color-app-on-danger: var(--on-danger);
   --color-app-success: var(--success);
   --color-app-success-hover: var(--success-hover);
+  --color-app-on-success: var(--on-success);
   --color-app-warning: var(--warning);
   --color-app-warning-hover: var(--warning-hover);
+  --color-app-on-warning: var(--on-warning);
   --color-app-info: var(--info);
   --color-app-info-hover: var(--info-hover);
+  --color-app-on-info: var(--on-info);
   --color-app-orange: var(--orange);
   --color-app-orange-hover: var(--orange-hover);
+  --color-app-on-orange: var(--on-orange);
 
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
 }

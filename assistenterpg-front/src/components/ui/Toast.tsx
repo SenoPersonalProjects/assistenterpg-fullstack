@@ -7,10 +7,10 @@ import { formatarSuporteErro } from '@/lib/api/error-handler';
 import { Icon, IconName } from './Icon';
 
 const TOAST_STYLES = {
-  success: 'bg-app-success text-white',
-  error: 'bg-app-danger text-white',
-  warning: 'bg-app-warning text-white',
-  info: 'bg-app-info text-white',
+  success: 'bg-app-success text-app-on-success',
+  error: 'bg-app-danger text-app-on-danger',
+  warning: 'bg-app-warning text-app-on-warning',
+  info: 'bg-app-info text-app-on-info',
 };
 
 const TOAST_ICONS: Record<string, IconName> = {

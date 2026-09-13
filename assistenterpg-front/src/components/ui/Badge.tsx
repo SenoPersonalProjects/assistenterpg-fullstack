@@ -55,12 +55,12 @@ export function Badge({
       outline: 'bg-transparent text-app-muted border border-app-border',
     },
     green: {
-      solid: 'bg-app-success text-white border border-white/10 shadow-sm shadow-app-success/20',
+      solid: 'bg-app-success text-app-on-success border border-white/10 shadow-sm shadow-app-success/20',
       subtle: 'bg-app-success/10 text-app-success border border-app-success/30',
       outline: 'bg-transparent text-app-success border border-app-success/50',
     },
     red: {
-      solid: 'bg-app-danger text-white border border-white/10 shadow-sm shadow-app-danger/20',
+      solid: 'bg-app-danger text-app-on-danger border border-white/10 shadow-sm shadow-app-danger/20',
       subtle: 'bg-app-danger/10 text-app-danger border border-app-danger/30',
       outline: 'bg-transparent text-app-danger border border-app-danger/50',
     },
@@ -70,22 +70,22 @@ export function Badge({
       outline: 'bg-transparent text-app-primary border border-app-primary/50',
     },
     yellow: {
-      solid: 'bg-app-warning text-white border border-white/10 shadow-sm shadow-app-warning/20',
+      solid: 'bg-app-warning text-app-on-warning border border-white/10 shadow-sm shadow-app-warning/20',
       subtle: 'bg-app-warning/10 text-app-warning border border-app-warning/30',
       outline: 'bg-transparent text-app-warning border border-app-warning/50',
     },
     purple: {
-      solid: 'bg-app-secondary text-white border border-white/10 shadow-sm shadow-app-secondary/20',
+      solid: 'bg-app-secondary text-app-on-secondary border border-white/10 shadow-sm shadow-app-secondary/20',
       subtle: 'bg-app-secondary/10 text-app-secondary border border-app-secondary/30',
       outline: 'bg-transparent text-app-secondary border border-app-secondary/50',
     },
     orange: {
-      solid: 'bg-app-orange text-white border border-white/10 shadow-sm shadow-app-orange/20',
+      solid: 'bg-app-orange text-app-on-orange border border-white/10 shadow-sm shadow-app-orange/20',
       subtle: 'bg-app-orange/10 text-app-orange border border-app-orange/30',
       outline: 'bg-transparent text-app-orange border border-app-orange/50',
     },
     cyan: {
-      solid: 'bg-app-info text-white border border-white/10 shadow-sm shadow-app-info/20',
+      solid: 'bg-app-info text-app-on-info border border-white/10 shadow-sm shadow-app-info/20',
       subtle: 'bg-app-info/10 text-app-info border border-app-info/30',
       outline: 'bg-transparent text-app-info border border-app-info/50',
     },

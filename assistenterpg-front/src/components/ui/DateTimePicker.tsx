@@ -279,7 +279,7 @@ export function DateTimePicker({
                   onClick={() => setPendingDate(cell.dateValue ?? '')}
                   className={`h-10 rounded-xl border text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/50 ${
                     selected
-                      ? 'border-app-primary bg-app-primary text-white shadow-[0_0_16px_rgba(var(--primary-rgb),0.28)]'
+                      ? 'border-app-primary bg-app-primary text-app-on-primary shadow-[0_0_16px_rgba(var(--primary-rgb),0.28)]'
                       : 'border-transparent bg-app-bg/40 text-app-fg hover:border-app-primary/40 hover:bg-app-primary/10'
                   } disabled:cursor-not-allowed disabled:bg-app-bg/20 disabled:text-app-muted/40 disabled:hover:border-transparent`}
                 >
@@ -313,7 +313,7 @@ export function DateTimePicker({
                   onClick={() => setPendingTime(slot)}
                   className={`w-full rounded-lg border px-3 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/50 sm:py-1.5 ${
                     selected
-                      ? 'border-app-primary bg-app-primary/90 text-white'
+                      ? 'border-app-primary bg-app-primary/90 text-app-on-primary'
                       : 'border-app-border/70 bg-app-bg/40 text-app-fg hover:border-app-primary/40 hover:bg-app-primary/10'
                   } disabled:cursor-not-allowed disabled:bg-app-bg/20 disabled:text-app-muted/40 disabled:hover:border-app-border/70`}
                 >
@@ -348,7 +348,7 @@ export function DateTimePicker({
           type="button"
           disabled={confirmDisabled}
           onClick={confirmar}
-          className="rounded-xl border border-white/10 bg-app-primary px-4 py-2 text-xs font-semibold text-white shadow-[0_4px_14px_0_rgba(var(--primary-rgb),0.39)] transition-all hover:bg-app-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/60 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-xl border border-white/10 bg-app-primary px-4 py-2 text-xs font-semibold text-app-on-primary shadow-[0_4px_14px_0_rgba(var(--primary-rgb),0.39)] transition-all hover:bg-app-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/60 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Confirmar
         </button>

@@ -79,14 +79,14 @@ export function ConfirmDialog({
       iconBg: 'bg-app-danger/10',
       iconColor: 'text-app-danger',
       buttonVariant: 'primary' as const,
-      buttonClass: 'bg-app-danger hover:bg-app-danger/90',
+      buttonClass: 'bg-app-danger text-app-on-danger hover:bg-app-danger/90',
     },
     warning: {
       iconName: 'warning' as const,
       iconBg: 'bg-app-warning/10',
       iconColor: 'text-app-warning',
       buttonVariant: 'primary' as const,
-      buttonClass: 'bg-app-warning hover:bg-app-warning/90',
+      buttonClass: 'bg-app-warning text-app-on-warning hover:bg-app-warning/90',
     },
     info: {
       iconName: 'info' as const,
