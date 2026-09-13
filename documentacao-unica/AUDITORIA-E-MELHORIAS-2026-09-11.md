@@ -274,11 +274,14 @@ As configurações de poderes genéricos deixaram de expor JSON bruto na ficha-b
 
 As concessões da ficha de campanha foram separadas em blocos de poderes, proficiências e habilidades personalizadas. O formulário narrativo passou a usar descrição multilinha com orientação; escolhas obrigatórias de poderes usam controles do design system e bloqueiam a concessão até que uma opção válida seja selecionada.
 
+As tags de artigos deixaram de ser texto separado por vírgulas no administrador completo e na edição rápida. O seletor de chips permite incluir termos locais, remover escolhas e mantém o mesmo array já aceito pelo contrato existente.
+
 #### Validação manual acumulada
 
 - [ ] Conceder um poder que exija Shikigami e confirmar que o botão permanece desabilitado até selecionar um vínculo elegível.
 - [ ] Conceder Ritual Predileto, conferir a lista limitada à técnica efetiva e validar a configuração registrada na lista de poderes.
 - [ ] Criar e remover uma habilidade personalizada extensa, conferindo a quebra de linha e a atualização dos contadores.
+- [ ] Criar, remover e salvar tags em um artigo pelo editor completo e pela edição rápida; confirmar que o leitor e a busca refletem as tags atualizadas.
 
 #### Validação manual acumulada
 
@@ -1235,6 +1238,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-13 | UX-03 | Acessórios e itens operacionais passaram a escolher a perícia bonificada pelo catálogo, com alternativa local explícita e compatibilidade legada. | `62ce757`; frontend: 379 testes e build; [Quality Gate 34783979497](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34783979497) aprovado; produção HTTP 200. | Executar os casos manuais acumulados e revisar os painéis restantes. |
 | 2026-09-13 | UX-03 | Configurações de poderes genéricos passaram a ter resumo textual reutilizável na ficha-base e nas concessões de campanha, sem JSON técnico. | `f5bc87b`; frontend: 379 testes e build; [Quality Gate 34784497972](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34784497972) aprovado; produção HTTP 200. | Executar os casos manuais acumulados e revisar os painéis restantes. |
 | 2026-09-13 | UX-03 | Concessões de ficha de campanha passaram a ter seções legíveis, descrição narrativa multilinha e controles guiados para escolhas obrigatórias. | `eb7217f`; frontend: 379 testes, build e `git diff --check`; [Quality Gate 34785515720](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34785515720) aprovado e produção HTTP 200. | Executar os novos casos manuais acumulados e revisar os painéis restantes. |
+| 2026-09-13 | UX-03 | Tags de artigos do compêndio migraram de CSV para chips guiados no editor completo e na edição rápida. | `8b2c74f`; frontend: 379 testes, build e `git diff --check` aprovados localmente. | Aguardar Quality Gate, publicação e executar o caso manual acumulado. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
