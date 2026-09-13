@@ -111,6 +111,12 @@ import {
   executarComRetryConcorrencia,
 } from 'src/campanha/campanha-concorrencia';
 import { assertSessaoMutavel } from './sessao-mutabilidade';
+import {
+  criarContextoEfeitosTurno,
+  type ContextoEfeitosTurnoSessao,
+  type PassoEfeitosTurnoSessao,
+  type StatusPassoEfeitosTurno,
+} from './sessao-efeitos-turno-contexto';
 import { ControleTurnoSessaoDto } from './dto/controle-turno-sessao.dto';
 import {
   CriarRolagemHabilidadePersonagemSessaoDto,
@@ -499,34 +505,6 @@ type FluxoCompatibilidadeSessao =
   | 'CONSUMIR_ITEM'
   | 'AJUSTAR_RECURSOS_PERSONAGEM'
   | 'AJUSTAR_RECURSOS_NPC';
-
-type StatusPassoEfeitosTurno = 'PENDENTE' | 'ERRO' | 'CONCLUIDO';
-type TipoPassoEfeitosTurno =
-  | 'SUSTENTACOES_RODADA'
-  | 'CONDICOES_RODADA'
-  | 'CONDICOES_PARTICIPANTE';
-
-type PassoEfeitosTurnoSessao = {
-  chave: string;
-  tipo: TipoPassoEfeitosTurno;
-  status: StatusPassoEfeitosTurno;
-  tipoParticipante?: TipoParticipanteIniciativa;
-  personagemSessaoId?: number | null;
-  npcSessaoId?: number | null;
-};
-
-type ContextoEfeitosTurnoSessao = {
-  versao: 2;
-  status: StatusPassoEfeitosTurno;
-  acao: AcaoAjusteTurnoSessao;
-  cenaId: number;
-  rodadaAnterior: number;
-  rodadaNova: number;
-  passos: PassoEfeitosTurnoSessao[];
-  tentativas: number;
-  atualizadoEm: string;
-  ultimaFalhaEm?: string;
-};
 
 type ProcessamentoEfeitosTurnoSessao = {
   eventoId: number;
@@ -13832,7 +13810,7 @@ export class SessaoService {
         Boolean(participante),
       );
 
-    const contextoEfeitos = this.criarContextoEfeitosTurno({
+    const contextoEfeitos = criarContextoEfeitosTurno({
       acao: args.acao,
       cenaId: args.cenaId,
       rodadaAnterior,
@@ -16248,7 +16226,7 @@ export class SessaoService {
             ? 'TURNO_RECUADO'
             : 'TURNO_PULADO';
 
-      const contextoEfeitos = this.criarContextoEfeitosTurno({
+      const contextoEfeitos = criarContextoEfeitosTurno({
         acao,
         cenaId: cenaAtual.id,
         rodadaAnterior: sessao.rodadaAtual,
@@ -16339,59 +16317,6 @@ export class SessaoService {
       );
       return false;
     }
-  }
-
-  private criarContextoEfeitosTurno(args: {
-    acao: AcaoAjusteTurnoSessao;
-    cenaId: number;
-    rodadaAnterior: number;
-    rodadaNova: number;
-    participantesTurnoNovos: ParticipanteIniciativa[];
-    processarCondicoes: boolean;
-    cobrarSustentacoes: boolean;
-  }): ContextoEfeitosTurnoSessao {
-    const passos: PassoEfeitosTurnoSessao[] = [];
-    if (args.cobrarSustentacoes) {
-      passos.push({
-        chave: 'SUSTENTACOES_RODADA',
-        tipo: 'SUSTENTACOES_RODADA',
-        status: 'PENDENTE',
-      });
-    }
-    if (args.processarCondicoes) {
-      passos.push({
-        chave: 'CONDICOES_RODADA',
-        tipo: 'CONDICOES_RODADA',
-        status: 'PENDENTE',
-      });
-      for (const participante of args.participantesTurnoNovos) {
-        const id =
-          participante.tipoParticipante === 'PERSONAGEM'
-            ? participante.personagemSessaoId
-            : participante.npcSessaoId;
-        if (!id) continue;
-        passos.push({
-          chave: `CONDICOES_PARTICIPANTE:${participante.tipoParticipante}:${id}`,
-          tipo: 'CONDICOES_PARTICIPANTE',
-          status: 'PENDENTE',
-          tipoParticipante: participante.tipoParticipante,
-          personagemSessaoId: participante.personagemSessaoId,
-          npcSessaoId: participante.npcSessaoId,
-        });
-      }
-    }
-
-    return {
-      versao: 2,
-      status: passos.length > 0 ? 'PENDENTE' : 'CONCLUIDO',
-      acao: args.acao,
-      cenaId: args.cenaId,
-      rodadaAnterior: args.rodadaAnterior,
-      rodadaNova: args.rodadaNova,
-      passos,
-      tentativas: 0,
-      atualizadoEm: new Date().toISOString(),
-    };
   }
 
   private async processarProximoPassoEfeitosTurnoTx(
@@ -16737,7 +16662,7 @@ export class SessaoService {
           },
         ]
       : [];
-    const contexto = this.criarContextoEfeitosTurno({
+    const contexto = criarContextoEfeitosTurno({
       acao,
       cenaId: args.cenaId,
       rodadaAnterior,
