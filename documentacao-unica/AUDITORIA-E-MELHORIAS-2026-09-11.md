@@ -246,7 +246,7 @@ Concluir seletores pesquisáveis, geração de código no backend e editores est
 
 - Arquivos/PR: `TecnicasAdminPanel`, `ClasAdminPanel`, `ProficienciasAdminPanel`, `EquipamentosAdminPanel`, `TiposGrauAdminPanel`, `ModalHabilidadeAdminForm`, `TecnicaHabilidadesModal`, `RequisitosEstruturadosEditor`, `CaracteristicasEstruturadasEditor`, `MecanicasEstruturadasEditor`, DTOs e serviços de catálogo.
 - Testes e resultados: frontend — lint, 379 testes e build aprovados; backend — 8 suítes/24 testes direcionados, lint, build e `prisma validate` aprovados em 2026-09-12. Os Quality Gates remotos dos lotes publicados foram aprovados.
-- Commit: `e7a76a5 feat(catalogo): simplifica cadastro de técnicas`; correção de formatação `968f89d`; `cccee52 feat(catalogo): guia técnicas hereditárias`; `88a2f2d feat(homebrew): guia requisitos de conteúdo`; `7d32606 feat(homebrew): estrutura características de clãs`; `22f951d feat(homebrew): guia mecânicas de poderes`; `1fe1161 feat(homebrew): guia requisitos de variações`; `7ec969a feat(catalogo): automatiza códigos de proficiências`; `a795b9f feat(catalogo): automatiza códigos de cadastros`; `4bde960 feat(catalogo): guia habilidades e escalonamentos`; `6f38ea1 feat(compendio): guia artigos relacionados`.
+- Commit: `e7a76a5 feat(catalogo): simplifica cadastro de técnicas`; correção de formatação `968f89d`; `cccee52 feat(catalogo): guia técnicas hereditárias`; `88a2f2d feat(homebrew): guia requisitos de conteúdo`; `7d32606 feat(homebrew): estrutura características de clãs`; `22f951d feat(homebrew): guia mecânicas de poderes`; `1fe1161 feat(homebrew): guia requisitos de variações`; `7ec969a feat(catalogo): automatiza códigos de proficiências`; `a795b9f feat(catalogo): automatiza códigos de cadastros`; `4bde960 feat(catalogo): guia habilidades e escalonamentos`; `6f38ea1 feat(compendio): guia artigos relacionados`; `7be42d5 feat(catalogo): guia vínculos técnicos`.
 - Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34766927998](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34766927998) aprovado e produção HTTP 200 confirmada em 2026-09-13.
 - Pendências e próxima ação: migrar os demais painéis de catálogo e substituir o editor textual de requisitos por controles estruturados, preservando JSON apenas para importação/exportação avançada.
 
@@ -262,6 +262,8 @@ Os formulários reutilizados de técnica, clã, caminho, poder genérico e varia
 
 Artigos relacionados do compêndio deixaram de receber códigos separados por vírgula. O editor agora abre uma seleção múltipla reutilizável, pesquisável por título, resumo e tópico, exibe as referências como chips removíveis e impede que o artigo atual seja relacionado a si próprio. Os códigos continuam apenas como valor interno compatível com a API e importações existentes; o contrato de atualização passou a documentar explicitamente essa relação.
 
+Munição compatível de armas à distância, tipo de grau para escalonamento de habilidade e perícias adicionais de vinculados deixaram de exigir códigos digitados. Todos usam o catálogo existente com nome, descrição, busca e prevenção de duplicidade quando aplicável. Valores legados continuam reconhecidos pela camada de seleção e são preservados no mesmo formato de persistência.
+
 #### Validação manual acumulada
 
 - [ ] Criar equipamento e tipo de grau sem informar código e confirmar a geração automática.
@@ -271,6 +273,9 @@ Artigos relacionados do compêndio deixaram de receber códigos separados por v�
 - [ ] Criar e editar uma habilidade geral, preenchendo requisitos e mecânicas pelo editor guiado.
 - [ ] Criar habilidade de técnica com escalonamento e confirmar a escolha do tipo de grau por nome.
 - [ ] Criar ou editar um artigo, relacionar vários artigos pelo título e resumo, remover uma referência e confirmar que a consulta pública preserva os links corretos.
+- [ ] Criar ou editar uma arma à distância, escolher munição pelo catálogo e confirmar a compatibilidade da arma sem informar código.
+- [ ] Criar ou editar habilidade com escalonamento, escolher o tipo de grau pelo modal e conferir o requisito resultante.
+- [ ] Criar ou editar um vinculado, adicionar perícia extra pelo catálogo, confirmar que não há duplicidade e que os pontos são preservados.
 
 ### UX-04 — Acessibilidade dos campos básicos
 
@@ -1202,6 +1207,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-13 | ARQ-02 | Polling da sessão passou a respeitar visibilidade da aba e a lista de NPCs deixou de buscar novamente a cada seleção. | `48f7943`, `1644167`; testes de utilitários, lint, testes e builds completos aprovados; [Quality Gate 34762898631](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34762898631) aprovado; produção HTTP 200. | Instrumentar métricas remanescentes. |
 | 2026-09-13 | DS-01 | Estados sólidos críticos passaram a usar tokens de texto por tema; catálogo interno ganhou amostras destrutiva, desabilitada e semânticas. | `3dd2307`, `ba32c09`; contraste calculado, lint, 379 testes e builds completos aprovados; [Quality Gate 34764585869](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34764585869) aprovado; produção HTTP 200. | Executar a bateria visual por tema. |
 | 2026-09-13 | UX-03 | Artigos relacionados do compêndio passaram de CSV técnico para seleção múltipla pesquisável, com título, resumo, chips removíveis e proteção contra autorreferência. | `6f38ea1`; frontend: lint, 379 testes, build e `git diff --check`; [Quality Gate 34766927998](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34766927998) aprovado; produção HTTP 200. | Executar o caso manual acumulado e revisar os painéis restantes. |
+| 2026-09-13 | UX-03 | Munição, tipo de grau e perícias extras de vinculados passaram a selecionar referências pelo catálogo, sem códigos manuais. | `7be42d5`; frontend: lint, 379 testes, build e `git diff --check` aprovados. | Publicar, acompanhar o Quality Gate e executar os casos manuais acumulados. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
