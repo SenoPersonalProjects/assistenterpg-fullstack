@@ -758,10 +758,10 @@ Criar token de texto sobre cor primária por tema e revisar variantes críticas 
 #### Evidências
 
 - Arquivos/PR: `globals.css`, `Button`, `Badge`, `ConfirmDialog`, `Toast`, `DateTimePicker` e catálogo interno.
-- Testes e resultados: contraste calculado dos pares revisados entre 5,04:1 e 11,20:1; lint, 379 testes e build do frontend aprovados em 2026-09-13.
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: publicar e executar a validação manual acumulada nos temas, incluindo foco e estado desabilitado.
+- Testes e resultados: contraste calculado dos pares revisados entre 5,04:1 e 11,20:1; lint, 379 testes e builds completos de frontend/backend aprovados em 2026-09-13.
+- Commit: `3dd2307` feat(ui): melhora contraste dos estados sólidos.
+- Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34764585869](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34764585869) aprovado e produção HTTP 200 em 2026-09-13.
+- Pendências e próxima ação: executar a validação manual acumulada nos temas, incluindo foco e estado desabilitado.
 
 #### Atualização 2026-09-13
 
@@ -1195,7 +1195,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-13 | COD-04, DS-02 | Busca de catálogo foi centralizada no `SelectModal`; o catálogo interno passou a demonstrar feedback remoto e seleção contextual. | `8ba9eeb`, `db1511a`; testes unitários de busca, lint, 378 testes e build aprovados; [Quality Gate 34739203394](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34739203394) aprovado; produção HTTP 200. | Executar os casos manuais acumulados e ampliar o catálogo. |
 | 2026-09-13 | ARQ-01 | A criação da fila de efeitos automáticos de turno foi isolada em módulo puro; execução transacional e permissões permaneceram no serviço. | `ecf8222`, `1bc9c22`; dois cenários unitários, lint, testes e builds completos aprovados; [Quality Gate 34741647060](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34741647060) aprovado; produção HTTP 200. | Escolher a próxima extração coesa. |
 | 2026-09-13 | ARQ-02 | Polling da sessão passou a respeitar visibilidade da aba e a lista de NPCs deixou de buscar novamente a cada seleção. | `48f7943`, `1644167`; testes de utilitários, lint, testes e builds completos aprovados; [Quality Gate 34762898631](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34762898631) aprovado; produção HTTP 200. | Instrumentar métricas remanescentes. |
-| 2026-09-13 | DS-01 | Estados sólidos críticos passaram a usar tokens de texto por tema; catálogo interno ganhou amostras destrutiva, desabilitada e semânticas. | Contraste calculado, lint, 379 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria visual por tema. |
+| 2026-09-13 | DS-01 | Estados sólidos críticos passaram a usar tokens de texto por tema; catálogo interno ganhou amostras destrutiva, desabilitada e semânticas. | `3dd2307`, `ba32c09`; contraste calculado, lint, 379 testes e builds completos aprovados; [Quality Gate 34764585869](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34764585869) aprovado; produção HTTP 200. | Executar a bateria visual por tema. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
