@@ -76,21 +76,6 @@ export interface CompendioArtigoCompleto extends CompendioArtigoResumido {
   subcategoria: CompendioSubcategoria;
 }
 
-export type UpdateCompendioArtigoPayload = {
-  codigo?: string;
-  titulo?: string;
-  resumo?: string;
-  conteudo?: string;
-  subcategoriaId?: number;
-  ordem?: number;
-  tags?: string[];
-  palavrasChave?: string;
-  nivelDificuldade?: 'iniciante' | 'intermediario' | 'avancado';
-  artigosRelacionados?: string[];
-  destaque?: boolean;
-  ativo?: boolean;
-};
-
 export type CreateCompendioLivroPayload = {
   codigo?: string;
   titulo: string;
@@ -102,7 +87,10 @@ export type CreateCompendioLivroPayload = {
   suplementoId?: number;
 };
 
-export type UpdateCompendioLivroPayload = Partial<CreateCompendioLivroPayload>;
+export type UpdateCompendioLivroPayload = Omit<
+  Partial<CreateCompendioLivroPayload>,
+  'codigo'
+>;
 
 export type CreateCompendioCategoriaPayload = {
   codigo?: string;
@@ -115,8 +103,10 @@ export type CreateCompendioCategoriaPayload = {
   ativo?: boolean;
 };
 
-export type UpdateCompendioCategoriaPayload =
-  Partial<CreateCompendioCategoriaPayload>;
+export type UpdateCompendioCategoriaPayload = Omit<
+  Partial<CreateCompendioCategoriaPayload>,
+  'codigo'
+>;
 
 export type CreateCompendioSubcategoriaPayload = {
   codigo?: string;
@@ -127,8 +117,10 @@ export type CreateCompendioSubcategoriaPayload = {
   ativo?: boolean;
 };
 
-export type UpdateCompendioSubcategoriaPayload =
-  Partial<CreateCompendioSubcategoriaPayload>;
+export type UpdateCompendioSubcategoriaPayload = Omit<
+  Partial<CreateCompendioSubcategoriaPayload>,
+  'codigo'
+>;
 
 export type CreateCompendioArtigoPayload = {
   codigo?: string;
@@ -144,6 +136,11 @@ export type CreateCompendioArtigoPayload = {
   ativo?: boolean;
   destaque?: boolean;
 };
+
+export type UpdateCompendioArtigoPayload = Omit<
+  Partial<CreateCompendioArtigoPayload>,
+  'codigo'
+>;
 
 export type ReorderCompendioPayload = {
   tipo: 'livro' | 'categoria' | 'subcategoria' | 'artigo';

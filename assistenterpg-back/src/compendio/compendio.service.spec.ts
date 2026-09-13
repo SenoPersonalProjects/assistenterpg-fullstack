@@ -512,6 +512,24 @@ describe('CompendioService', () => {
     );
   });
 
+  it('ignores a legacy code field when updating a category', async () => {
+    prisma.compendioCategoria.findUnique.mockResolvedValue({
+      id: 21,
+      codigo: 'categoria-estavel',
+      livroId: 1,
+    });
+    prisma.compendioCategoria.update.mockResolvedValue({ id: 21 });
+
+    await service.atualizarCategoria(21, {
+      nome: 'Categoria atualizada',
+      codigo: 'codigo-nao-permitido',
+    } as never);
+
+    const chamada = prisma.compendioCategoria.update.mock.calls[0][0];
+    expect(chamada.data).toEqual({ nome: 'Categoria atualizada' });
+    expect(chamada.data).not.toHaveProperty('codigo');
+  });
+
   it('reorders compendium articles', async () => {
     prisma.$transaction.mockResolvedValue([]);
 

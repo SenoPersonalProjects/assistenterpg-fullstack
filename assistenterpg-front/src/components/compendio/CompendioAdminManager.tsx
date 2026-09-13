@@ -64,7 +64,6 @@ type Selection =
   | { type: 'article'; mode: 'edit'; id: number };
 
 type LivroForm = {
-  codigo: string;
   titulo: string;
   descricao: string;
   icone: string;
@@ -75,7 +74,6 @@ type LivroForm = {
 };
 
 type CategoriaForm = {
-  codigo: string;
   nome: string;
   descricao: string;
   icone: string;
@@ -85,7 +83,6 @@ type CategoriaForm = {
 };
 
 type SubcategoriaForm = {
-  codigo: string;
   nome: string;
   descricao: string;
   ordem: string;
@@ -93,7 +90,6 @@ type SubcategoriaForm = {
 };
 
 type ArtigoForm = {
-  codigo: string;
   titulo: string;
   resumo: string;
   conteudo: string;
@@ -129,7 +125,6 @@ function statusColor(
 
 function createLivroForm(livro?: CompendioLivro): LivroForm {
   return {
-    codigo: livro?.codigo ?? '',
     titulo: livro?.titulo ?? '',
     descricao: livro?.descricao ?? '',
     icone: livro?.icone ?? 'book',
@@ -142,7 +137,6 @@ function createLivroForm(livro?: CompendioLivro): LivroForm {
 
 function createCategoriaForm(categoria?: CompendioCategoria): CategoriaForm {
   return {
-    codigo: categoria?.codigo ?? '',
     nome: categoria?.nome ?? '',
     descricao: categoria?.descricao ?? '',
     icone: categoria?.icone ?? 'book',
@@ -156,7 +150,6 @@ function createSubcategoriaForm(
   subcategoria?: CompendioSubcategoriaComArtigo,
 ): SubcategoriaForm {
   return {
-    codigo: subcategoria?.codigo ?? '',
     nome: subcategoria?.nome ?? '',
     descricao: subcategoria?.descricao ?? '',
     ordem: String(subcategoria?.ordem ?? 0),
@@ -170,7 +163,6 @@ function createArtigoForm(
   const completo = artigo as Partial<CompendioArtigoCompleto> | undefined;
 
   return {
-    codigo: artigo?.codigo ?? '',
     titulo: artigo?.titulo ?? '',
     resumo: artigo?.resumo ?? '',
     conteudo: completo?.conteudo ?? '# Novo artigo\n\n',
@@ -513,7 +505,6 @@ export function CompendioAdminManager() {
         }
 
         const payload = {
-          codigo: optionalString(livroForm.codigo),
           titulo: livroForm.titulo.trim(),
           descricao: optionalString(livroForm.descricao),
           icone: optionalString(livroForm.icone),
@@ -540,7 +531,6 @@ export function CompendioAdminManager() {
         }
 
         const payload = {
-          codigo: optionalString(categoriaForm.codigo),
           nome: categoriaForm.nome.trim(),
           descricao: optionalString(categoriaForm.descricao),
           icone: optionalString(categoriaForm.icone),
@@ -569,7 +559,6 @@ export function CompendioAdminManager() {
         }
 
         const payload = {
-          codigo: optionalString(subcategoriaForm.codigo),
           nome: subcategoriaForm.nome.trim(),
           descricao: optionalString(subcategoriaForm.descricao),
           ordem: optionalNumber(subcategoriaForm.ordem),
@@ -611,7 +600,6 @@ export function CompendioAdminManager() {
       }
 
       const payload = {
-        codigo: optionalString(artigoForm.codigo),
         titulo: artigoForm.titulo.trim(),
         resumo: optionalString(artigoForm.resumo),
         conteudo: artigoForm.conteudo,

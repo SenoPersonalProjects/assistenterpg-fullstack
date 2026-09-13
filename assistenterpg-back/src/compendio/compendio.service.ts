@@ -113,6 +113,11 @@ type EscudoMestreLivro = {
   }>;
 };
 
+function removerCodigoDeAtualizacao<T extends object>(payload: T): Omit<T, 'codigo'> {
+  const { codigo: _codigo, ...dados } = payload as T & { codigo?: unknown };
+  return dados as Omit<T, 'codigo'>;
+}
+
 const ESCUDO_MESTRE_SECOES_ARTIGOS: EscudoMestreSecaoConfig[] = [
   {
     id: 'regras-principais',
@@ -894,20 +899,6 @@ export class CompendioService {
       throw new CompendioLivroException(id);
     }
 
-    const codigo = dto.codigo
-      ? this.gerarCodigo(dto.codigo, existe.codigo)
-      : undefined;
-
-    if (codigo && codigo !== existe.codigo) {
-      const outroComCodigo = await this.prisma.compendioLivro.findUnique({
-        where: { codigo },
-      });
-
-      if (outroComCodigo) {
-        throw new CompendioLivroDuplicadoException(codigo);
-      }
-    }
-
     if (dto.suplementoId) {
       const suplemento = await this.prisma.suplemento.findUnique({
         where: { id: dto.suplementoId },
@@ -922,7 +913,6 @@ export class CompendioService {
     return this.prisma.compendioLivro.update({
       where: { id },
       data: {
-        ...(codigo ? { codigo } : {}),
         ...(dto.titulo !== undefined ? { titulo: dto.titulo } : {}),
         ...(dto.descricao !== undefined ? { descricao: dto.descricao } : {}),
         ...(dto.icone !== undefined ? { icone: dto.icone } : {}),
@@ -1185,7 +1175,6 @@ export class CompendioService {
       throw new CompendioCategoriaException(id);
     }
 
-    const livroId = dto.livroId ?? existe.livroId;
     if (dto.livroId) {
       const livro = await this.prisma.compendioLivro.findUnique({
         where: { id: dto.livroId },
@@ -1196,26 +1185,9 @@ export class CompendioService {
       }
     }
 
-    const codigo = dto.codigo
-      ? this.gerarCodigo(dto.codigo, existe.codigo)
-      : undefined;
-
-    if (codigo && (codigo !== existe.codigo || livroId !== existe.livroId)) {
-      const outraComCodigo = await this.prisma.compendioCategoria.findFirst({
-        where: { codigo, livroId },
-      });
-
-      if (outraComCodigo) {
-        throw new CompendioCategoriaDuplicadaException(codigo);
-      }
-    }
-
     return this.prisma.compendioCategoria.update({
       where: { id },
-      data: {
-        ...dto,
-        ...(codigo ? { codigo } : {}),
-      },
+      data: removerCodigoDeAtualizacao(dto),
       include: this.categoriaInclude(false),
     });
   }
@@ -1368,7 +1340,6 @@ export class CompendioService {
       throw new CompendioSubcategoriaException(id);
     }
 
-    const categoriaId = dto.categoriaId ?? existe.categoriaId;
     if (dto.categoriaId) {
       const categoria = await this.prisma.compendioCategoria.findUnique({
         where: { id: dto.categoriaId },
@@ -1379,29 +1350,9 @@ export class CompendioService {
       }
     }
 
-    const codigo = dto.codigo
-      ? this.gerarCodigo(dto.codigo, existe.codigo)
-      : undefined;
-
-    if (
-      codigo &&
-      (codigo !== existe.codigo || categoriaId !== existe.categoriaId)
-    ) {
-      const outraComCodigo = await this.prisma.compendioSubcategoria.findFirst({
-        where: { codigo, categoriaId },
-      });
-
-      if (outraComCodigo) {
-        throw new CompendioSubcategoriaDuplicadaException(codigo);
-      }
-    }
-
     return this.prisma.compendioSubcategoria.update({
       where: { id },
-      data: {
-        ...dto,
-        ...(codigo ? { codigo } : {}),
-      },
+      data: removerCodigoDeAtualizacao(dto),
       include: this.subcategoriaInclude(false),
     });
   }
@@ -1569,7 +1520,6 @@ export class CompendioService {
       throw new CompendioArtigoException(id);
     }
 
-    const subcategoriaId = dto.subcategoriaId ?? existe.subcategoriaId;
     if (dto.subcategoriaId) {
       const subcategoria = await this.prisma.compendioSubcategoria.findUnique({
         where: { id: dto.subcategoriaId },
@@ -1580,29 +1530,9 @@ export class CompendioService {
       }
     }
 
-    const codigo = dto.codigo
-      ? this.gerarCodigo(dto.codigo, existe.codigo)
-      : undefined;
-
-    if (
-      codigo &&
-      (codigo !== existe.codigo || subcategoriaId !== existe.subcategoriaId)
-    ) {
-      const outroComCodigo = await this.prisma.compendioArtigo.findFirst({
-        where: { codigo, subcategoriaId },
-      });
-
-      if (outroComCodigo) {
-        throw new CompendioArtigoDuplicadoException(codigo);
-      }
-    }
-
     return this.prisma.compendioArtigo.update({
       where: { id },
-      data: {
-        ...dto,
-        ...(codigo ? { codigo } : {}),
-      },
+      data: removerCodigoDeAtualizacao(dto),
       include: this.artigoInclude(),
     });
   }
