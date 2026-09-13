@@ -96,6 +96,7 @@ import { SessionSidebarPanel } from '@/components/campanha/sessao/SessionSidebar
 import { SessionOptionalMechanicsPanel } from '@/components/campanha/sessao/SessionOptionalMechanicsPanel';
 import { SessionNpcsPanel } from '@/components/campanha/sessao/SessionNpcsPanel';
 import { SessionPlayerSummaryPanel } from '@/components/campanha/sessao/SessionPlayerSummaryPanel';
+import { SessionAccessNotice } from '@/components/campanha/sessao/SessionAccessNotice';
 import { SessionRosterControlPanel } from '@/components/campanha/sessao/SessionRosterControlPanel';
 import { SessionSceneRosterPanel } from '@/components/campanha/sessao/SessionSceneRosterPanel';
 import { AddNpcModal } from '@/components/campanha/sessao/modals/AddNpcModal';
@@ -3444,6 +3445,13 @@ export default function SessaoCampanhaPage() {
     () => npcs.filter((npc) => npc.visibilidade !== 'resumida' && npc.podeControlar),
     [npcs],
   );
+  const participanteAtual = useMemo(
+    () => participantes.find((participante) => participante.usuarioId === usuario?.id),
+    [participantes, usuario?.id],
+  );
+  const personagemDelegado = Boolean(
+    meuCard && meuCard.donoId !== usuario?.id && meuCard.controladorUsuarioId === usuario?.id,
+  );
   const ajustesMeuCard = meuCard
     ? obterAjustesRecursosCard(meuCard.personagemCampanhaId)
     : AJUSTE_RECURSO_PADRAO;
@@ -4063,7 +4071,19 @@ export default function SessaoCampanhaPage() {
                   />
                 </>
               ) : (
-                <SessionPlayerSummaryPanel
+                <>
+                  <SessionAccessNotice
+                    papel={participanteAtual?.papel}
+                    sessaoEncerrada={sessaoEncerrada}
+                    elencoControladoPeloMestre={Boolean(detalhe.elencoControladoPeloMestre)}
+                    personagem={
+                      meuCard
+                        ? { nome: meuCard.nomePersonagem, delegado: personagemDelegado }
+                        : null
+                    }
+                    npcsControlados={npcsSobMeuControle.map((npc) => npc.nome)}
+                  />
+                  <SessionPlayerSummaryPanel
                   campanhaId={campanhaId}
                   sessaoId={sessaoId}
                   card={meuCard}
@@ -4195,8 +4215,10 @@ export default function SessaoCampanhaPage() {
                     onRolarMacroArma={handleRolarMacroArma}
                     preferenciasMacrosPersonalizadas={macrosPersonalizadas}
                     onAtualizarPreferenciasMacrosPersonalizadas={setMacrosPersonalizadas}
-                    onRolarMacroPersonalizada={handleRolarMacroPersonalizada}
-                  />
+                  onRolarMacroPersonalizada={handleRolarMacroPersonalizada}
+                  controladoPorDelegacao={personagemDelegado}
+                />
+                </>
               )}
             </section>
           ) : null}

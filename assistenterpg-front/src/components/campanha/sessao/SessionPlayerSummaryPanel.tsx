@@ -137,6 +137,7 @@ type SessionPlayerSummaryPanelProps = {
     personagemCampanhaId: number,
     gasto: { custo: 1 | 2 | 3; efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO'; label: string },
   ) => void;
+  controladoPorDelegacao?: boolean;
 };
 
 export function SessionPlayerSummaryPanel({
@@ -198,11 +199,19 @@ export function SessionPlayerSummaryPanel({
   atualizandoInspiracao = false,
   onAjustarInspiracao,
   onGastarInspiracao,
+  controladoPorDelegacao = false,
 }: SessionPlayerSummaryPanelProps) {
+  const titulo = controladoPorDelegacao
+    ? 'Personagem sob seu controle'
+    : 'Meu personagem';
+  const subtitulo = controladoPorDelegacao
+    ? 'Você opera recursos, habilidades e rolagens desta ficha na cena.'
+    : 'Resumo rápido da sua ficha na cena.';
+
   return (
     <SessionPanel
-      title="Meu personagem"
-      subtitle="Resumo rápido da sua ficha na cena."
+      title={titulo}
+      subtitle={subtitulo}
       tone="control"
       right={
         !card && podeAdicionar ? (
