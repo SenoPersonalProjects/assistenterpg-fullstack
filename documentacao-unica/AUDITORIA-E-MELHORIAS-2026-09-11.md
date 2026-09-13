@@ -583,9 +583,9 @@ Definir componente e contrato comuns para seleção pesquisável de catálogo, c
 
 - Arquivos/PR: `SelectModal`, `catalog-search` e catálogo interno de componentes.
 - Testes e resultados: busca de catálogo (2 cenários), lint, 378 testes e build do frontend aprovados em 2026-09-13.
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: publicar, validar manualmente busca por nome/descrição/fonte, carregamento e seleção que deixou de existir; depois migrar os seletores especializados remanescentes quando houver ganho real de contexto.
+- Commit: `8ba9eeb` feat(ui): unifica busca em seletores de catálogo.
+- Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34739203394](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34739203394) aprovado e produção HTTP 200 em 2026-09-13.
+- Pendências e próxima ação: validar manualmente busca por nome/descrição/fonte, carregamento e seleção que deixou de existir; depois migrar os seletores especializados remanescentes quando houver ganho real de contexto.
 
 #### Atualização 2026-09-13
 
@@ -596,9 +596,9 @@ Definir componente e contrato comuns para seleção pesquisável de catálogo, c
 ### ARQ-01 — Extração incremental das responsabilidades da sessão
 
 Prioridade: P2  
-Status: Em andamento  
+Status: Pendente  
 Responsável: A definir  
-Última atualização: 2026-09-13  
+Última atualização: —  
 Dependências: COD-03
 
 #### Diagnóstico e evidência
@@ -618,11 +618,11 @@ Extrair casos de uso por domínio — recursos, turnos, habilidades, elenco, con
 
 #### Checklist
 
-- [x] Solução definida.
+- [ ] Solução definida.
 - [ ] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [x] Testes e validações aplicáveis registrados.
-- [x] Documentação atualizada.
+- [ ] Testes e validações aplicáveis registrados.
+- [ ] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
@@ -758,9 +758,9 @@ Criar token de texto sobre cor primária por tema e revisar variantes críticas 
 ### DS-02 — Catálogo de componentes como referência operacional
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em andamento  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-13  
 Dependências: UX-01
 
 #### Diagnóstico e evidência
@@ -780,19 +780,19 @@ Ampliar o catálogo com estados de erro, carregamento, desabilitado, conteúdo l
 
 #### Checklist
 
-- [ ] Solução definida.
+- [x] Solução definida.
 - [ ] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
 - Arquivos/PR: `app/dev/components/page.tsx`, `SelectModal` e `catalog-search`.
 - Testes e resultados: catálogo interno atualizado; testes unitários da busca, lint, 378 testes e build do frontend aprovados em 2026-09-13.
-- Commit:
-- Deploy/migration, se aplicável:
+- Commit: `8ba9eeb` feat(ui): unifica busca em seletores de catálogo.
+- Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34739203394](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34739203394) aprovado e produção HTTP 200 em 2026-09-13.
 - Pendências e próxima ação: acrescentar estados de conteúdo longo, teclado e camadas sobrepostas, além de revisar o escopo de acesso da rota de desenvolvimento.
 
 #### Atualização 2026-09-13
@@ -1174,7 +1174,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-12 | UX-01, UX-02 | Diálogos agora compartilham pilha, foco, rolagem e z-index; confirmações aguardam a operação autoritativa antes de fechar. | `1918046`; 2 testes focados, lint, 374 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar a bateria manual de modais e falhas assíncronas. |
 | 2026-09-12 | UX-05 | Dados remotos passaram a preservar conteúdo válido durante falhas e a oferecer repetição contextual em notificações, resumo de sessão e itens da sessão. | `bb28de8`, `1a3fee9`; 2 testes focados; frontend: lint, 376 testes e build; [Quality Gate 34730804299](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34730804299) aprovado; produção HTTP 200. | Executar a bateria manual de rede acumulada. |
 | 2026-09-13 | UX-06 | A sessão passou a comunicar papel, elenco do mestre, modo leitura e participantes delegados; o resumo diferencia personagem próprio de delegado. | `51ed559`, `678a4fc`; frontend: lint, 376 testes e build; [Quality Gate 34736533336](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34736533336) aprovado; produção HTTP 200. | Executar a bateria manual por papel e viewport. |
-| 2026-09-13 | COD-04, DS-02 | Busca de catálogo foi centralizada no `SelectModal`; o catálogo interno passou a demonstrar feedback remoto e seleção contextual. | Testes unitários de busca, lint, 378 testes e build do frontend aprovados. | Publicar, acompanhar o Quality Gate e executar os casos manuais acumulados. |
+| 2026-09-13 | COD-04, DS-02 | Busca de catálogo foi centralizada no `SelectModal`; o catálogo interno passou a demonstrar feedback remoto e seleção contextual. | `8ba9eeb`, `db1511a`; testes unitários de busca, lint, 378 testes e build aprovados; [Quality Gate 34739203394](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34739203394) aprovado; produção HTTP 200. | Executar os casos manuais acumulados e ampliar o catálogo. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
