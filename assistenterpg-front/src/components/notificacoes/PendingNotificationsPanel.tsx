@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   apiAceitarConvite,
   apiAceitarSolicitacaoAmizade,
@@ -14,6 +14,7 @@ import {
 } from '@/lib/api';
 import type { ConviteCampanha, SolicitacaoAmizadeResumo } from '@/lib/types';
 import { useToast } from '@/context/ToastContext';
+import { useRemoteData } from '@/hooks/useRemoteData';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -37,6 +38,11 @@ type ActionId =
   | { tipo: 'convite'; id: string }
   | { tipo: 'amizade'; id: number }
   | null;
+
+type DadosNotificacoes = {
+  convites: ConviteCampanha[];
+  solicitacoes: SolicitacaoAmizadeResumo[];
+};
 
 function rotuloPapelConvite(papel: ConviteCampanha['papel']): string {
   if (papel === 'MESTRE') return 'Mestre';
@@ -81,48 +87,45 @@ export function PendingNotificationsPanel({
   onViewAll,
 }: PendingNotificationsPanelProps) {
   const { showToast } = useToast();
-  const [convites, setConvites] = useState<ConviteCampanha[]>([]);
-  const [solicitacoesAmizade, setSolicitacoesAmizade] = useState<
-    SolicitacaoAmizadeResumo[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   const [mensagemAcao, setMensagemAcao] = useState<string | null>(null);
   const [acaoEmAndamento, setAcaoEmAndamento] = useState<ActionId>(null);
 
-  const carregar = useCallback(async () => {
-    setLoading(true);
-    setErro(null);
-    setErroAcao(null);
-
-    try {
-      const [convitesData, amizadesData] = await Promise.all([
-        apiListarConvitesPendentes(),
-        apiListarSolicitacoesAmizade(),
-      ]);
-      const amizadesRecebidas = amizadesData.recebidas;
-      setConvites(convitesData);
-      setSolicitacoesAmizade(amizadesRecebidas);
-      publicarTotais(convitesData, amizadesRecebidas, onTotalsChange);
-    } catch (error) {
-      setErro(`Erro ao carregar notificações. ${mensagemErroNotificacao(error)}`);
-    } finally {
-      setLoading(false);
-    }
+  const carregar = useCallback(async (): Promise<DadosNotificacoes> => {
+    const [convites, amizades] = await Promise.all([
+      apiListarConvitesPendentes(),
+      apiListarSolicitacoesAmizade(),
+    ]);
+    const dados = { convites, solicitacoes: amizades.recebidas };
+    publicarTotais(dados.convites, dados.solicitacoes, onTotalsChange);
+    return dados;
   }, [onTotalsChange]);
 
-  useEffect(() => {
-    void carregar();
-  }, [carregar]);
+  const {
+    dados,
+    erro,
+    carregando,
+    atualizando,
+    temDados,
+    recarregar: carregarNotificacoes,
+    definirDados,
+  } = useRemoteData(carregar, {
+    mensagemErro: (error) =>
+      `Erro ao carregar notificações. ${mensagemErroNotificacao(error)}`,
+  });
+
+  const convites = dados?.convites ?? [];
+  const solicitacoesAmizade = dados?.solicitacoes ?? [];
 
   function concluirAcao(
     proximoConvites: ConviteCampanha[],
     proximasSolicitacoes: SolicitacaoAmizadeResumo[],
     mensagem: string,
   ) {
-    setConvites(proximoConvites);
-    setSolicitacoesAmizade(proximasSolicitacoes);
+    definirDados({
+      convites: proximoConvites,
+      solicitacoes: proximasSolicitacoes,
+    });
     publicarTotais(proximoConvites, proximasSolicitacoes, onTotalsChange);
 
     if (feedback === 'toast') {
@@ -213,7 +216,7 @@ export function PendingNotificationsPanel({
     );
   }
 
-  if (loading) {
+  if (carregando && !temDados) {
     return (
       <div className={className}>
         <Loading
@@ -232,6 +235,27 @@ export function PendingNotificationsPanel({
   return (
     <div className={`${compact ? 'space-y-4' : 'space-y-6'} ${className}`}>
       {erro && <ErrorAlert message={erro} />}
+      {erro ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-app-muted">
+            {temDados
+              ? 'Exibindo a última lista carregada. Tente atualizar novamente.'
+              : 'Nenhuma lista foi carregada ainda.'}
+          </p>
+          <Button
+            type="button"
+            size="xs"
+            variant="secondary"
+            disabled={carregando}
+            onClick={() => void carregarNotificacoes()}
+          >
+            {carregando ? 'Atualizando...' : 'Tentar novamente'}
+          </Button>
+        </div>
+      ) : null}
+      {atualizando ? (
+        <p className="text-xs text-app-muted">Atualizando notificações...</p>
+      ) : null}
       {erroAcao && <ErrorAlert message={erroAcao} />}
       {feedback === 'inline' && mensagemAcao && (
         <p className="rounded-md border border-app-success/30 bg-app-success/10 px-3 py-2 text-sm text-app-success">
@@ -239,7 +263,7 @@ export function PendingNotificationsPanel({
         </p>
       )}
 
-      {totalPendentes === 0 && (
+      {temDados && totalPendentes === 0 && (
         <EmptyState
           variant={compact ? 'plain' : 'card'}
           size={compact ? 'sm' : 'md'}

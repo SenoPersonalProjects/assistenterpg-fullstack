@@ -32,6 +32,7 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Textarea } from '@/components/ui/Textarea';
 import { useToast } from '@/context/ToastContext';
+import { useRemoteData } from '@/hooks/useRemoteData';
 import type { UserErrorState } from '@/lib/types';
 import { podeMutarItensSessao } from '@/lib/campanha/sessao-utils';
 
@@ -67,6 +68,10 @@ const categorias: Array<{ value: CategoriaEquipamentoCodigo; label: string }> = 
   { value: 'ESPECIAL', label: 'Especial' },
 ];
 
+const ITENS_VAZIOS: ItemSessaoCampanhaDto[] = [];
+const TEMPLATES_VAZIOS: TemplateItemSessaoCampanhaDto[] = [];
+const TRANSFERENCIAS_VAZIAS: TransferenciaItemSessaoCampanhaDto[] = [];
+
 export function SessionItemsPanel({
   campanhaId,
   sessaoId,
@@ -79,13 +84,6 @@ export function SessionItemsPanel({
 }: SessionItemsPanelProps) {
   const { showToast } = useToast();
   const podeMutar = podeMutarItensSessao(sessaoEncerrada);
-  const [itens, setItens] = useState<ItemSessaoCampanhaDto[]>([]);
-  const [templates, setTemplates] = useState<TemplateItemSessaoCampanhaDto[]>([]);
-  const [transferenciasPendentes, setTransferenciasPendentes] = useState<
-    TransferenciaItemSessaoCampanhaDto[]
-  >([]);
-  const [ehMestre, setEhMestre] = useState(false);
-  const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<UserErrorState | null>(null);
   const [filtro, setFiltro] = useState<FiltroItensSessao>('TODOS');
@@ -116,7 +114,7 @@ export function SessionItemsPanel({
   const [destinoPersonagemId, setDestinoPersonagemId] = useState('');
   const [destinoNpcId, setDestinoNpcId] = useState('');
   const idsTransferenciaNotificados = useRef<Set<number>>(new Set());
-  const carregarRef = useRef<() => Promise<void>>(async () => undefined);
+  const carregarRef = useRef<() => Promise<unknown>>(async () => undefined);
 
   const personagensProprios = useMemo(
     () => personagens.filter((personagem) => personagem.donoId === usuarioId),
@@ -160,73 +158,80 @@ export function SessionItemsPanel({
     [campanhaId, podeMutar, showToast],
   );
 
-  const carregar = useCallback(async () => {
-    try {
-      setCarregando(true);
-      setErro(null);
-      const resposta = await apiListarItensSessaoCampanha(campanhaId);
-      setItens(resposta.itens);
-      setEhMestre(resposta.permissoes.ehMestre);
-      setTransferenciasPendentes(resposta.transferenciasPendentes ?? []);
-      onCountChange?.(resposta.itens.length);
+  const carregarDados = useCallback(async () => {
+    const resposta = await apiListarItensSessaoCampanha(campanhaId);
+    const templates = resposta.permissoes.podeGerenciarTemplates
+      ? await apiListarTemplatesItensSessaoCampanha(campanhaId)
+      : [];
 
-      for (const transferencia of resposta.transferenciasPendentes ?? []) {
-        const deveNotificar =
-          podeMutar &&
-          transferencia.permissoes?.podeResponder &&
-          (resposta.permissoes.ehMestre
-            ? transferencia.destinoTipo === 'NPC'
-            : transferencia.destinoPersonagem?.ehMeu === true);
+    return {
+      itens: resposta.itens,
+      templates,
+      transferenciasPendentes: resposta.transferenciasPendentes ?? [],
+      ehMestre: resposta.permissoes.ehMestre,
+    };
+  }, [campanhaId]);
 
-        if (!deveNotificar || idsTransferenciaNotificados.current.has(transferencia.id)) {
-          continue;
-        }
-
-        idsTransferenciaNotificados.current.add(transferencia.id);
-        const destino =
-          transferencia.destinoTipo === 'NPC'
-            ? transferencia.destinoNpc?.nome ?? 'NPC'
-            : transferencia.destinoPersonagem?.nome ?? 'personagem';
-        showToast(
-          `Pedido para receber ${transferencia.item.nome} em ${destino}.`,
-          'info',
-          {
-            durationMs: null,
-            actions: [
-              {
-                label: 'Aceitar',
-                onClick: () => responderTransferencia(transferencia.id, true),
-              },
-              {
-                label: 'Recusar',
-                onClick: () => responderTransferencia(transferencia.id, false),
-              },
-            ],
-          },
-        );
-      }
-
-      if (resposta.permissoes.podeGerenciarTemplates) {
-        const templatesResposta =
-          await apiListarTemplatesItensSessaoCampanha(campanhaId);
-        setTemplates(templatesResposta);
-      } else {
-        setTemplates([]);
-      }
-    } catch (error) {
-      setErro(criarErroUsuario(error));
-    } finally {
-      setCarregando(false);
-    }
-  }, [campanhaId, onCountChange, podeMutar, responderTransferencia, showToast]);
+  const {
+    dados,
+    erro: erroCarregamento,
+    carregando,
+    atualizando,
+    temDados,
+    recarregar: carregar,
+  } = useRemoteData(carregarDados, {
+    mensagemErro: (error) => criarErroUsuario(error).message,
+  });
+  const itens = dados?.itens ?? ITENS_VAZIOS;
+  const templates = dados?.templates ?? TEMPLATES_VAZIOS;
+  const transferenciasPendentes =
+    dados?.transferenciasPendentes ?? TRANSFERENCIAS_VAZIAS;
+  const ehMestre = dados?.ehMestre ?? false;
 
   useEffect(() => {
     carregarRef.current = carregar;
   }, [carregar]);
 
   useEffect(() => {
-    void carregar();
-  }, [carregar]);
+    if (!dados) return;
+    onCountChange?.(dados.itens.length);
+
+    for (const transferencia of dados.transferenciasPendentes) {
+      const deveNotificar =
+        podeMutar &&
+        transferencia.permissoes?.podeResponder &&
+        (dados.ehMestre
+          ? transferencia.destinoTipo === 'NPC'
+          : transferencia.destinoPersonagem?.ehMeu === true);
+
+      if (!deveNotificar || idsTransferenciaNotificados.current.has(transferencia.id)) {
+        continue;
+      }
+
+      idsTransferenciaNotificados.current.add(transferencia.id);
+      const destino =
+        transferencia.destinoTipo === 'NPC'
+          ? transferencia.destinoNpc?.nome ?? 'NPC'
+          : transferencia.destinoPersonagem?.nome ?? 'personagem';
+      showToast(
+        `Pedido para receber ${transferencia.item.nome} em ${destino}.`,
+        'info',
+        {
+          durationMs: null,
+          actions: [
+            {
+              label: 'Aceitar',
+              onClick: () => responderTransferencia(transferencia.id, true),
+            },
+            {
+              label: 'Recusar',
+              onClick: () => responderTransferencia(transferencia.id, false),
+            },
+          ],
+        },
+      );
+    }
+  }, [dados, onCountChange, podeMutar, responderTransferencia, showToast]);
 
   useEffect(() => {
     if (!podeMutar) {
@@ -529,6 +534,31 @@ export function SessionItemsPanel({
       </div>
 
       {erro ? <ErrorAlert message={erro} /> : null}
+      {erroCarregamento ? (
+        <div className="space-y-2">
+          <ErrorAlert
+            message={`Não foi possível atualizar os itens da sessão. ${erroCarregamento}`}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-app-muted">
+              {temDados
+                ? 'Exibindo o último inventário carregado.'
+                : 'Nenhum inventário foi carregado ainda.'}
+            </p>
+            <Button
+              type="button"
+              size="xs"
+              variant="secondary"
+              disabled={carregando}
+              onClick={() => void carregar()}
+            >
+              {carregando ? 'Atualizando...' : 'Tentar novamente'}
+            </Button>
+          </div>
+        </div>
+      ) : atualizando ? (
+        <p className="text-xs text-app-muted">Atualizando itens da sessão...</p>
+      ) : null}
 
       <div className="rounded border border-app-border bg-app-surface px-3 py-2 text-xs text-app-muted">
         <p>
@@ -626,9 +656,9 @@ export function SessionItemsPanel({
         ) : null}
       </div>
 
-      {carregando ? (
+      {carregando && !temDados ? (
         <p className="text-xs text-app-muted">Carregando itens...</p>
-      ) : itensFiltrados.length === 0 ? (
+      ) : temDados && itensFiltrados.length === 0 ? (
         <EmptyState
           variant="session"
           size="sm"

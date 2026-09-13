@@ -1,21 +1,22 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   apiListarSessoesAgendadasCampanha,
   apiListarSessoesCampanha,
-  type SessaoAgendadaResumo,
-  type SessaoCampanhaResumo,
+  criarErroUsuario,
 } from '@/lib/api';
 import type { CampaignTab } from '@/lib/campanhas/campaign-tabs.helpers';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
 import { InviteFriendsPanel } from '@/components/campanha/InviteFriendsPanel';
 import { InviteMemberForm } from '@/components/campanha/InviteMemberForm';
+import { useRemoteData } from '@/hooks/useRemoteData';
 
 export type MembroCampanhaDto = {
   id: number;
@@ -47,6 +48,9 @@ const CAMPAIGN_TABS: Array<{
   { id: 'membros', label: 'Membros', icon: 'characters' },
   { id: 'roleta', label: 'Roleta', icon: 'dice' },
 ];
+
+const SESSOES_VAZIAS = [] as const;
+const AGENDAMENTOS_VAZIOS = [] as const;
 
 export function CampaignHero({
   campanha,
@@ -155,38 +159,34 @@ export function CampaignNextSessionBanner({
   onGoToSessions: () => void;
   onEnterSession: (sessaoId: number) => void;
 }) {
-  const [loading, setLoading] = useState(true);
-  const [sessoes, setSessoes] = useState<SessaoCampanhaResumo[]>([]);
-  const [agendamentos, setAgendamentos] = useState<SessaoAgendadaResumo[]>([]);
+  const carregarResumo = useCallback(async () => {
+    const [agendamentos, sessoes] = await Promise.all([
+      apiListarSessoesAgendadasCampanha(campanhaId),
+      apiListarSessoesCampanha(campanhaId),
+    ]);
+    return { agendamentos, sessoes };
+  }, [campanhaId]);
+
+  const {
+    dados,
+    erro,
+    carregando,
+    atualizando,
+    temDados,
+    recarregar,
+  } = useRemoteData(carregarResumo, {
+    mensagemErro: (error) => criarErroUsuario(error).message,
+  });
+  const refreshKeyAnterior = useRef(refreshKey);
+  const [agora] = useState(() => Date.now());
+  const sessoes = dados?.sessoes ?? SESSOES_VAZIAS;
+  const agendamentos = dados?.agendamentos ?? AGENDAMENTOS_VAZIOS;
 
   useEffect(() => {
-    let cancelado = false;
-
-    async function carregarResumo() {
-      setLoading(true);
-      try {
-        const [agendadas, abertas] = await Promise.all([
-          apiListarSessoesAgendadasCampanha(campanhaId),
-          apiListarSessoesCampanha(campanhaId),
-        ]);
-        if (cancelado) return;
-        setAgendamentos(agendadas);
-        setSessoes(abertas);
-      } catch {
-        if (!cancelado) {
-          setAgendamentos([]);
-          setSessoes([]);
-        }
-      } finally {
-        if (!cancelado) setLoading(false);
-      }
-    }
-
-    void carregarResumo();
-    return () => {
-      cancelado = true;
-    };
-  }, [campanhaId, refreshKey]);
+    if (refreshKeyAnterior.current === refreshKey) return;
+    refreshKeyAnterior.current = refreshKey;
+    void recarregar();
+  }, [recarregar, refreshKey]);
 
   const sessaoAberta = useMemo(
     () =>
@@ -197,7 +197,6 @@ export function CampaignNextSessionBanner({
   );
 
   const proximaSessao = useMemo(() => {
-    const agora = Date.now();
     return agendamentos
       .filter(
         (sessao) =>
@@ -207,9 +206,9 @@ export function CampaignNextSessionBanner({
         (a, b) =>
           new Date(a.inicioEm).getTime() - new Date(b.inicioEm).getTime(),
       )[0];
-  }, [agendamentos]);
+  }, [agendamentos, agora]);
 
-  if (loading) {
+  if (carregando && !temDados) {
     return (
       <Card variant="glass" className="flex items-center gap-3 text-sm text-app-muted">
         <Icon name="spinner" className="h-4 w-4" />
@@ -218,66 +217,99 @@ export function CampaignNextSessionBanner({
     );
   }
 
-  if (sessaoAberta) {
+  if (erro && !temDados) {
     return (
-      <Card
-        variant="glass"
-        className="flex flex-col gap-3 border-app-primary/30 bg-app-primary/10 sm:flex-row sm:items-center sm:justify-between"
-      >
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-app-primary/20 text-app-primary">
-            <Icon name="play" className="h-5 w-5" />
-          </span>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-app-primary">
-              Sessão em andamento
-            </p>
-            <h2 className="text-base font-semibold text-app-fg">
-              {sessaoAberta.titulo}
-            </h2>
-            <p className="text-sm text-app-muted">
-              Lobby aberto desde {formatarDataHoraCurta(sessaoAberta.iniciadoEm)}.
-            </p>
-          </div>
-        </div>
-        <Button size="sm" onClick={() => onEnterSession(sessaoAberta.id)}>
-          Entrar no lobby
+      <Card variant="glass" className="space-y-3">
+        <ErrorAlert message={`Não foi possível consultar as sessões. ${erro}`} />
+        <Button size="sm" variant="secondary" onClick={() => void recarregar()}>
+          Tentar novamente
         </Button>
       </Card>
     );
   }
 
-  return (
-    <Card
-      variant="glass"
-      className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-    >
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-app-info/15 text-app-info">
-          <Icon name="calendar" className="h-5 w-5" />
-        </span>
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-app-muted">
-            Próxima sessão
-          </p>
-          {proximaSessao ? (
-            <>
+  const avisoAtualizacao = erro ? (
+    <div className="mb-3 space-y-2">
+      <ErrorAlert message={`Não foi possível atualizar o resumo. ${erro}`} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-app-muted">
+          Exibindo o último resumo carregado da campanha.
+        </p>
+        <Button size="xs" variant="secondary" onClick={() => void recarregar()}>
+          Tentar novamente
+        </Button>
+      </div>
+    </div>
+  ) : atualizando ? (
+    <p className="mb-3 text-xs text-app-muted">Atualizando resumo da campanha...</p>
+  ) : null;
+
+  if (sessaoAberta) {
+    return (
+      <div className="space-y-3">
+        {avisoAtualizacao}
+        <Card
+          variant="glass"
+          className="flex flex-col gap-3 border-app-primary/30 bg-app-primary/10 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-app-primary/20 text-app-primary">
+              <Icon name="play" className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-app-primary">
+                Sessão em andamento
+              </p>
               <h2 className="text-base font-semibold text-app-fg">
-                {proximaSessao.titulo} — {formatarDataHoraCurta(proximaSessao.inicioEm)}
+                {sessaoAberta.titulo}
               </h2>
               <p className="text-sm text-app-muted">
-                Dossiê pronto para a próxima chamada da campanha.
+                Lobby aberto desde {formatarDataHoraCurta(sessaoAberta.iniciadoEm)}.
               </p>
-            </>
-          ) : (
-            <p className="text-sm text-app-muted">Nenhuma próxima sessão agendada.</p>
-          )}
-        </div>
+            </div>
+          </div>
+          <Button size="sm" onClick={() => onEnterSession(sessaoAberta.id)}>
+            Entrar no lobby
+          </Button>
+        </Card>
       </div>
-      <Button size="sm" variant="secondary" onClick={onGoToSessions}>
-        Ver sessões
-      </Button>
-    </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {avisoAtualizacao}
+      <Card
+        variant="glass"
+        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-app-info/15 text-app-info">
+            <Icon name="calendar" className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-app-muted">
+              Próxima sessão
+            </p>
+            {proximaSessao ? (
+              <>
+                <h2 className="text-base font-semibold text-app-fg">
+                  {proximaSessao.titulo} — {formatarDataHoraCurta(proximaSessao.inicioEm)}
+                </h2>
+                <p className="text-sm text-app-muted">
+                  Dossiê pronto para a próxima chamada da campanha.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-app-muted">Nenhuma próxima sessão agendada.</p>
+            )}
+          </div>
+        </div>
+        <Button size="sm" variant="secondary" onClick={onGoToSessions}>
+          Ver sessões
+        </Button>
+      </Card>
+    </div>
   );
 }
 
