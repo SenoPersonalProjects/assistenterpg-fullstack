@@ -16,6 +16,7 @@ import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
+import { CatalogTagSelector } from '@/components/ui/CatalogTagSelector';
 
 type ModalSuplementoFormProps = {
   isOpen: boolean;
@@ -30,7 +31,7 @@ type FormData = {
   status: 'RASCUNHO' | 'PUBLICADO' | 'ARQUIVADO';
   icone: string;
   banner: string;
-  tags: string;
+  tags: string[];
   autor: string;
 };
 
@@ -50,7 +51,7 @@ export function ModalSuplementoForm({
     status: 'RASCUNHO',
     icone: '',
     banner: '',
-    tags: '',
+    tags: [],
     autor: '',
   });
 
@@ -63,7 +64,7 @@ export function ModalSuplementoForm({
         status: suplemento.status,
         icone: suplemento.icone || '',
         banner: suplemento.banner || '',
-        tags: suplemento.tags?.join(', ') || '',
+        tags: suplemento.tags ?? [],
         autor: suplemento.autor || '',
       });
     } else {
@@ -74,14 +75,14 @@ export function ModalSuplementoForm({
         status: 'RASCUNHO',
         icone: '',
         banner: '',
-        tags: '',
+        tags: [],
         autor: '',
       });
     }
     setErros({});
   }, [suplemento, isOpen]);
 
-  function handleChange(field: keyof FormData, value: string) {
+  function handleChange<K extends keyof FormData>(field: K, value: FormData[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (erros[field]) {
       setErros((prev) => {
@@ -120,10 +121,7 @@ export function ModalSuplementoForm({
         status: form.status,
         icone: form.icone.trim() || undefined,
         banner: form.banner.trim() || undefined,
-        tags: form.tags
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean),
+        tags: form.tags,
         autor: form.autor.trim() || undefined,
       };
 
@@ -247,26 +245,24 @@ export function ModalSuplementoForm({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-app-fg mb-1">Tags</label>
-              <Input
-                value={form.tags}
-                onChange={(e) => handleChange('tags', e.target.value)}
-                placeholder="tag1, tag2, tag3"
-                disabled={salvando}
-              />
-              <p className="text-xs text-app-muted mt-1">Separe múltiplas tags com vírgula</p>
-            </div>
+            <CatalogTagSelector
+              label="Tags"
+              value={form.tags}
+              onChange={(tags) => handleChange('tags', tags)}
+              helperText="Adicione termos para facilitar a identificação deste suplemento."
+            />
 
             <div>
               <label className="block text-sm font-medium text-app-fg mb-1">
                 URL do Ícone
               </label>
               <Input
+                type="url"
                 value={form.icone}
                 onChange={(e) => handleChange('icone', e.target.value)}
                 placeholder="https://exemplo.com/icone.png"
                 disabled={salvando}
+                helperText="Opcional. Use uma URL pública de imagem quadrada."
               />
             </div>
 
@@ -275,10 +271,12 @@ export function ModalSuplementoForm({
                 URL do Banner
               </label>
               <Input
+                type="url"
                 value={form.banner}
                 onChange={(e) => handleChange('banner', e.target.value)}
                 placeholder="https://exemplo.com/banner.png"
                 disabled={salvando}
+                helperText="Opcional. Use uma URL pública de imagem horizontal."
               />
             </div>
           </div>
