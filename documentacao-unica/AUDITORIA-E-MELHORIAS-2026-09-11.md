@@ -628,10 +628,10 @@ Extrair casos de uso por domínio — recursos, turnos, habilidades, elenco, con
 #### Evidências
 
 - Arquivos/PR: `sessao-efeitos-turno-contexto.ts` e `SessaoService`.
-- Testes e resultados: `sessao-efeitos-turno-contexto.spec.ts` (2 cenários) aprovado em 2026-09-13; lint/build completos serão confirmados pelo Quality Gate após a publicação.
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: publicar, confirmar o gate completo e selecionar a próxima extração coesa sem deslocar regras autoritativas ou permissões.
+- Testes e resultados: `sessao-efeitos-turno-contexto.spec.ts` (2 cenários), lint, testes e build completos de frontend/backend aprovados em 2026-09-13.
+- Commit: `ecf8222` refactor(sessao): extrai contexto de efeitos de turno.
+- Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34741647060](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34741647060) aprovado e produção HTTP 200 em 2026-09-13.
+- Pendências e próxima ação: selecionar a próxima extração coesa sem deslocar regras autoritativas ou permissões.
 
 #### Atualização 2026-09-13
 
@@ -1179,7 +1179,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-12 | UX-05 | Dados remotos passaram a preservar conteúdo válido durante falhas e a oferecer repetição contextual em notificações, resumo de sessão e itens da sessão. | `bb28de8`, `1a3fee9`; 2 testes focados; frontend: lint, 376 testes e build; [Quality Gate 34730804299](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34730804299) aprovado; produção HTTP 200. | Executar a bateria manual de rede acumulada. |
 | 2026-09-13 | UX-06 | A sessão passou a comunicar papel, elenco do mestre, modo leitura e participantes delegados; o resumo diferencia personagem próprio de delegado. | `51ed559`, `678a4fc`; frontend: lint, 376 testes e build; [Quality Gate 34736533336](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34736533336) aprovado; produção HTTP 200. | Executar a bateria manual por papel e viewport. |
 | 2026-09-13 | COD-04, DS-02 | Busca de catálogo foi centralizada no `SelectModal`; o catálogo interno passou a demonstrar feedback remoto e seleção contextual. | `8ba9eeb`, `db1511a`; testes unitários de busca, lint, 378 testes e build aprovados; [Quality Gate 34739203394](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34739203394) aprovado; produção HTTP 200. | Executar os casos manuais acumulados e ampliar o catálogo. |
-| 2026-09-13 | ARQ-01 | A criação da fila de efeitos automáticos de turno foi isolada em módulo puro; execução transacional e permissões permaneceram no serviço. | Dois cenários unitários do novo módulo aprovados localmente. | Publicar, confirmar o Quality Gate e escolher a próxima extração coesa. |
+| 2026-09-13 | ARQ-01 | A criação da fila de efeitos automáticos de turno foi isolada em módulo puro; execução transacional e permissões permaneceram no serviço. | `ecf8222`, `1bc9c22`; dois cenários unitários, lint, testes e builds completos aprovados; [Quality Gate 34741647060](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34741647060) aprovado; produção HTTP 200. | Escolher a próxima extração coesa. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
