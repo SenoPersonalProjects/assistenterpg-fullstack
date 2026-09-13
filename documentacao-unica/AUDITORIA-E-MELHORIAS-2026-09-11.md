@@ -282,6 +282,8 @@ Esses mesmos cadastros também passaram a selecionar cores por paleta visual, ma
 
 O cadastro de suplementos também migrou tags de CSV para chips guiados. Campos de ícone e banner continuam aceitando somente URLs — necessárias para referenciar mídias externas — mas agora orientam o formato esperado e usam validação nativa de URL.
 
+Os códigos de livro, categoria, subcategoria e artigo passaram a ser imutáveis também no backend. Os DTOs de atualização, os contratos do cliente e o serviço descartam códigos enviados por clientes legados; criação e importação administrativa continuam aceitando um código explícito quando necessário.
+
 #### Validação manual acumulada
 
 - [ ] Conceder um poder que exija Shikigami e confirmar que o botão permanece desabilitado até selecionar um vínculo elegível.
@@ -291,6 +293,7 @@ O cadastro de suplementos também migrou tags de CSV para chips guiados. Campos 
 - [ ] Criar e editar um livro e uma categoria, escolher ícones distintos e conferir a apresentação no leitor público.
 - [ ] Criar e editar um livro e uma categoria, escolher cores de paleta e personalizadas e conferir contraste e apresentação no leitor público.
 - [ ] Criar e editar um suplemento com tags, ícone e banner válidos; conferir os cards, detalhes e a preservação das tags após recarregar.
+- [ ] Alterar título, posição ou publicação de livro, categoria, subcategoria e artigo existentes; confirmar que suas URLs e códigos permanecem estáveis.
 
 #### Validação manual acumulada
 
@@ -1251,6 +1254,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-13 | UX-03 | Livros e categorias do compêndio passaram a selecionar ícones visualmente, sem digitação de códigos. | `ef87749`; frontend: 379 testes, build e `git diff --check`; [Quality Gate 34786006877](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34786006877) aprovado e produção HTTP 200. | Executar o caso manual acumulado e revisar os painéis restantes. |
 | 2026-09-13 | UX-03 | Suplementos passaram a selecionar tags por chips e receberam orientação para URLs de mídias externas. | `d08047d`; frontend: 379 testes, build e `git diff --check`; [Quality Gate 34786079470](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34786079470) aprovado e produção HTTP 200. | Executar o caso manual acumulado e revisar os painéis restantes. |
 | 2026-09-13 | UX-03 | Livros e categorias passaram a selecionar cor por paleta visual, com alternativa nativa para cor personalizada. | `a7cf4e2`; frontend: 379 testes, build e `git diff --check`; [Quality Gate 34786691956](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34786691956) aprovado e produção HTTP 200. | Executar o caso manual acumulado e revisar os painéis restantes. |
+| 2026-09-13 | UX-03 | Códigos do compêndio passaram a ser imutáveis nos contratos e no serviço, inclusive contra payload legado direto. | `d1df16c`; teste focado do backend com 15 casos e frontend: 379 testes/build aprovados localmente. | Aguardar Quality Gate, publicação e executar o caso manual acumulado. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
