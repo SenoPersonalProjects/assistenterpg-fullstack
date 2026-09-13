@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { SelectModal } from '@/components/ui/SelectModal';
 import { Textarea } from '@/components/ui/Textarea';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Button } from '@/components/ui/Button';
@@ -18,6 +19,7 @@ import {
   TIPO_DANO_LABELS,
 } from '@/lib/types/homebrew-enums';
 import type { HabilidadeTecnica, DadoDanoTecnica, EscalonamentoDano } from '@/lib/api/homebrews';
+import type { TipoGrauCatalogo } from '@/lib/types';
 import { VariacoesList } from './VariacoesList';
 import {
   ALCANCE_PRESET_OPTIONS,
@@ -38,6 +40,8 @@ type Props = {
   onRemove: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  tiposGrau: TipoGrauCatalogo[];
+  carregandoTiposGrau: boolean;
 };
 
 export function HabilidadeForm({
@@ -48,6 +52,8 @@ export function HabilidadeForm({
   onRemove,
   onMoveUp,
   onMoveDown,
+  tiposGrau,
+  carregandoTiposGrau,
 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [alcanceCustomMode, setAlcanceCustomMode] = useState(false);
@@ -539,11 +545,22 @@ export function HabilidadeForm({
 
             {habilidade.escalonaPorGrau && (
               <>
-                <Input
-                  label="Tipo de grau (código)"
+                <SelectModal
+                  label="Tipo de grau"
                   value={habilidade.grauTipoGrauCodigo ?? ''}
-                  onChange={(e) => onChange({ grauTipoGrauCodigo: e.target.value })}
-                  placeholder="Ex: TECNICA_AMALDICOADA"
+                  onChange={(codigo) =>
+                    onChange({ grauTipoGrauCodigo: String(codigo) || undefined })
+                  }
+                  options={tiposGrau.map((tipo) => ({
+                    value: tipo.codigo,
+                    label: tipo.nome,
+                    description: tipo.descricao,
+                    searchTerms: [tipo.codigo],
+                  }))}
+                  loading={carregandoTiposGrau}
+                  loadingText="Carregando tipos de grau..."
+                  emptyText="Nenhum tipo de grau disponível."
+                  helperText="Selecione o grau que determina o escalonamento desta habilidade."
                 />
 
                 <Input

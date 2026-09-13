@@ -8,6 +8,7 @@ import {
   apiCriarEntidadeVinculadaPersonagem,
   apiDuplicarEntidadeVinculadaPersonagem,
   apiGetMeusNpcsAmeacas,
+  apiGetPericias,
   apiListarCapacidadesEntidadesVinculadas,
   apiListarEntidadesVinculadasPersonagem,
   apiListarTemplatesEntidadesVinculadas,
@@ -21,6 +22,7 @@ import type {
   CapacidadesEntidadesVinculadas,
   EstadoEntidadeVinculadaPersonagem,
   NpcAmeacaResumo,
+  PericiaCatalogo,
   PapelCalculoEntidadeVinculada,
   TemplateEntidadeVinculada,
   TipoEntidadeVinculadaPersonagem,
@@ -33,6 +35,7 @@ import { Modal } from '@/components/ui/Modal';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { SelectModal } from '@/components/ui/SelectModal';
 import { Textarea } from '@/components/ui/Textarea';
 import {
   formatarUsoCapacidadeEntidadeVinculada,
@@ -105,6 +108,8 @@ const GRUPOS: Array<{ tipo: TipoEntidadeVinculadaPersonagem; titulo: string }> =
   { tipo: 'CORPO_AMALDICOADO', titulo: 'Corpos Amaldicoados' },
   { tipo: 'MALDICAO_CONTROLADA', titulo: 'Maldicoes Controladas' },
 ];
+
+const PERICIAS_EM_CAMPOS_PROPRIOS = new Set(['PONTARIA', 'PERCEPCAO']);
 
 const FICHA_OPTIONS: Array<{ value: TipoFichaNpcAmeaca; label: string }> = [
   { value: 'NPC', label: 'NPC' },
@@ -211,7 +216,7 @@ function criarFormInicial(): FormState {
 function lerPericiasExtras(valor: unknown): Array<{ codigo: string; bonus: string }> {
   if (!valor || typeof valor !== 'object' || Array.isArray(valor)) return [];
   return Object.entries(valor as Record<string, unknown>)
-    .filter(([codigo]) => !['PONTARIA', 'PERCEPCAO'].includes(codigo.trim().toUpperCase()))
+    .filter(([codigo]) => !PERICIAS_EM_CAMPOS_PROPRIOS.has(codigo.trim().toUpperCase()))
     .map(([codigo, bonus]) => ({ codigo, bonus: String(bonus) }));
 }
 
@@ -310,7 +315,10 @@ function montarPayload(form: FormState): EntidadeVinculadaPersonagemPayload {
     periciasEspeciais: Object.fromEntries(
       form.periciasExtras
         .map(({ codigo, bonus }) => [codigo.trim().toUpperCase(), inteiro(bonus, 0)] as const)
-        .filter(([codigo, bonus]) => codigo && !['PONTARIA', 'PERCEPCAO'].includes(codigo) && bonus > 0),
+        .filter(
+          ([codigo, bonus]) =>
+            codigo && !PERICIAS_EM_CAMPOS_PROPRIOS.has(codigo) && bonus > 0,
+        ),
     ),
   };
 }
@@ -337,6 +345,8 @@ export function CharacterLinkedEntitiesPanel({
     useState<CapacidadesEntidadesVinculadas | null>(null);
   const [templates, setTemplates] = useState<TemplateEntidadeVinculada[]>([]);
   const [maldicoes, setMaldicoes] = useState<NpcAmeacaResumo[]>([]);
+  const [catalogoPericias, setCatalogoPericias] = useState<PericiaCatalogo[]>([]);
+  const [carregandoPericias, setCarregandoPericias] = useState(false);
   const [form, setForm] = useState<FormState>(() => criarFormInicial());
   const [formAberto, setFormAberto] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -346,9 +356,10 @@ export function CharacterLinkedEntitiesPanel({
   const carregar = useCallback(async () => {
     if (!personagemCampanhaId) return;
     setLoading(true);
+    setCarregandoPericias(true);
     setErro(null);
     try {
-      const [lista, novasCapacidades, novosTemplates, catalogoMaldicoes] =
+      const [lista, novasCapacidades, novosTemplates, catalogoMaldicoes, pericias] =
         await Promise.all([
           apiListarEntidadesVinculadasPersonagem(
             campanhaId,
@@ -363,15 +374,20 @@ export function CharacterLinkedEntitiesPanel({
             personagemCampanhaId,
           ),
           apiGetMeusNpcsAmeacas({ tipo: 'MALDICAO', limit: 100 }),
+          apiGetPericias().catch(() => []),
         ]);
       setEntidades(lista);
       setCapacidades(novasCapacidades);
       setTemplates(novosTemplates);
       setMaldicoes(catalogoMaldicoes.items);
+      setCatalogoPericias(
+        [...pericias].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
+      );
     } catch (error) {
       setErro(criarErroUsuario(error));
     } finally {
       setLoading(false);
+      setCarregandoPericias(false);
     }
   }, [campanhaId, personagemCampanhaId]);
 
@@ -426,6 +442,19 @@ export function CharacterLinkedEntitiesPanel({
     campo: K,
     valor: FormState[K],
   ) => setForm((atual) => ({ ...atual, [campo]: valor }));
+
+  const opcoesPericiasExtras = useMemo(
+    () =>
+      catalogoPericias
+        .filter((pericia) => !PERICIAS_EM_CAMPOS_PROPRIOS.has(pericia.codigo))
+        .map((pericia) => ({
+          value: pericia.codigo,
+          label: pericia.nome,
+          description: pericia.descricao,
+          searchTerms: [pericia.codigo],
+        })),
+    [catalogoPericias],
+  );
 
   const iniciarNovo = (tipo: TipoEntidadeVinculadaPersonagem = 'SHIKIGAMI') => {
     const capacidade = capacidadesPorTipo.get(tipo);
@@ -985,15 +1014,30 @@ export function CharacterLinkedEntitiesPanel({
             </div>
             {form.periciasExtras.map((pericia, index) => (
               <div key={`${pericia.codigo}-${index}`} className="grid gap-2 sm:grid-cols-[1fr_120px_auto]">
-                <Input
-                  label={index === 0 ? 'Código da perícia' : undefined}
+                <SelectModal
+                  label={index === 0 ? 'Perícia' : undefined}
                   value={pericia.codigo}
-                  placeholder="INTUICAO"
-                  onChange={(event) =>
+                  options={opcoesPericiasExtras.filter(
+                    (opcao) =>
+                      opcao.value === pericia.codigo ||
+                      !form.periciasExtras.some(
+                        (outra, outroIndice) =>
+                          outroIndice !== index && outra.codigo === opcao.value,
+                      ),
+                  )}
+                  loading={carregandoPericias}
+                  loadingText="Carregando perícias..."
+                  emptyText="Nenhuma perícia disponível."
+                  helperText={
+                    index === 0
+                      ? 'Escolha uma perícia fora dos campos principais da ficha.'
+                      : undefined
+                  }
+                  onChange={(codigo) =>
                     setForm((atual) => ({
                       ...atual,
                       periciasExtras: atual.periciasExtras.map((item, itemIndex) =>
-                        itemIndex === index ? { ...item, codigo: event.target.value } : item,
+                        itemIndex === index ? { ...item, codigo: String(codigo) } : item,
                       ),
                     }))
                   }

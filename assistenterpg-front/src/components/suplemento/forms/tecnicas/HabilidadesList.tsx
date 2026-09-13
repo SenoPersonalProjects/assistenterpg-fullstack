@@ -2,10 +2,13 @@
 
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { HabilidadeForm } from './HabilidadeForm';
+import { apiGetTiposGrau } from '@/lib/api/catalogos';
 import type { HabilidadeTecnica } from '@/lib/api/homebrews';
+import type { TipoGrauCatalogo } from '@/lib/types';
 import { TipoExecucao } from '@/lib/types/homebrew-enums';
 
 type Props = {
@@ -14,6 +17,30 @@ type Props = {
 };
 
 export function HabilidadesList({ habilidades, onChange }: Props) {
+  const [tiposGrau, setTiposGrau] = useState<TipoGrauCatalogo[]>([]);
+  const [carregandoTiposGrau, setCarregandoTiposGrau] = useState(true);
+
+  useEffect(() => {
+    let ativo = true;
+    void apiGetTiposGrau()
+      .then((itens) => {
+        if (!ativo) return;
+        setTiposGrau(
+          [...itens].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
+        );
+      })
+      .catch(() => {
+        if (ativo) setTiposGrau([]);
+      })
+      .finally(() => {
+        if (ativo) setCarregandoTiposGrau(false);
+      });
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
   function addHabilidade() {
     const novaHabilidade: HabilidadeTecnica = {
       codigo: '',
@@ -96,6 +123,8 @@ export function HabilidadesList({ habilidades, onChange }: Props) {
           onRemove={() => removeHabilidade(index)}
           onMoveUp={() => moveHabilidade(index, 'up')}
           onMoveDown={() => moveHabilidade(index, 'down')}
+          tiposGrau={tiposGrau}
+          carregandoTiposGrau={carregandoTiposGrau}
         />
       ))}
     </div>

@@ -1,9 +1,10 @@
 // src/components/suplemento/forms/equipamentos/ArmaFields.tsx
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { SelectModal } from '@/components/ui/SelectModal';
 import { Textarea } from '@/components/ui/Textarea';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Button } from '@/components/ui/Button';
@@ -23,6 +24,11 @@ import {
   TIPO_DANO_LABELS,
 } from '@/lib/types/homebrew-enums';
 import type { DadosDanoArma } from '@/lib/api/homebrews';
+import {
+  apiGetMeusEquipamentosHomebrew,
+  apiGetTodosEquipamentos,
+} from '@/lib/api/equipamentos';
+import type { EquipamentoCatalogo } from '@/lib/types';
 import type { HomebrewFormDados } from '../../hooks/useHomebrewForm';
 
 type Props = {
@@ -33,6 +39,8 @@ type Props = {
 export function ArmaFields({ dados, onChange }: Props) {
   const danos: DadosDanoArma[] = dados.danos ?? [];
   const empunhaduras: EmpunhaduraArma[] = dados.empunhaduras ?? [];
+  const [municoes, setMunicoes] = useState<EquipamentoCatalogo[]>([]);
+  const [carregandoMunicoes, setCarregandoMunicoes] = useState(false);
 
   useEffect(() => {
     const defaults: Partial<HomebrewFormDados> = {};
@@ -64,6 +72,63 @@ export function ArmaFields({ dados, onChange }: Props) {
     dados.empunhaduras,
     onChange,
   ]);
+
+  useEffect(() => {
+    if (dados.tipoArma !== TipoArma.A_DISTANCIA) return;
+
+    let ativo = true;
+    setCarregandoMunicoes(true);
+
+    void Promise.all([
+      apiGetTodosEquipamentos({ tipo: 'MUNICAO', limitePorPagina: 100 }),
+      apiGetMeusEquipamentosHomebrew(),
+    ])
+      .then(([oficiais, meusHomebrew]) => {
+        if (!ativo) return;
+        const catalogo = new Map<number, EquipamentoCatalogo>();
+        for (const equipamento of oficiais) {
+          if (equipamento.tipo === 'MUNICAO') catalogo.set(equipamento.id, equipamento);
+        }
+        for (const equipamento of meusHomebrew) {
+          if (
+            equipamento.tipo === 'MUNICAO' &&
+            equipamento.homebrewOrigemStatus === 'PUBLICADO'
+          ) {
+            catalogo.set(equipamento.id, equipamento);
+          }
+        }
+        setMunicoes(
+          Array.from(catalogo.values()).sort((a, b) =>
+            a.nome.localeCompare(b.nome, 'pt-BR'),
+          ),
+        );
+      })
+      .catch(() => {
+        if (ativo) setMunicoes([]);
+      })
+      .finally(() => {
+        if (ativo) setCarregandoMunicoes(false);
+      });
+
+    return () => {
+      ativo = false;
+    };
+  }, [dados.tipoArma]);
+
+  const opcoesMunicao = useMemo(
+    () =>
+      municoes.map((municao) => ({
+        value: municao.codigo,
+        label: municao.nome,
+        description: municao.descricao,
+        badges:
+          municao.fonte === 'HOMEBREW'
+            ? [{ text: 'Homebrew', color: 'purple' as const }]
+            : [{ text: 'Catálogo', color: 'blue' as const }],
+        searchTerms: [municao.codigo],
+      })),
+    [municoes],
+  );
 
   function addDano() {
     const novoDano: DadosDanoArma = {
@@ -283,11 +348,17 @@ export function ArmaFields({ dados, onChange }: Props) {
 
       {/* ✅ CORRIGIDO: TipoArma.A_DISTANCIA */}
       {dados.tipoArma === TipoArma.A_DISTANCIA && (
-        <Input
-          label="Código do tipo de munição"
+        <SelectModal
+          label="Munição compatível"
           value={dados.tipoMunicaoCodigo ?? ''}
-          onChange={(e) => onChange({ tipoMunicaoCodigo: e.target.value })}
-          placeholder="Ex: BALAS_CURTAS, FLECHAS"
+          onChange={(codigo) =>
+            onChange({ tipoMunicaoCodigo: String(codigo) || undefined })
+          }
+          options={opcoesMunicao}
+          loading={carregandoMunicoes}
+          loadingText="Carregando munições disponíveis..."
+          emptyText="Nenhuma munição disponível no catálogo."
+          helperText="Escolha a munição pelo nome; o vínculo técnico é salvo automaticamente."
         />
       )}
 
