@@ -28,6 +28,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CatalogReferenceMultiSelect } from '@/components/ui/CatalogReferenceMultiSelect';
 import { CatalogTagSelector } from '@/components/ui/CatalogTagSelector';
+import { ColorPicker } from '@/components/ui/ColorPicker';
 import { Select } from '@/components/ui/Select';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -1159,7 +1160,7 @@ function BookEditor({
       <Input label="Título" value={form.titulo} onChange={(e) => patch('titulo', e.target.value)} />
       <Textarea className="md:col-span-2" label="Descrição" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
       <IconPicker label="Ícone" value={form.icone} onChange={(icone) => patch('icone', icone)} helperText="Escolha um ícone disponível no sistema." />
-      <Input label="Cor" value={form.cor} onChange={(e) => patch('cor', e.target.value)} />
+      <ColorPicker label="Cor" value={form.cor} onChange={(cor) => patch('cor', cor)} helperText="Use uma cor de destaque para identificar o livro." />
       <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />
       <Select label="Suplemento vinculado" value={form.suplementoId} onChange={(e) => patch('suplementoId', e.target.value)} helperText="Opcional. O livro ficará identificado pela fonte selecionada.">
         <option value="">Nenhum suplemento</option>
@@ -1197,7 +1198,7 @@ function CategoryEditor({
         <Input label="Nome" value={form.nome} onChange={(e) => patch('nome', e.target.value)} />
         <Textarea className="md:col-span-2" label="Descrição" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
         <IconPicker label="Ícone" value={form.icone} onChange={(icone) => patch('icone', icone)} helperText="Escolha um ícone disponível no sistema." />
-        <Input label="Cor" value={form.cor} onChange={(e) => patch('cor', e.target.value)} />
+        <ColorPicker label="Cor" value={form.cor} onChange={(cor) => patch('cor', cor)} helperText="Use uma cor de destaque para identificar a categoria." />
         <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />
         <div className="flex items-end">
           <Checkbox checked={form.ativo} onChange={(e) => patch('ativo', e.target.checked)} label="Ativo no leitor público" />
