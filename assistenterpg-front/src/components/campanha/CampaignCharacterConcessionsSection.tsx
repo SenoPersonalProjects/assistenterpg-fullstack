@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { PowerConfigurationSummary } from '@/components/poderes/PowerConfigurationSummary';
 import { apiGetPoderesGenericos, apiGetProficiencias } from '@/lib/api/catalogos';
 import { apiListarEntidadesVinculadasPersonagem } from '@/lib/api/campanhas';
 import type { EntidadeVinculadaPersonagem } from '@/lib/types/campanha.types';
@@ -92,10 +93,6 @@ export function CampaignCharacterConcessionsSection({ campanhaId, personagemId, 
   const escolhaPoder = poderSelecionado && typeof poderSelecionado.mecanicasEspeciais === 'object' && poderSelecionado.mecanicasEspeciais && 'escolha' in poderSelecionado.mecanicasEspeciais
     ? (poderSelecionado.mecanicasEspeciais as { escolha?: { tipo?: string } }).escolha : undefined;
   const opcoesRitual = dados?.opcoesRitualPredileto?.habilidades ?? [];
-  const nomeHabilidadeConfigurada = (config: Record<string, unknown> | null | undefined) => {
-    const id = Number(config?.habilidadeTecnicaId);
-    return opcoesRitual.find((habilidade) => habilidade.id === id)?.nome ?? (Number.isInteger(id) && id > 0 ? `Habilidade #${id}` : null);
-  };
   const concederPoder = () => {
     if (!poderSelecionado) return;
     void executar(() => apiConcederPoderGenericoCampanha(campanhaId, personagemId, poderSelecionado.id, configPoder));
@@ -127,7 +124,7 @@ export function CampaignCharacterConcessionsSection({ campanhaId, personagemId, 
         <Button size="sm" disabled={!nome.trim() || !descricao.trim()} onClick={() => void executar(async () => { await apiCriarHabilidadePersonalizadaCampanha(campanhaId, personagemId, nome, descricao); setNome(''); setDescricao(''); })}>Adicionar habilidade</Button>
       </div>
       <div className="space-y-2 text-xs">
-        {dados?.poderesGenericos.map((poder) => <div key={poder.id} className="rounded border border-app-border p-3"><div className="flex justify-between gap-2"><span className="font-semibold">{poder.habilidade.nome}</span><Button size="xs" variant="ghost" onClick={() => void executar(() => apiRemoverPoderGenericoCampanha(campanhaId, personagemId, poder.id))}>Remover</Button></div>{poder.habilidade.descricao ? <p className="mt-1 text-xs text-app-muted">{poder.habilidade.descricao}</p> : null}{poder.config && Object.keys(poder.config).length > 0 ? <p className="mt-2 rounded bg-app-bg p-2 text-[11px] text-app-muted">Configuração: {nomeHabilidadeConfigurada(poder.config) ?? JSON.stringify(poder.config)}</p> : null}</div>)}
+        {dados?.poderesGenericos.map((poder) => <div key={poder.id} className="rounded border border-app-border p-3"><div className="flex justify-between gap-2"><span className="font-semibold">{poder.habilidade.nome}</span><Button size="xs" variant="ghost" onClick={() => void executar(() => apiRemoverPoderGenericoCampanha(campanhaId, personagemId, poder.id))}>Remover</Button></div>{poder.habilidade.descricao ? <p className="mt-1 text-xs text-app-muted">{poder.habilidade.descricao}</p> : null}<PowerConfigurationSummary config={poder.config} habilidadesTecnica={opcoesRitual} vinculados={vinculados.map((vinculado) => ({ id: vinculado.id, nome: vinculado.nome }))} /></div>)}
         {dados?.proficienciasConcedidas.map((item) => <div key={item.proficiencia.id} className="flex justify-between gap-2 rounded border border-app-border p-2"><span>{item.proficiencia.nome}</span><Button size="xs" variant="ghost" onClick={() => void executar(() => apiRemoverProficienciaCampanha(campanhaId, personagemId, item.proficiencia.id))}>Remover</Button></div>)}
         {dados?.habilidadesPersonalizadas.map((habilidade) => <div key={habilidade.id} className="flex justify-between gap-2 rounded border border-app-border p-2"><span>{habilidade.nome}</span><Button size="xs" variant="ghost" onClick={() => void executar(() => apiRemoverHabilidadePersonalizadaCampanha(campanhaId, personagemId, habilidade.id))}>Remover</Button></div>)}
       </div>
