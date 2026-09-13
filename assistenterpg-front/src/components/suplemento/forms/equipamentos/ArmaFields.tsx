@@ -77,14 +77,18 @@ export function ArmaFields({ dados, onChange }: Props) {
     if (dados.tipoArma !== TipoArma.A_DISTANCIA) return;
 
     let ativo = true;
-    setCarregandoMunicoes(true);
 
-    void Promise.all([
-      apiGetTodosEquipamentos({ tipo: 'MUNICAO', limitePorPagina: 100 }),
-      apiGetMeusEquipamentosHomebrew(),
-    ])
-      .then(([oficiais, meusHomebrew]) => {
+    void Promise.resolve().then(async () => {
+      if (!ativo) return;
+      setCarregandoMunicoes(true);
+
+      try {
+        const [oficiais, meusHomebrew] = await Promise.all([
+          apiGetTodosEquipamentos({ tipo: 'MUNICAO', limitePorPagina: 100 }),
+          apiGetMeusEquipamentosHomebrew(),
+        ]);
         if (!ativo) return;
+
         const catalogo = new Map<number, EquipamentoCatalogo>();
         for (const equipamento of oficiais) {
           if (equipamento.tipo === 'MUNICAO') catalogo.set(equipamento.id, equipamento);
@@ -102,13 +106,12 @@ export function ArmaFields({ dados, onChange }: Props) {
             a.nome.localeCompare(b.nome, 'pt-BR'),
           ),
         );
-      })
-      .catch(() => {
+      } catch {
         if (ativo) setMunicoes([]);
-      })
-      .finally(() => {
+      } finally {
         if (ativo) setCarregandoMunicoes(false);
-      });
+      }
+    });
 
     return () => {
       ativo = false;
