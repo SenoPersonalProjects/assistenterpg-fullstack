@@ -92,7 +92,7 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | COD-02 | Código | P1 | Concluído | — | — |
 | COD-03 | Código | P1 | Em validação | UX-03 | Confirmar os papéis autenticados na bateria manual final |
 | COD-04 | Código | P2 | Em validação | DS-02 | Executar a bateria manual de busca, carregamento e seleção incompatível |
-| ARQ-01 | Arquitetura | P2 | Pendente | COD-03 | Delimitar primeira extração da sessão |
+| ARQ-01 | Arquitetura | P2 | Em andamento | COD-03 | Delimitar a próxima extração coesa da sessão |
 | ARQ-02 | Arquitetura | P2 | Pendente | Observabilidade | Medir polling e requisições redundantes |
 | ARQ-03 | Arquitetura | P2 | Pendente | COD-03 | Mapear contratos duplicados front/back |
 | DS-01 | Design system | P1 | Em andamento | DS-02 | Medir contraste e revisar estados além do primário |
@@ -596,9 +596,9 @@ Definir componente e contrato comuns para seleção pesquisável de catálogo, c
 ### ARQ-01 — Extração incremental das responsabilidades da sessão
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em andamento  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-13  
 Dependências: COD-03
 
 #### Diagnóstico e evidência
@@ -618,20 +618,24 @@ Extrair casos de uso por domínio — recursos, turnos, habilidades, elenco, con
 
 #### Checklist
 
-- [ ] Solução definida.
+- [x] Solução definida.
 - [ ] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados:
+- Arquivos/PR: `sessao-efeitos-turno-contexto.ts` e `SessaoService`.
+- Testes e resultados: `sessao-efeitos-turno-contexto.spec.ts` (2 cenários) aprovado em 2026-09-13; lint/build completos serão confirmados pelo Quality Gate após a publicação.
 - Commit:
 - Deploy/migration, se aplicável:
-- Pendências e próxima ação: Selecionar o primeiro domínio com menor acoplamento e maior cobertura.
+- Pendências e próxima ação: publicar, confirmar o gate completo e selecionar a próxima extração coesa sem deslocar regras autoritativas ou permissões.
+
+#### Atualização 2026-09-13
+
+A montagem da fila determinística de sustentação e condições após uma alteração de turno foi extraída para um módulo puro e testável. A transação, persistência, execução com retry, histórico e permissões permanecem no `SessaoService`; portanto, o contrato de sessão não foi alterado. Esta é a primeira extração incremental, não a conclusão do item arquitetural.
 
 ### ARQ-02 — Sincronização e polling eficientes
 
@@ -1175,6 +1179,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-12 | UX-05 | Dados remotos passaram a preservar conteúdo válido durante falhas e a oferecer repetição contextual em notificações, resumo de sessão e itens da sessão. | `bb28de8`, `1a3fee9`; 2 testes focados; frontend: lint, 376 testes e build; [Quality Gate 34730804299](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34730804299) aprovado; produção HTTP 200. | Executar a bateria manual de rede acumulada. |
 | 2026-09-13 | UX-06 | A sessão passou a comunicar papel, elenco do mestre, modo leitura e participantes delegados; o resumo diferencia personagem próprio de delegado. | `51ed559`, `678a4fc`; frontend: lint, 376 testes e build; [Quality Gate 34736533336](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34736533336) aprovado; produção HTTP 200. | Executar a bateria manual por papel e viewport. |
 | 2026-09-13 | COD-04, DS-02 | Busca de catálogo foi centralizada no `SelectModal`; o catálogo interno passou a demonstrar feedback remoto e seleção contextual. | `8ba9eeb`, `db1511a`; testes unitários de busca, lint, 378 testes e build aprovados; [Quality Gate 34739203394](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34739203394) aprovado; produção HTTP 200. | Executar os casos manuais acumulados e ampliar o catálogo. |
+| 2026-09-13 | ARQ-01 | A criação da fila de efeitos automáticos de turno foi isolada em módulo puro; execução transacional e permissões permaneceram no serviço. | Dois cenários unitários do novo módulo aprovados localmente. | Publicar, confirmar o Quality Gate e escolher a próxima extração coesa. |
 | 2026-09-12 | COD-01, COD-02 | O Quality Gate remoto foi aprovado após incluir a geração isolada do Prisma Client no backend. | [Run #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929): frontend e backend aprovados. | COD-02 concluído; COD-01 aguarda decisão de proteção obrigatória para `main`. |
 | 2026-09-12 | COD-03 | Contratos de NPC da sessão passaram a distinguir visão operacional e resumo público; o backend passou a emitir `condicoesAtivas: []` também no resumo. | Testes focais front/back aprovados; publicação e bateria autenticada pendentes. | Publicar, acompanhar o Quality Gate e executar a bateria por papel. |
 | 2026-09-12 | COD-03 | Publicação concluída e evidências automáticas registradas. | Commit `afecca2`; [Quality Gate #34689342139](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34689342139) aprovado; produção HTTP 200. | Executar a bateria manual autenticada acumulada antes de concluir o item. |
