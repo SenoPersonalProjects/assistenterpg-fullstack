@@ -112,6 +112,14 @@ import {
 } from 'src/campanha/campanha-concorrencia';
 import { assertSessaoMutavel } from './sessao-mutabilidade';
 import {
+  calcularDadosPadraoPericia as calcularDadosPadraoPericiaNpc,
+  montarAtributosNpc as montarAtributosNpcBase,
+  montarAtributosNpcSessao as montarAtributosNpcSessaoBase,
+  normalizarTipoFichaNpcAmeaca as normalizarTipoFichaNpcAmeacaBase,
+  normalizarTipoNpcAmeaca as normalizarTipoNpcAmeacaBase,
+  obterAtributoNpcPorBase as obterAtributoNpcPorBaseBase,
+} from './sessao-npc.utils';
+import {
   criarContextoEfeitosTurno,
   type ContextoEfeitosTurnoSessao,
   type PassoEfeitosTurnoSessao,
@@ -18316,13 +18324,7 @@ export class SessaoService {
     presenca?: number | null;
     vigor?: number | null;
   }) {
-    return {
-      agilidade: Number(origem.agilidade ?? 0),
-      forca: Number(origem.forca ?? 0),
-      intelecto: Number(origem.intelecto ?? 0),
-      presenca: Number(origem.presenca ?? 0),
-      vigor: Number(origem.vigor ?? 0),
-    };
+    return montarAtributosNpcBase(origem);
   }
 
   private montarAtributosNpcSessao(origem: {
@@ -18333,35 +18335,18 @@ export class SessaoService {
     presenca?: number | null;
     vigor?: number | null;
   }) {
-    if (origem.npcAmeacaId !== null) {
-      return null;
-    }
-    return this.montarAtributosNpc(origem);
+    return montarAtributosNpcSessaoBase(origem);
   }
 
   private obterAtributoNpcPorBase(
     atributos: ReturnType<SessaoService['montarAtributosNpc']>,
     atributoBase: 'AGI' | 'FOR' | 'INT' | 'PRE' | 'VIG',
   ): number {
-    switch (atributoBase) {
-      case 'AGI':
-        return atributos.agilidade;
-      case 'FOR':
-        return atributos.forca;
-      case 'INT':
-        return atributos.intelecto;
-      case 'PRE':
-        return atributos.presenca;
-      case 'VIG':
-        return atributos.vigor;
-      default:
-        return 0;
-    }
+    return obterAtributoNpcPorBaseBase(atributos, atributoBase);
   }
 
   private calcularDadosPadraoPericia(atributo: number): number {
-    if (atributo > 0) return atributo;
-    return 2 + Math.abs(atributo);
+    return calcularDadosPadraoPericiaNpc(atributo);
   }
 
   private jsonParaPersistencia(
@@ -18750,26 +18735,11 @@ export class SessaoService {
   private normalizarTipoFichaNpcAmeaca(
     valor: string | null,
   ): TipoFichaNpcAmeaca | null {
-    if (!valor) return null;
-    const tiposValidos: TipoFichaNpcAmeaca[] = ['NPC', 'AMEACA'];
-    return tiposValidos.includes(valor as TipoFichaNpcAmeaca)
-      ? (valor as TipoFichaNpcAmeaca)
-      : null;
+    return normalizarTipoFichaNpcAmeacaBase(valor);
   }
 
   private normalizarTipoNpcAmeaca(valor: string | null): TipoNpcAmeaca | null {
-    if (!valor) return null;
-    const tiposValidos: TipoNpcAmeaca[] = [
-      'HUMANO',
-      'FEITICEIRO',
-      'MALDICAO',
-      'ANIMAL',
-      'HIBRIDO',
-      'OUTRO',
-    ];
-    return tiposValidos.includes(valor as TipoNpcAmeaca)
-      ? (valor as TipoNpcAmeaca)
-      : null;
+    return normalizarTipoNpcAmeacaBase(valor);
   }
 
   private async marcarEventoComoDesfeitoTx(
