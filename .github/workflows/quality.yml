@@ -9,6 +9,16 @@ on:
   workflow_dispatch:
 
 jobs:
+  documentation:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node documentacao-unica/validar-documentacao.mjs
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
@@ -30,6 +40,23 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: assistenterpg
+          MYSQL_USER: ci
+          MYSQL_PASSWORD: ci
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/assistenterpg
     defaults:
       run:
         working-directory: assistenterpg-back
@@ -42,8 +69,8 @@ jobs:
           cache-dependency-path: assistenterpg-back/package-lock.json
       - run: npm ci
       - run: npm run prisma:generate:safe
-        env:
-          DATABASE_URL: mysql://ci:ci@localhost:3306/assistenterpg
+      - run: npx prisma migrate deploy
+      - run: npx prisma migrate status
       - run: npm run lint:check
       - run: npm test -- --runInBand
       - run: npm run build

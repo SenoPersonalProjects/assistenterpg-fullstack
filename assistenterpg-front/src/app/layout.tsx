@@ -10,6 +10,7 @@ import { PresenceProvider } from '@/context/PresenceContext';
 import { FriendChatProvider } from '@/context/FriendChatContext';
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 import { DialogProvider } from '@/components/ui/DialogProvider';
+import { ClientRuntimeObserver } from '@/components/observabilidade/ClientRuntimeObserver';
 
 export const metadata: Metadata = {
   title: 'Assistente RPG - Maledicência RPG',
@@ -87,6 +88,7 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <ClientRuntimeObserver />
         <ThemeProvider>
           <AuthProvider>
             <PresenceProvider>

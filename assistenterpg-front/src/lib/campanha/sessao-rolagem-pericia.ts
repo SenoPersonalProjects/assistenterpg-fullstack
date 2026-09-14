@@ -1,4 +1,4 @@
-import type { RolagemPericiaSessaoPayload } from '@/components/campanha/sessao/types';
+import type { RolagemPericiaSessaoPayload } from './sessao-rolagem.types';
 
 export type IntencaoRolagemPericiaPersonagem = {
   tipo: 'PERICIA_PERSONAGEM';

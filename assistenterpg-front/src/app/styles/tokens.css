@@ -1,0 +1,33 @@
+/* Contrato de tokens consumido por Tailwind e componentes reutilizáveis. */
+@theme inline {
+  --color-app-bg: var(--bg);
+  --color-app-surface: var(--bg-surface);
+  --color-app-card: var(--bg-card);
+  --color-app-muted-surface: var(--bg-muted);
+  --color-app-alert: var(--bg-alert);
+  --color-app-border: var(--border-subtle);
+  --color-app-fg: var(--fg);
+  --color-app-muted: var(--fg-muted);
+  --color-app-primary: var(--primary);
+  --color-app-primary-hover: var(--primary-hover);
+  --color-app-on-primary: var(--on-primary);
+  --color-app-on-secondary: var(--on-secondary);
+  --color-app-secondary: var(--secondary);
+  --color-app-secondary-hover: var(--secondary-hover);
+  --color-app-danger: var(--danger);
+  --color-app-danger-hover: var(--danger-hover);
+  --color-app-on-danger: var(--on-danger);
+  --color-app-success: var(--success);
+  --color-app-success-hover: var(--success-hover);
+  --color-app-on-success: var(--on-success);
+  --color-app-warning: var(--warning);
+  --color-app-warning-hover: var(--warning-hover);
+  --color-app-on-warning: var(--on-warning);
+  --color-app-info: var(--info);
+  --color-app-info-hover: var(--info-hover);
+  --color-app-on-info: var(--on-info);
+  --color-app-orange: var(--orange);
+  --color-app-orange-hover: var(--orange-hover);
+  --color-app-on-orange: var(--on-orange);
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}

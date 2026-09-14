@@ -94,17 +94,17 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | COD-04 | Código | P2 | Em validação | DS-02 | Executar a bateria manual de busca, carregamento e seleção incompatível |
 | ARQ-01 | Arquitetura | P2 | Em validação | COD-03 | Executar a bateria de sessão após as extrações de NPC e turnos |
 | ARQ-02 | Arquitetura | P2 | Em validação | Observabilidade | Confirmar métricas de sincronização na bateria manual |
-| ARQ-03 | Arquitetura | P2 | Pendente | COD-03 | Mapear contratos duplicados front/back |
+| ARQ-03 | Arquitetura | P2 | Em validação | COD-03 | Validar contratos de sessão e papéis na bateria manual |
 | DS-01 | Design system | P1 | Em validação | DS-02 | Executar bateria manual nos temas e estados sólidos |
 | DS-02 | Design system | P2 | Em validação | UX-01 | Executar bateria manual de catálogo, teclado, viewport e camadas |
-| DS-03 | Design system | P2 | Pendente | DS-02 | Organizar tokens e estilos por domínio |
+| DS-03 | Design system | P2 | Em validação | DS-02 | Validar visualmente os temas e estilos de sessão extraídos |
 | OPS-01 | Operação e segurança | P1 | Em validação | COD-01 | Revisar a mitigação documentada do alerta Prisma na bateria operacional |
-| OPS-02 | Operação e segurança | P1 | Pendente | Acesso de observabilidade | Instrumentar erros de navegador e saúde |
-| OPS-03 | Operação e banco | P2 | Pendente | Ambiente descartável | Fortalecer validação de migrations |
-| OPS-04 | Operação e banco | P2 | Pendente | Ambiente de restauração | Ensaiar recuperação e medir desempenho |
-| DOC-01 | Documentação | P2 | Pendente | — | Separar referência atual de histórico |
-| DOC-02 | Documentação | P2 | Pendente | COD-01 | Fixar ambiente e consolidar Prisma |
-| DOC-03 | Documentação | P3 | Pendente | DOC-01 | Validar comandos, links e exemplos |
+| OPS-02 | Operação e segurança | P1 | Em validação | Acesso de observabilidade | Confirmar monitoração externa de cliente e saúde |
+| OPS-03 | Operação e banco | P2 | Em validação | Ambiente descartável | Confirmar migrações no banco compatível com TiDB |
+| OPS-04 | Operação e banco | P2 | Em validação | Ambiente de restauração | Executar ensaio isolado de recuperação e registrar métricas |
+| DOC-01 | Documentação | P2 | Em validação | — | Validar navegação das referências correntes por tarefa |
+| DOC-02 | Documentação | P2 | Em validação | COD-01 | Confirmar instalações limpas nos ambientes suportados |
+| DOC-03 | Documentação | P3 | Em validação | DOC-01 | Manter o validador no Quality Gate e corrigir novas falhas |
 
 ## 6. UI/UX
 
@@ -743,9 +743,9 @@ Sincronizações agora registram origem (`polling`, visibilidade, realtime ou ma
 ### ARQ-03 — Contratos compartilhados e validação de fronteira
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-14  
 Dependências: COD-03
 
 #### Diagnóstico e evidência
@@ -758,27 +758,31 @@ Mapear contratos duplicados e estabelecer geração, validação ou testes de co
 
 #### Critérios de aceitação
 
-- [ ] Contratos críticos possuem fonte de verdade ou teste de compatibilidade definido.
-- [ ] Dados externos são normalizados antes de chegar aos componentes.
+- [x] Contratos críticos possuem fonte de verdade ou teste de compatibilidade definido.
+- [x] Dados externos são normalizados antes de chegar aos componentes.
 - [ ] Uniões discriminadas de visibilidade permanecem explícitas.
 - [ ] A estratégia não quebra contratos públicos existentes.
 
 #### Checklist
 
-- [ ] Solução definida.
-- [ ] Implementação concluída.
+- [x] Solução definida.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados:
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: Levantar tipos duplicados nas APIs de campanha e sessão.
+- Arquivos/PR: `assistenterpg-front/src/lib/campanha/sessao-rolagem.types.ts`, `sessao-rolagem-pericia.ts`, `sessao-rolagem-npc.ts`, `sessao-atualizacoes.ts` e `ARQUITETURA-E-CONTRATOS.md`.
+- Testes e resultados: contrato de rolagem de perícia extraído sem alterar seus consumidores; a normalização de detalhes de sessão continua centralizada antes de renderização. Lint, testes e build do frontend registrados neste lote.
+- Commit: pendente de publicação deste lote.
+- Deploy/migration, se aplicável: sem migration ou seed.
+- Pendências e próxima ação: validar manualmente sessão normal, delegada e resumida após o deploy; a fonte de verdade entre aplicações continua explicitamente documentada, sem introduzir geração de tipos incompatível.
+
+#### Atualização 2026-09-14
+
+O payload compartilhado de rolagem por perícia saiu dos tipos de componente e passou a morar em contrato de domínio. Os consumidores existentes preservam a importação compatível, enquanto os adaptadores de perícia e NPC dependem do mesmo tipo. A documentação passou a separar responsabilidades de backend, frontend e realtime, além da regra de normalizar respostas parciais antes de componentes.
 
 ## 9. Design system
 
@@ -883,9 +887,9 @@ O catálogo passou a demonstrar modal com conteúdo longo, fechamento por Escape
 ### DS-03 — Organização de tokens e estilos por domínio
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-14  
 Dependências: DS-02
 
 #### Diagnóstico e evidência
@@ -898,27 +902,31 @@ Separar tokens globais de estilos de domínio e normalizar espaçamentos, bordas
 
 #### Critérios de aceitação
 
-- [ ] Tokens globais possuem local e convenção definidos.
-- [ ] Estilos de sessão e domínios não permanecem concentrados indevidamente no global.
+- [x] Tokens globais possuem local e convenção definidos.
+- [x] Estilos de sessão e domínios não permanecem concentrados indevidamente no global.
 - [ ] Não há seletor duplicado com regra conflitante.
 - [ ] `Input`, `Select`, `Textarea` e controles relacionados seguem o mesmo padrão visual.
 
 #### Checklist
 
-- [ ] Solução definida.
-- [ ] Implementação concluída.
+- [x] Solução definida.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados:
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: Mapear tokens, estilos de sessão e duplicações sem alterar comportamento.
+- Arquivos/PR: `assistenterpg-front/src/app/styles/tokens.css`, `styles/session.css` e `globals.css`.
+- Testes e resultados: tokens Tailwind mantidos em arquivo dedicado; estilos de sessão foram extraídos sem mudança de seletores. Lint, testes e build do frontend registrados neste lote.
+- Commit: pendente de publicação deste lote.
+- Deploy/migration, se aplicável: sem migration ou seed.
+- Pendências e próxima ação: validar visualmente sessão, modais e os temas claro/escuro na bateria acumulada; a revisão posterior tratará apenas duplicações comprovadas, sem refatoração cosmética ampla.
+
+#### Atualização 2026-09-14
+
+O arquivo global deixou de concentrar os estilos de domínio da sessão. `tokens.css` concentra a convenção de tokens e `session.css` concentra a superfície de sessão/cena, mantendo `globals.css` para fundação, temas e utilitários compartilhados.
 
 ## 10. Operação, segurança e banco
 
@@ -969,9 +977,9 @@ A configuração de seed foi removida do local legado `package.json#prisma` e ce
 ### OPS-02 — Observabilidade de cliente e saúde do backend
 
 Prioridade: P1  
-Status: Pendente  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-14  
 Dependências: Acesso de observabilidade
 
 #### Diagnóstico e evidência
@@ -984,34 +992,38 @@ Instrumentar erros de cliente com contexto sanitizado, health/readiness do backe
 
 #### Critérios de aceitação
 
-- [ ] Erros de navegador têm correlação com versão e rota sem incluir segredos.
-- [ ] Backend expõe saúde e prontidão adequadas para monitoramento.
+- [x] Erros de navegador têm correlação com versão e rota sem incluir segredos.
+- [x] Backend expõe saúde e prontidão adequadas para monitoramento.
 - [ ] Alertas distinguem indisponibilidade, falha de autenticação e falha de realtime.
 - [ ] Equipe consegue correlacionar incidente, commit e deployment.
 
 #### Checklist
 
-- [ ] Solução definida.
-- [ ] Implementação concluída.
+- [x] Solução definida.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados:
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: Definir ferramenta, retenção, campos sanitizados e alertas mínimos.
+- Arquivos/PR: `assistenterpg-back/src/health/*`, `assistenterpg-front/src/lib/observabilidade/cliente.ts`, `ClientRuntimeObserver.tsx` e `OPERACAO-E-AMBIENTE.md`.
+- Testes e resultados: 3 testes unitários de saúde e testes de telemetria de cliente; a mensagem é sanitizada, truncada e publicada apenas como evento local, sem enviar dados do usuário para terceiros.
+- Commit: pendente de publicação deste lote.
+- Deploy/migration, se aplicável: sem migration ou seed; depois do deploy, verificar `GET /health/live` e `GET /health/ready` no backend produtivo.
+- Pendências e próxima ação: conectar o evento local a ferramenta de observabilidade aprovada e configurar alertas; validar correlação de versão/rota sem conteúdo sensível em produção.
+
+#### Atualização 2026-09-14
+
+O backend expõe liveness sem dependência externa e readiness com consulta mínima ao banco. No cliente, exceções JavaScript e rejeições não tratadas geram um evento sanitizado com rota, versão e horário. A integração externa não foi presumida: ela permanece uma decisão operacional explícita.
 
 ### OPS-03 — Validação robusta de migrations
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-14  
 Dependências: Ambiente descartável
 
 #### Diagnóstico e evidência
@@ -1024,34 +1036,38 @@ Fortalecer o procedimento de validação com status completo, verificações de 
 
 #### Critérios de aceitação
 
-- [ ] Pipeline verifica migrations pendentes e histórico inválido.
-- [ ] Migrations são testadas em banco descartável antes do remoto produtivo.
+- [x] Pipeline verifica migrations pendentes e histórico inválido.
+- [x] Migrations são testadas em banco descartável antes do remoto produtivo.
 - [ ] Compatibilidade MySQL/TiDB é validada para SQL específico.
 - [ ] Procedimento registra backup, aplicação e validação posterior quando houver mutação.
 
 #### Checklist
 
-- [ ] Solução definida.
-- [ ] Implementação concluída.
+- [x] Solução definida.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados:
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: Definir ambiente descartável e ampliar script de validação somente leitura.
+- Arquivos/PR: `.github/workflows/quality.yml` e `OPERACAO-E-AMBIENTE.md`.
+- Testes e resultados: Quality Gate agora cria MySQL 8 descartável, executa `prisma migrate deploy` e `prisma migrate status` antes dos testes. A validação local de schema permanece em `prisma validate`.
+- Commit: pendente de publicação deste lote.
+- Deploy/migration, se aplicável: a esteira não toca TiDB remoto; cada migration produtiva continua exigindo backup, preflight e validação posterior pelo procedimento oficial.
+- Pendências e próxima ação: confirmar no Quality Gate deste commit e, para SQL específico, registrar execução no ambiente TiDB compatível antes de qualquer aplicação remota.
+
+#### Atualização 2026-09-14
+
+A validação deixou de confiar apenas em contagens e passou a aplicar o histórico em banco efêmero no CI. MySQL 8 é uma barreira de regressão genérica; compatibilidade exclusiva do TiDB continua uma confirmação manual obrigatória e documentada.
 
 ### OPS-04 — Recuperação e desempenho operacional
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-14  
 Dependências: Ambiente de restauração
 
 #### Diagnóstico e evidência
@@ -1071,29 +1087,33 @@ Ensaiar recuperação isolada, definir objetivos de recuperação e medir consul
 
 #### Checklist
 
-- [ ] Solução definida.
-- [ ] Implementação concluída.
+- [x] Solução definida.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados:
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: Definir política de backup, ambiente isolado e roteiro de restauração.
+- Arquivos/PR: `OPERACAO-E-AMBIENTE.md` e procedimento de backup/migração existente.
+- Testes e resultados: roteiro de ensaio isolado documenta backup, restauração, integridade, duração e limpeza, sem apontar para a base remota produtiva.
+- Commit: pendente de publicação deste lote.
+- Deploy/migration, se aplicável: não houve restauração nem migration neste lote.
+- Pendências e próxima ação: executar o roteiro em ambiente isolado, anexar tempo, checks de integridade e baseline de consultas críticas; sem essa evidência externa, o item permanece em validação.
+
+#### Atualização 2026-09-14
+
+Foi formalizado um ensaio recuperável e sem alvo produtivo, incluindo critérios de sucesso e como registrar o resultado. Não foi alegada restauração realizada: essa é a validação manual acumulada que ainda falta para encerrar o item.
 
 ## 11. Documentação e organização
 
 ### DOC-01 — Referência atual separada de histórico
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-14  
 Dependências: —
 
 #### Diagnóstico e evidência
@@ -1106,34 +1126,38 @@ Manter índice e referência operacional curtos, deslocando histórico e decisõ
 
 #### Critérios de aceitação
 
-- [ ] A orientação atual é localizável por tarefa e domínio.
-- [ ] Decisões relevantes têm contexto, data e consequência documentados.
+- [x] A orientação atual é localizável por tarefa e domínio.
+- [x] Decisões relevantes têm contexto, data e consequência documentados.
 - [ ] Histórico não compete com contrato operacional atual.
 - [ ] Índice aponta para todos os documentos vivos relevantes.
 
 #### Checklist
 
-- [ ] Solução definida.
-- [ ] Implementação concluída.
+- [x] Solução definida.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados:
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: Propor mapa de documentação por domínio e por tipo de decisão.
+- Arquivos/PR: `documentacao-unica/README.md`, `ARQUITETURA-E-CONTRATOS.md` e `OPERACAO-E-AMBIENTE.md`.
+- Testes e resultados: índice atual aponta para guias curtos de arquitetura e operação; o acervo histórico segue preservado como referência legada e o validador cobre os documentos correntes.
+- Commit: pendente de publicação deste lote.
+- Deploy/migration, se aplicável: não aplicável.
+- Pendências e próxima ação: validar a navegação por tarefa com a equipe; referências históricas não serão reescritas de forma arriscada, e novos guias vivos devem ser adicionados ao índice e ao validador.
+
+#### Atualização 2026-09-14
+
+O índice passou a distinguir referências vigentes do acervo histórico. As instruções operacionais e os contratos de fronteira deixaram de depender do README monolítico, preservando decisões antigas sem tratá-las como procedimento atual.
 
 ### DOC-02 — Ambiente reproduzível e configuração Prisma consolidada
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-14  
 Dependências: COD-01
 
 #### Diagnóstico e evidência
@@ -1146,34 +1170,38 @@ Declarar ambiente suportado, alinhar CI/build e consolidar a configuração Pris
 
 #### Critérios de aceitação
 
-- [ ] Versão de Node suportada é declarada e usada localmente, no CI e no deploy.
-- [ ] Instalação limpa reproduz build e testes documentados.
-- [ ] Aviso de configuração Prisma legada é removido de forma compatível.
+- [x] Versão de Node suportada é declarada e usada localmente, no CI e no deploy.
+- [x] Instalação limpa reproduz build e testes documentados.
+- [x] Aviso de configuração Prisma legada é removido de forma compatível.
 - [ ] Seeds e migrations continuam executáveis pelo procedimento oficial.
 
 #### Checklist
 
-- [ ] Solução definida.
-- [ ] Implementação concluída.
+- [x] Solução definida.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados:
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: Definir versão-alvo de Node e plano de remoção da configuração Prisma legada.
+- Arquivos/PR: `assistenterpg-front/package.json`, `assistenterpg-back/package.json`, lockfiles, `prisma.config.ts` e `OPERACAO-E-AMBIENTE.md`.
+- Testes e resultados: ambos os pacotes declaram Node `>=20 <25`; CI usa Node 24 e a validação local foi registrada com Node 20. `prisma validate` confirma a configuração de schema atual.
+- Commit: pendente de publicação deste lote; a consolidação de `prisma.config.ts` já consta em `5402f4e`.
+- Deploy/migration, se aplicável: sem migration ou seed.
+- Pendências e próxima ação: confirmar instalação limpa no ambiente de deploy e manter a versão declarada alinhada ao CI antes de qualquer upgrade major.
+
+#### Atualização 2026-09-14
+
+Os limites de runtime foram declarados nos dois pacotes e a orientação de validação passou a indicar os comandos sem efeitos colaterais. A configuração de Prisma continua centralizada no arquivo de configuração; seeds e migrations permanecem pelo fluxo oficial.
 
 ### DOC-03 — Comandos, links e exemplos verificáveis
 
 Prioridade: P3  
-Status: Pendente  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: —  
+Última atualização: 2026-09-14  
 Dependências: DOC-01
 
 #### Diagnóstico e evidência
@@ -1186,27 +1214,31 @@ Validar comandos, caminhos e links internos automaticamente ou em checklist de d
 
 #### Critérios de aceitação
 
-- [ ] Comandos documentados existem e podem ser executados no contexto informado.
-- [ ] Links Markdown internos são válidos.
+- [x] Comandos documentados existem e podem ser executados no contexto informado.
+- [x] Links Markdown internos são válidos.
 - [ ] Exemplos mínimos têm pré-requisitos e resultado esperado.
 - [ ] Inclusão ou alteração de script atualiza a documentação associada.
 
 #### Checklist
 
-- [ ] Solução definida.
-- [ ] Implementação concluída.
+- [x] Solução definida.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
 - [ ] Publicação validada, quando aplicável.
 
 #### Evidências
 
-- Arquivos/PR:
-- Testes e resultados:
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: Corrigir o comando divergente e criar inventário verificável de scripts documentados.
+- Arquivos/PR: `documentacao-unica/validar-documentacao.mjs`, `.github/workflows/quality.yml` e `README.md`.
+- Testes e resultados: validador percorre documentos correntes, confere links Markdown relativos e scripts `npm run`; execução local aprovada antes da publicação.
+- Commit: pendente de publicação deste lote.
+- Deploy/migration, se aplicável: não aplicável.
+- Pendências e próxima ação: manter o validador no Quality Gate e ampliar sua cobertura ao migrar material legado para guias correntes; o acervo histórico é explicitamente excluído até sua revisão dedicada.
+
+#### Atualização 2026-09-14
+
+O comando de seed divergente foi corrigido no README principal. Um validador sem dependência nova foi incluído no Quality Gate para impedir que links relativos e scripts publicados nos guias correntes voltem a divergir do repositório.
 
 ## 12. Bateria consolidada de validação manual
 

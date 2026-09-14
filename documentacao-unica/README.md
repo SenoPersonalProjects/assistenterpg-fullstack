@@ -1,6 +1,16 @@
 ﻿# AssistenteRPG - Documentação Única (Front + Back)
 
-Atualizado em: 2026-03-12
+Atualizado em: 2026-09-14
+
+## Referências atuais
+
+- operação, ambiente, migrations e recuperação: [`OPERACAO-E-AMBIENTE.md`](./OPERACAO-E-AMBIENTE.md)
+- arquitetura e contratos de fronteira: [`ARQUITETURA-E-CONTRATOS.md`](./ARQUITETURA-E-CONTRATOS.md)
+- decisões, evidências e acompanhamento: [`AUDITORIA-E-MELHORIAS-2026-09-11.md`](./AUDITORIA-E-MELHORIAS-2026-09-11.md)
+
+As seções detalhadas abaixo são um acervo legado de entidades e contratos. Para
+operação diária, use os guias atuais acima; eles são a superfície validada de
+documentação e apontam para o acervo apenas quando necessário.
 
 ## 1. Objetivo e escopo
 

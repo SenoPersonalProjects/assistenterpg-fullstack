@@ -1,4 +1,5 @@
 import type { CondicaoAtivaSessaoCampanha, DuracaoCondicaoSessaoModo } from '@/lib/types';
+export type { RolagemPericiaSessaoPayload } from '@/lib/campanha/sessao-rolagem.types';
 
 export type NpcEditavel = {
   fichaTipo: string;
@@ -46,21 +47,6 @@ export type AlvoCondicoesModal = {
   alvoId: number;
   nomeAlvo: string;
   condicoesAtivas: CondicaoAtivaSessaoCampanha[];
-};
-
-export type RolagemPericiaSessaoPayload = {
-  alvoTipo: 'PERSONAGEM' | 'NPC';
-  tipoRolagem?: 'PERICIA' | 'ATAQUE';
-  alvoNome: string;
-  personagemSessaoId?: number;
-  personagemCampanhaId?: number;
-  npcSessaoId?: number;
-  periciaCodigo?: string;
-  periciaNome: string;
-  atributoBase?: string | null;
-  dados: number;
-  bonus: number;
-  keepMode: 'SUM' | 'HIGHEST' | 'LOWEST';
 };
 
 export type RolagemAtaqueNpcAcaoSessaoPayload = {

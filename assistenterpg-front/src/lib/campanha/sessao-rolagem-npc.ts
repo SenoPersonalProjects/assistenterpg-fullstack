@@ -1,8 +1,8 @@
 import type {
   RolagemAtaqueNpcAcaoSessaoPayload,
   RolagemDanoNpcAcaoSessaoPayload,
-  RolagemPericiaSessaoPayload,
 } from '@/components/campanha/sessao/types';
+import type { RolagemPericiaSessaoPayload } from './sessao-rolagem.types';
 import { periciaPermiteAtaqueSessao } from './sessao-rolagem-pericia';
 
 type VisibilidadeRolagem = 'PUBLICA' | 'SECRETA_MESTRE';

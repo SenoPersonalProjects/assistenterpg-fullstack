@@ -74,7 +74,7 @@ Seeds específicos úteis:
 ```powershell
 npm run seed:sobrevivendo
 npm run seed:compendio
-npm run seed:modificações-aplicaveis
+npm run seed:modificacoes-aplicaveis
 ```
 
 ### 5. Rodar a API
@@ -103,6 +103,12 @@ Front local:
 - `http://localhost:3001`
 
 ## Comandos de validação
+
+Documentação e scripts citados:
+
+```powershell
+node documentacao-unica/validar-documentacao.mjs
+```
 
 Backend:
 
