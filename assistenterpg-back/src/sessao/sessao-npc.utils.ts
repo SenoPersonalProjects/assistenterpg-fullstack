@@ -88,9 +88,9 @@ export function podeControlarNpcSessao(
 ): boolean {
   return Boolean(
     ehMestre ||
-      npc?.controladorUsuarioId === usuarioId ||
-      npc?.personagemDono?.donoId === usuarioId ||
-      npc?.personagemControladorSessao?.controladorUsuarioId === usuarioId,
+    npc?.controladorUsuarioId === usuarioId ||
+    npc?.personagemDono?.donoId === usuarioId ||
+    npc?.personagemControladorSessao?.controladorUsuarioId === usuarioId,
   );
 }
 
