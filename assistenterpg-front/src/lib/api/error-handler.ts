@@ -13,6 +13,10 @@ import type {
  * ✅ Mapeamento de códigos de erro para mensagens amigáveis
  */
 export const ERROR_MESSAGES: Record<string, string> = {
+  // SAÚDE DO SERVIÇO
+  HEALTH_NOT_READY:
+    "O serviço ainda está iniciando. Aguarde alguns instantes e tente novamente.",
+
   // AUTH
   CREDENCIAIS_INVALIDAS: "Email ou senha incorretos",
   AUTH_CREDENCIAIS_INVALIDAS: "Email ou senha incorretos",
