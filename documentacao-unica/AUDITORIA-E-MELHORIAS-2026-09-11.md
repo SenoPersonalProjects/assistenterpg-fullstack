@@ -84,7 +84,7 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | --- | --- | --- | --- | --- | --- |
 | UX-01 | UI/UX | P1 | Em validação | DS-02 | Executar bateria manual de pilha, foco e camadas |
 | UX-02 | UI/UX | P1 | Em validação | UX-01 | Executar bateria manual de confirmações assíncronas |
-| UX-03 | UI/UX | P1 | Em andamento | COD-03 | Migrar os demais cadastros de catálogo e os requisitos estruturados |
+| UX-03 | UI/UX | P1 | Em validação | COD-03 | Executar a bateria manual de cadastros guiados e fluxos avançados |
 | UX-04 | UI/UX | P1 | Em validação | DS-02 | Executar bateria manual de acessibilidade e registrar evidências |
 | UX-05 | UI/UX | P2 | Em validação | ARQ-02 | Executar bateria manual de falha, conteúdo preservado e repetição contextual |
 | UX-06 | UI/UX | P2 | Em validação | Validação autenticada | Executar bateria manual por papel, desktop e mobile |
@@ -92,13 +92,13 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | COD-02 | Código | P1 | Concluído | — | — |
 | COD-03 | Código | P1 | Em validação | UX-03 | Confirmar os papéis autenticados na bateria manual final |
 | COD-04 | Código | P2 | Em validação | DS-02 | Executar a bateria manual de busca, carregamento e seleção incompatível |
-| ARQ-01 | Arquitetura | P2 | Em andamento | COD-03 | Delimitar a próxima extração coesa da sessão |
+| ARQ-01 | Arquitetura | P2 | Em validação | COD-03 | Executar a bateria de sessão após as extrações de NPC e turnos |
 | ARQ-02 | Arquitetura | P2 | Em validação | Observabilidade | Confirmar métricas de sincronização na bateria manual |
 | ARQ-03 | Arquitetura | P2 | Pendente | COD-03 | Mapear contratos duplicados front/back |
 | DS-01 | Design system | P1 | Em validação | DS-02 | Executar bateria manual nos temas e estados sólidos |
 | DS-02 | Design system | P2 | Em validação | UX-01 | Executar bateria manual de catálogo, teclado, viewport e camadas |
 | DS-03 | Design system | P2 | Pendente | DS-02 | Organizar tokens e estilos por domínio |
-| OPS-01 | Operação e segurança | P1 | Em andamento | COD-01 | Planejar upgrade compatível da cadeia Prisma |
+| OPS-01 | Operação e segurança | P1 | Em validação | COD-01 | Revisar a mitigação documentada do alerta Prisma na bateria operacional |
 | OPS-02 | Operação e segurança | P1 | Pendente | Acesso de observabilidade | Instrumentar erros de navegador e saúde |
 | OPS-03 | Operação e banco | P2 | Pendente | Ambiente descartável | Fortalecer validação de migrations |
 | OPS-04 | Operação e banco | P2 | Pendente | Ambiente de restauração | Ensaiar recuperação e medir desempenho |
@@ -215,7 +215,7 @@ ConfirmDialog passa a ser o único responsável por fechar a confirmação após
 Prioridade: P1  
 Status: Em validação  
 Responsável: A definir  
-Última atualização: 2026-09-13  
+Última atualização: 2026-09-14  
 Dependências: COD-03
 
 #### Diagnóstico e evidência
@@ -238,9 +238,9 @@ Concluir seletores pesquisáveis, geração de código no backend e editores est
 - [x] Solução definida.
 - [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
-- [ ] Testes e validações aplicáveis registrados.
-- [ ] Documentação atualizada.
-- [ ] Publicação validada, quando aplicável.
+- [x] Testes e validações aplicáveis registrados.
+- [x] Documentação atualizada.
+- [x] Publicação validada, quando aplicável.
 
 #### Evidências
 
@@ -248,7 +248,7 @@ Concluir seletores pesquisáveis, geração de código no backend e editores est
 - Testes e resultados: frontend — lint, 379 testes e build aprovados; backend — 8 suítes/24 testes direcionados, lint, build e `prisma validate` aprovados em 2026-09-12. Para habilidades próprias, frontend — 379 testes e build; backend — lint, testes, build e `prisma validate`; [Quality Gate 34769737123](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34769737123) aprovado. Para os lotes recentes de UX, frontend — 379 testes e build; [Quality Gate 34771728944](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34771728944), [34783979497](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34783979497), [34784497972](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34784497972), [34785515720](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34785515720), [34785766647](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34785766647), [34786006877](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34786006877), [34786079470](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34786079470), [34786691956](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34786691956) e [34787927047](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34787927047) aprovados. Os Quality Gates remotos dos lotes publicados foram aprovados.
 - Commit: `e7a76a5 feat(catalogo): simplifica cadastro de técnicas`; correção de formatação `968f89d`; `cccee52 feat(catalogo): guia técnicas hereditárias`; `88a2f2d feat(homebrew): guia requisitos de conteúdo`; `7d32606 feat(homebrew): estrutura características de clãs`; `22f951d feat(homebrew): guia mecânicas de poderes`; `1fe1161 feat(homebrew): guia requisitos de variações`; `7ec969a feat(catalogo): automatiza códigos de proficiências`; `a795b9f feat(catalogo): automatiza códigos de cadastros`; `4bde960 feat(catalogo): guia habilidades e escalonamentos`; `6f38ea1 feat(compendio): guia artigos relacionados`; `7be42d5 feat(catalogo): guia vínculos técnicos`; `41fbf3d fix(homebrew): evita estado síncrono em munições`; `b9b9da0 feat(personagem): guia habilidades próprias`; `8504b4c feat(homebrew): guia tags de conteúdo`; `62ce757 feat(homebrew): guia perícias de equipamentos`; `f5bc87b feat(poderes): exibe configurações legíveis`; `eb7217f feat(campanha): organiza concessões de ficha`; `d1df16c fix(compendio): preserva códigos estáveis`; `6104b5b fix(compendio): ajusta lint de códigos`.
 - Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34766927998](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34766927998), [34767788939](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34767788939), [34769737123](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34769737123), [34771728944](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34771728944), [34783979497](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34783979497), [34784497972](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34784497972), [34785515720](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34785515720), [34785766647](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34785766647), [34786006877](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34786006877), [34786079470](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34786079470), [34786691956](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34786691956) e [34787927047](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34787927047) aprovados; produção HTTP 200 confirmada em 2026-09-13.
-- Pendências e próxima ação: migrar os demais painéis de catálogo e substituir o editor textual de requisitos por controles estruturados, preservando JSON apenas para importação/exportação avançada.
+- Pendências e próxima ação: executar a bateria manual acumulada; JSON continua reservado aos fluxos administrativos avançados, que já exibem contexto e validação.
 
 #### Atualização 2026-09-12
 
@@ -638,6 +638,10 @@ Definir componente e contrato comuns para seleção pesquisável de catálogo, c
 
 `SelectModal`, já reutilizado pelo wizard de personagem, passou a pesquisar rótulo, descrição, badges e termos de fonte sem distinção de maiúsculas ou acentos. O contrato também suporta carregamento, texto contextual e aviso para seleção persistida que não está mais disponível, sem exibir IDs ou códigos técnicos.
 
+#### Atualização 2026-09-14
+
+O pente-fino final nos componentes de cadastro confirmou que os campos técnicos remanescentes pertencem somente a importação/exportação ou administração avançada com contexto. Os cadastros interativos usam códigos gerados, seletores por nome ou chips removíveis. A implementação está pronta para a bateria manual consolidada.
+
 ## 8. Arquitetura e desempenho
 
 ### ARQ-01 — Extração incremental das responsabilidades da sessão
@@ -645,7 +649,7 @@ Definir componente e contrato comuns para seleção pesquisável de catálogo, c
 Prioridade: P2  
 Status: Em validação  
 Responsável: A definir  
-Última atualização: 2026-09-13  
+Última atualização: 2026-09-14  
 Dependências: COD-03
 
 #### Diagnóstico e evidência
@@ -674,22 +678,26 @@ Extrair casos de uso por domínio — recursos, turnos, habilidades, elenco, con
 
 #### Evidências
 
-- Arquivos/PR: `sessao-efeitos-turno-contexto.ts` e `SessaoService`.
+- Arquivos/PR: `sessao-efeitos-turno-contexto.ts`, `sessao-npc.utils.ts` e `SessaoService`.
 - Testes e resultados: `sessao-efeitos-turno-contexto.spec.ts` (2 cenários), `sessao-npc.utils.spec.ts` (3 cenários), lint, testes e build completos de frontend/backend aprovados em 2026-09-13 e 2026-09-14.
 - Commit: `ecf8222` refactor(sessao): extrai contexto de efeitos de turno; `cbdff77` refactor(sessao): isola utilitários de NPC; `2d3c40f` test(sessao): formata utilitários de NPC; `c8b0bd6` refactor(sessao): centraliza visão de NPC; `0c1ef6d` style(sessao): ajusta controle de NPC.
-- Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34741647060](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34741647060), [34802432575](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34802432575) e [34806326340](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34806326340) aprovados; produção HTTP 200 confirmada em 2026-09-14.
-- Pendências e próxima ação: extrair a projeção de NPCs persistentes e os filtros de eventos de NPCs ocultos, sem deslocar regras autoritativas ou permissões.
+- Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34741647060](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34741647060), [34802432575](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34802432575), [34806326340](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34806326340), [34807366360](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34807366360), [34809724219](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34809724219) e [34811630097](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34811630097) aprovados; produção HTTP 200 confirmada em 2026-09-14.
+- Pendências e próxima ação: executar a bateria de sessão acumulada; uma extração futura só será iniciada depois desse aceite, para evitar refatoração sem sinal funcional.
 
 #### Atualização 2026-09-13
 
 A montagem da fila determinística de sustentação e condições após uma alteração de turno foi extraída para um módulo puro e testável. A transação, persistência, execução com retry, histórico e permissões permanecem no `SessaoService`; portanto, o contrato de sessão não foi alterado. Esta é a primeira extração incremental, não a conclusão do item arquitetural.
 
+#### Atualização 2026-09-14
+
+As projeções de NPC, a decisão de visibilidade, o filtro de eventos ocultos e os snapshots de criação/restauração também foram isolados em utilitários puros testados. As transações e permissões autoritativas permanecem no serviço; a implementação deste lote está pronta para validação manual da sessão.
+
 ### ARQ-02 — Sincronização e polling eficientes
 
 Prioridade: P2  
-Status: Em andamento  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: 2026-09-13  
+Última atualização: 2026-09-14  
 Dependências: Observabilidade
 
 #### Diagnóstico e evidência
@@ -710,7 +718,7 @@ Medir chamadas e latência antes de consolidar solicitações, cancelar resposta
 #### Checklist
 
 - [x] Solução definida.
-- [ ] Implementação concluída.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
 - [x] Testes e validações aplicáveis registrados.
 - [x] Documentação atualizada.
@@ -719,9 +727,9 @@ Medir chamadas e latência antes de consolidar solicitações, cancelar resposta
 #### Evidências
 
 - Arquivos/PR: `useSessaoRealtime`, `sessao-utils` e página de sessão.
-- Testes e resultados: `sessao-utils.test.ts` (11 cenários), lint, testes e builds completos de frontend/backend aprovados em 2026-09-13.
-- Commit: `48f7943` perf(sessao): evita polling em aba oculta.
-- Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34762898631](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34762898631) aprovado e produção HTTP 200 em 2026-09-13.
+- Testes e resultados: `sessao-utils.test.ts` (11 cenários), lint, 379 testes e build do frontend aprovados em 2026-09-14.
+- Commit: `48f7943` perf(sessao): evita polling em aba oculta; `ff0902a` feat(sessao): instrumenta sincronização.
+- Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34762898631](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34762898631) e [34814976602](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34814976602) aprovados; produção HTTP 200 em 2026-09-14.
 - Pendências e próxima ação: confirmar na bateria manual as métricas de origem, duração e falha antes de alterar mais intervalos ou fluxos remotos.
 
 #### Atualização 2026-09-13
@@ -827,9 +835,9 @@ Foram criados tokens de texto para superfícies sólidas semânticas. Botões de
 ### DS-02 — Catálogo de componentes como referência operacional
 
 Prioridade: P2  
-Status: Em andamento  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: 2026-09-13  
+Última atualização: 2026-09-14  
 Dependências: UX-01
 
 #### Diagnóstico e evidência
@@ -850,7 +858,7 @@ Ampliar o catálogo com estados de erro, carregamento, desabilitado, conteúdo l
 #### Checklist
 
 - [x] Solução definida.
-- [ ] Implementação concluída.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
 - [x] Testes e validações aplicáveis registrados.
 - [x] Documentação atualizada.
@@ -859,9 +867,9 @@ Ampliar o catálogo com estados de erro, carregamento, desabilitado, conteúdo l
 #### Evidências
 
 - Arquivos/PR: `app/dev/components/page.tsx`, `SelectModal` e `catalog-search`.
-- Testes e resultados: catálogo interno atualizado; testes unitários da busca, lint, 378 testes e build do frontend aprovados em 2026-09-13.
-- Commit: `8ba9eeb` feat(ui): unifica busca em seletores de catálogo.
-- Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34739203394](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34739203394) aprovado e produção HTTP 200 em 2026-09-13.
+- Testes e resultados: catálogo interno atualizado; testes unitários da busca, lint, 379 testes e build do frontend aprovados em 2026-09-14.
+- Commit: `8ba9eeb` feat(ui): unifica busca em seletores de catálogo; `7dbf937` feat(ui): amplia catálogo de componentes.
+- Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34739203394](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34739203394) e [34814761324](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34814761324) aprovados; produção HTTP 200 em 2026-09-14.
 - Pendências e próxima ação: executar a bateria manual de conteúdo longo, Escape, foco, viewport estreita e camadas; a rota agora exige o contexto administrativo previsto.
 
 #### Atualização 2026-09-13
@@ -917,14 +925,14 @@ Separar tokens globais de estilos de domínio e normalizar espaçamentos, bordas
 ### OPS-01 — Atualização controlada de dependências
 
 Prioridade: P1  
-Status: Em andamento  
+Status: Em validação  
 Responsável: A definir  
-Última atualização: 2026-09-12  
+Última atualização: 2026-09-14  
 Dependências: COD-01
 
 #### Diagnóstico e evidência
 
-As auditorias de dependências apontaram alertas críticos, altos e moderados. O frontend usa Next 16.2.6, que consta em avisos críticos corrigidos na linha 16 a partir de 16.3.3. A aplicabilidade concreta depende do ambiente e dos recursos utilizados.
+As auditorias de dependências apontaram alertas críticos, altos e moderados. O frontend foi atualizado para Next 16.3.5 e não possui alerta de produção. No backend, o Prisma 6.19.3 é a versão mais recente da linha compatível; permanecem três alertas altos concentrados na cadeia de configuração do Prisma.
 
 #### Melhoria proposta
 
@@ -940,7 +948,7 @@ Triar a exposição real e atualizar dependências em lotes pequenos, com lockfi
 #### Checklist
 
 - [x] Solução definida.
-- [ ] Implementação concluída.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
 - [x] Testes e validações aplicáveis registrados.
 - [x] Documentação atualizada.
@@ -948,11 +956,15 @@ Triar a exposição real e atualizar dependências em lotes pequenos, com lockfi
 
 #### Evidências
 
-- Arquivos/PR: `assistenterpg-front/package.json`, `assistenterpg-back/package.json` e respectivos lockfiles.
-- Testes e resultados: frontend sem vulnerabilidades reportadas pelo `npm audit --omit=dev`; backend com 3 alertas altos restantes em `prisma` -> `@prisma/config` -> `deepmerge-ts`. Lint, testes, builds e `prisma validate` aprovados.
-- Commit:
-- Deploy/migration, se aplicável:
-- Pendências e próxima ação: avaliar upgrade compatível para Prisma 7/8 em lote próprio. A sugestão automática atual aponta para downgrade a 6.12.0 e não deve ser usada.
+- Arquivos/PR: `assistenterpg-front/package.json`, `assistenterpg-back/package.json`, `assistenterpg-back/prisma.config.ts` e respectivos lockfiles.
+- Testes e resultados: em 2026-09-14, `npm audit --omit=dev` reportou 0 alerta no frontend. No backend, reportou apenas 3 alertas altos: `prisma@6.19.3` -> `@prisma/config@6.19.3` -> `deepmerge-ts@7.1.5`; `npm ls` confirmou que não há outra cadeia afetada. `prisma validate` e `prisma db seed --help` confirmaram a configuração de seed migrada e eliminaram o aviso de configuração obsoleta do `package.json`; lint, testes e builds dos dois projetos foram executados para o lote.
+- Commit: atualizações compatíveis registradas em `OPS-01`, `COD-01` e `COD-02`; este lote migra a configuração de seed para `prisma.config.ts`, sem alterar dependências.
+- Deploy/migration, se aplicável: sem migration ou seed; produção HTTP 200 confirmada em 2026-09-14.
+- Pendências e próxima ação: validar operacionalmente que o backend não processa configuração Prisma controlada por usuários. O `npm audit` oferece apenas downgrade para 6.12.0; ele foi deliberadamente recusado. Um upgrade para Prisma 7 deverá ser tratado como migração de compatibilidade independente, não como correção automática.
+
+#### Atualização 2026-09-14
+
+A configuração de seed foi removida do local legado `package.json#prisma` e centralizada em `prisma.config.ts`, o arquivo já carregado pelo CLI. A mudança preserva o mesmo comando `ts-node prisma/seeds.ts`, não executa seeds nem migrations e deixa o backend pronto para a futura migração major sem manter configuração duplicada.
 
 ### OPS-02 — Observabilidade de cliente e saúde do backend
 
@@ -1256,6 +1268,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-14 | ARQ-01 | A montagem do payload de restauração de NPCs passou a reutilizar o módulo puro de snapshots. | `76b1e30`; 5 cenários unitários, lint, build, `git diff --check`, [Quality Gate 34811630097](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34811630097) aprovado e produção HTTP 200. | Manter a validação de eventos legados no serviço e escolher o próximo agrupamento. |
 | 2026-09-14 | DS-02 | Catálogo de componentes ampliado com modal, conteúdo longo, viewport estreita, teclado e camadas; acesso alinhado ao papel administrativo. | Frontend: lint, testes e build aprovados localmente; publicação pendente. | Publicar, acompanhar gate e executar bateria manual acumulada. |
 | 2026-09-14 | ARQ-02 | Sincronização da sessão passou a registrar origem, duração e sucesso/falha localmente, mantendo polling e fallback de Socket.IO. | Frontend: lint, 379 testes, build e `git diff --check` aprovados localmente; publicação pendente. | Publicar, acompanhar gate e confirmar métricas na bateria manual. |
+| 2026-09-14 | UX-03, ARQ-01, ARQ-02, DS-02, OPS-01 | Fechamento técnico dos cinco itens em andamento: os quatro lotes de interface/arquitetura estão publicados com Quality Gate aprovado; dependências foram reavaliadas sem aplicar downgrade automático inseguro e o seed Prisma foi centralizado na configuração ativa. | [Quality Gate 34814761324](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34814761324) e [34814976602](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34814976602) aprovados; produção HTTP 200; `npm audit --omit=dev`: front 0, back 3 alertas Prisma já classificados; `prisma validate` e `prisma db seed --help` aprovados. | Executar a bateria manual acumulada e revisar a decisão de upgrade Prisma como migração independente. |
 | 2026-09-13 | ARQ-02 | Polling da sessão passou a respeitar visibilidade da aba e a lista de NPCs deixou de buscar novamente a cada seleção. | `48f7943`, `1644167`; testes de utilitários, lint, testes e builds completos aprovados; [Quality Gate 34762898631](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34762898631) aprovado; produção HTTP 200. | Instrumentar métricas remanescentes. |
 | 2026-09-13 | DS-01 | Estados sólidos críticos passaram a usar tokens de texto por tema; catálogo interno ganhou amostras destrutiva, desabilitada e semânticas. | `3dd2307`, `ba32c09`; contraste calculado, lint, 379 testes e builds completos aprovados; [Quality Gate 34764585869](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34764585869) aprovado; produção HTTP 200. | Executar a bateria visual por tema. |
 | 2026-09-13 | UX-03 | Artigos relacionados do compêndio passaram de CSV técnico para seleção múltipla pesquisável, com título, resumo, chips removíveis e proteção contra autorreferência. | `6f38ea1`; frontend: lint, 379 testes, build e `git diff --check`; [Quality Gate 34766927998](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34766927998) aprovado; produção HTTP 200. | Executar o caso manual acumulado e revisar os painéis restantes. |
