@@ -1,6 +1,8 @@
 // app/dev/components/page.tsx
 'use client';
 
+import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
@@ -14,6 +16,7 @@ import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
 import { SelectModal } from '@/components/ui/SelectModal';
+import { Modal } from '@/components/ui/Modal';
 
 const selectOptions = [
   { value: 'combatente', label: 'Combatente' },
@@ -22,6 +25,17 @@ const selectOptions = [
 ];
 
 export default function ComponentsShowcasePage() {
+  const { usuario, loading } = useAuth();
+  const [modalOpen, setModalOpen] = useState(false);
+
+  if (loading) {
+    return <main className="min-h-screen bg-app-bg p-8"><Loading message="Verificando acesso..." /></main>;
+  }
+
+  if (usuario?.role !== 'ADMIN') {
+    return <main className="min-h-screen bg-app-bg p-8"><ErrorAlert message="O catálogo de componentes está disponível apenas para administradores." /></main>;
+  }
+
   return (
     <main className="min-h-screen p-8 space-y-8 bg-app-bg">
       <header className="flex items-center justify-between mb-4">
@@ -99,6 +113,29 @@ export default function ComponentsShowcasePage() {
           ]}
         />
       </div>
+
+      <SectionTitle>Camadas, teclado e conteúdo longo</SectionTitle>
+      <div className="grid max-w-4xl gap-4 md:grid-cols-2">
+        <Card className="space-y-3">
+          <h3 className="font-semibold text-app-fg">Diálogo em camada</h3>
+          <p className="text-sm text-app-muted">Abra, pressione Escape e confirme que foco e rolagem retornam corretamente.</p>
+          <Button type="button" onClick={() => setModalOpen(true)}>Abrir conteúdo longo</Button>
+        </Card>
+        <Card className="space-y-3 overflow-hidden">
+          <h3 className="font-semibold text-app-fg">Viewport estreita</h3>
+          <div className="w-[18rem] max-w-full rounded-lg border border-app-border p-3 text-sm text-app-muted">
+            Este cartão limita a largura para expor truncamento, quebra de linha e ações em telas compactas.
+          </div>
+        </Card>
+      </div>
+
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Cenário de conteúdo longo" footer={<Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Fechar</Button>}>
+        <div className="space-y-3 text-sm text-app-muted">
+          {Array.from({ length: 12 }, (_, index) => (
+            <p key={index}>Linha de referência {index + 1}: o diálogo deve manter cabeçalho, rodapé, foco e rolagem interna mesmo com conteúdo extenso.</p>
+          ))}
+        </div>
+      </Modal>
 
       <SectionTitle>Badges</SectionTitle>
       <div className="flex gap-2 flex-wrap items-center">

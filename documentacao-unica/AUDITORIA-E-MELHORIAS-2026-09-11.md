@@ -96,7 +96,7 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | ARQ-02 | Arquitetura | P2 | Em andamento | Observabilidade | Instrumentar frequência e latência dos fluxos remanescentes |
 | ARQ-03 | Arquitetura | P2 | Pendente | COD-03 | Mapear contratos duplicados front/back |
 | DS-01 | Design system | P1 | Em validação | DS-02 | Executar bateria manual nos temas e estados sólidos |
-| DS-02 | Design system | P2 | Em andamento | UX-01 | Ampliar o catálogo com cenários de teclado, conteúdo longo e camadas |
+| DS-02 | Design system | P2 | Em validação | UX-01 | Executar bateria manual de catálogo, teclado, viewport e camadas |
 | DS-03 | Design system | P2 | Pendente | DS-02 | Organizar tokens e estilos por domínio |
 | OPS-01 | Operação e segurança | P1 | Em andamento | COD-01 | Planejar upgrade compatível da cadeia Prisma |
 | OPS-02 | Operação e segurança | P1 | Pendente | Acesso de observabilidade | Instrumentar erros de navegador e saúde |
@@ -213,7 +213,7 @@ ConfirmDialog passa a ser o único responsável por fechar a confirmação após
 ### UX-03 — Remoção de campos técnicos dos cadastros
 
 Prioridade: P1  
-Status: Em andamento  
+Status: Em validação  
 Responsável: A definir  
 Última atualização: 2026-09-13  
 Dependências: COD-03
@@ -236,7 +236,7 @@ Concluir seletores pesquisáveis, geração de código no backend e editores est
 #### Checklist
 
 - [x] Solução definida.
-- [ ] Implementação concluída.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
 - [ ] Testes e validações aplicáveis registrados.
 - [ ] Documentação atualizada.
@@ -858,11 +858,15 @@ Ampliar o catálogo com estados de erro, carregamento, desabilitado, conteúdo l
 - Testes e resultados: catálogo interno atualizado; testes unitários da busca, lint, 378 testes e build do frontend aprovados em 2026-09-13.
 - Commit: `8ba9eeb` feat(ui): unifica busca em seletores de catálogo.
 - Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34739203394](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34739203394) aprovado e produção HTTP 200 em 2026-09-13.
-- Pendências e próxima ação: acrescentar estados de conteúdo longo, teclado e camadas sobrepostas, além de revisar o escopo de acesso da rota de desenvolvimento.
+- Pendências e próxima ação: executar a bateria manual de conteúdo longo, Escape, foco, viewport estreita e camadas; a rota agora exige o contexto administrativo previsto.
 
 #### Atualização 2026-09-13
 
 O catálogo interno agora demonstra feedback de carregamento e erro remoto, além de um seletor pesquisável com descrição, tipo e fonte. O contrato de busca foi extraído e recebeu testes próprios; os demais cenários críticos continuam planejados para este item.
+
+#### Atualização 2026-09-14
+
+O catálogo passou a demonstrar modal com conteúdo longo, fechamento por Escape, viewport estreita e estados de camadas. O acesso direto também foi alinhado à navegação administrativa: usuários sem papel ADMIN recebem uma mensagem de acesso restrito.
 
 ### DS-03 — Organização de tokens e estilos por domínio
 
@@ -1246,6 +1250,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-14 | ARQ-01 | A filtragem recursiva de eventos que referenciam NPCs ocultos foi isolada com normalização segura de IDs. | `e65b162`, `0765f13`; 4 cenários unitários, lint, build, `git diff --check`, [Quality Gate 34807366360](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34807366360) aprovado. | Extrair projeções e snapshots persistentes de NPCs. |
 | 2026-09-14 | ARQ-01 | A criação de snapshots completos de NPCs foi movida ao módulo puro de sessão, preservando os dados necessários à reversão. | `3f18fb4`, `d72be06`; 5 cenários unitários, lint, build, `git diff --check`, [Quality Gate 34809724219](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34809724219) aprovado e produção HTTP 200. | Extrair a leitura/reconstrução do snapshot. |
 | 2026-09-14 | ARQ-01 | A montagem do payload de restauração de NPCs passou a reutilizar o módulo puro de snapshots. | `76b1e30`; 5 cenários unitários, lint, build, `git diff --check`, [Quality Gate 34811630097](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34811630097) aprovado e produção HTTP 200. | Manter a validação de eventos legados no serviço e escolher o próximo agrupamento. |
+| 2026-09-14 | DS-02 | Catálogo de componentes ampliado com modal, conteúdo longo, viewport estreita, teclado e camadas; acesso alinhado ao papel administrativo. | Frontend: lint, testes e build aprovados localmente; publicação pendente. | Publicar, acompanhar gate e executar bateria manual acumulada. |
 | 2026-09-13 | ARQ-02 | Polling da sessão passou a respeitar visibilidade da aba e a lista de NPCs deixou de buscar novamente a cada seleção. | `48f7943`, `1644167`; testes de utilitários, lint, testes e builds completos aprovados; [Quality Gate 34762898631](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34762898631) aprovado; produção HTTP 200. | Instrumentar métricas remanescentes. |
 | 2026-09-13 | DS-01 | Estados sólidos críticos passaram a usar tokens de texto por tema; catálogo interno ganhou amostras destrutiva, desabilitada e semânticas. | `3dd2307`, `ba32c09`; contraste calculado, lint, 379 testes e builds completos aprovados; [Quality Gate 34764585869](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34764585869) aprovado; produção HTTP 200. | Executar a bateria visual por tema. |
 | 2026-09-13 | UX-03 | Artigos relacionados do compêndio passaram de CSV técnico para seleção múltipla pesquisável, com título, resumo, chips removíveis e proteção contra autorreferência. | `6f38ea1`; frontend: lint, 379 testes, build e `git diff --check`; [Quality Gate 34766927998](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34766927998) aprovado; produção HTTP 200. | Executar o caso manual acumulado e revisar os painéis restantes. |
