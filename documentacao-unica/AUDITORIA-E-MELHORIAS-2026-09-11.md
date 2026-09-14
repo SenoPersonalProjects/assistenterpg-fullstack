@@ -1036,8 +1036,8 @@ Fortalecer o procedimento de validação com status completo, verificações de 
 
 #### Critérios de aceitação
 
-- [x] Pipeline verifica migrations pendentes e histórico inválido.
-- [x] Migrations são testadas em banco descartável antes do remoto produtivo.
+- [ ] Pipeline verifica migrations pendentes e histórico inválido.
+- [ ] Migrations são testadas em banco descartável antes do remoto produtivo.
 - [ ] Compatibilidade MySQL/TiDB é validada para SQL específico.
 - [ ] Procedimento registra backup, aplicação e validação posterior quando houver mutação.
 
@@ -1053,14 +1053,14 @@ Fortalecer o procedimento de validação com status completo, verificações de 
 #### Evidências
 
 - Arquivos/PR: `.github/workflows/quality.yml` e `OPERACAO-E-AMBIENTE.md`.
-- Testes e resultados: Quality Gate agora cria MySQL 8 descartável, executa `prisma migrate deploy` e `prisma migrate status` antes dos testes. A validação local de schema permanece em `prisma validate`.
+- Testes e resultados: Quality Gate agora cria MySQL 8 descartável e aplica o schema vigente com `prisma db push --skip-generate`, seguido de `prisma validate`. O replay completo do histórico falhou de forma reproduzível por divergência histórica de nome físico (`PersonagemBase` versus `personagembase`), sem tocar o TiDB remoto.
 - Commit: pendente de publicação deste lote.
 - Deploy/migration, se aplicável: a esteira não toca TiDB remoto; cada migration produtiva continua exigindo backup, preflight e validação posterior pelo procedimento oficial.
-- Pendências e próxima ação: confirmar no Quality Gate deste commit e, para SQL específico, registrar execução no ambiente TiDB compatível antes de qualquer aplicação remota.
+- Pendências e próxima ação: confirmar no Quality Gate deste commit e definir um baseline de migrations ou clone descartável compatível com o histórico real; para SQL específico, registrar execução no ambiente TiDB compatível antes de qualquer aplicação remota.
 
 #### Atualização 2026-09-14
 
-A validação deixou de confiar apenas em contagens e passou a aplicar o histórico em banco efêmero no CI. MySQL 8 é uma barreira de regressão genérica; compatibilidade exclusiva do TiDB continua uma confirmação manual obrigatória e documentada.
+O CI agora valida o schema vigente em banco efêmero. O ensaio de replay revelou uma divergência histórica entre nomes físicos de tabelas e migrations antigas; ela foi preservada, não mascarada por alteração de migration já aplicada. MySQL 8 é uma barreira de regressão de schema; compatibilidade exclusiva do TiDB e um replay completo do histórico continuam confirmações manuais obrigatórias.
 
 ### OPS-04 — Recuperação e desempenho operacional
 

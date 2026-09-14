@@ -50,12 +50,15 @@ autenticação ou `DATABASE_URL` em relatórios.
 O Quality Gate sobe um MySQL 8 descartável e executa, antes de testes e build:
 
 ```powershell
-npx prisma migrate deploy
-npx prisma migrate status
+npx prisma db push --skip-generate
+npx prisma validate
 ```
 
-Isso valida histórico e aplicação das migrations em MySQL. SQL específico de
-TiDB deve continuar sendo revisado no preflight remoto antes de produção.
+Isso valida o schema vigente em banco vazio. A cadeia de migrations anterior ao
+baseline atual não é replayável em banco vazio (por divergência histórica de
+nomes físicos de tabelas), portanto o CI não altera nem simula o histórico
+aplicado do TiDB produtivo. SQL específico de TiDB e qualquer migration remota
+continuam exigindo preflight, backup e validação posterior.
 
 Para atualização remota não destrutiva, o procedimento oficial é:
 

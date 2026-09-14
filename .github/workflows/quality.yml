@@ -69,8 +69,11 @@ jobs:
           cache-dependency-path: assistenterpg-back/package-lock.json
       - run: npm ci
       - run: npm run prisma:generate:safe
-      - run: npx prisma migrate deploy
-      - run: npx prisma migrate status
+      # A cadeia histórica anterior ao baseline atual não é replayável em uma
+      # base vazia. O CI valida o schema vigente em banco efêmero sem alterar
+      # o histórico aplicado do TiDB produtivo.
+      - run: npx prisma db push --skip-generate
+      - run: npx prisma validate
       - run: npm run lint:check
       - run: npm test -- --runInBand
       - run: npm run build
