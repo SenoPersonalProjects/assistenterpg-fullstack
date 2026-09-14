@@ -88,7 +88,7 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | UX-04 | UI/UX | P1 | Em validação | DS-02 | Executar bateria manual de acessibilidade e registrar evidências |
 | UX-05 | UI/UX | P2 | Em validação | ARQ-02 | Executar bateria manual de falha, conteúdo preservado e repetição contextual |
 | UX-06 | UI/UX | P2 | Em validação | Validação autenticada | Executar bateria manual por papel, desktop e mobile |
-| COD-01 | Código | P1 | Em validação | Política de proteção da branch | Definir checks obrigatórios para `main` |
+| COD-01 | Código | P1 | Concluído | — | — |
 | COD-02 | Código | P1 | Concluído | — | — |
 | COD-03 | Código | P1 | Em validação | UX-03 | Confirmar os papéis autenticados na bateria manual final |
 | COD-04 | Código | P2 | Em validação | DS-02 | Executar a bateria manual de busca, carregamento e seleção incompatível |
@@ -475,10 +475,10 @@ Quando o personagem exibido foi delegado, o painel deixa de chamá-lo de “Meu 
 ### COD-01 — CI obrigatório de qualidade
 
 Prioridade: P1  
-Status: Em validação  
+Status: Concluído  
 Responsável: A definir  
-Última atualização: 2026-09-12  
-Dependências: Ambientes CI
+Última atualização: 2026-09-14  
+Dependências: —
 
 #### Diagnóstico e evidência
 
@@ -490,18 +490,18 @@ Criar pipeline obrigatório e reproduzível que execute instalação limpa, veri
 
 #### Critérios de aceitação
 
-- [ ] Pull requests e `main` executam verificações dos dois projetos.
-- [ ] Falhas de lint, teste ou build impedem a promoção definida pela equipe.
-- [ ] O pipeline usa versão de Node declarada e cache seguro.
-- [ ] Resultados ficam vinculados ao commit publicado.
+- [x] Pull requests e `main` executam verificações dos dois projetos.
+- [x] Falhas de lint, teste ou build impedem a promoção definida pela equipe.
+- [x] O pipeline usa versão de Node declarada e cache seguro.
+- [x] Resultados ficam vinculados ao commit publicado.
 
 #### Checklist
 
 - [x] Solução definida.
 - [x] Implementação concluída.
-- [ ] Critérios de aceitação verificados.
+- [x] Critérios de aceitação verificados.
 - [x] Execução remota do workflow verificada.
-- [ ] Proteção de branch e checks obrigatórios configurados.
+- [x] Proteção de branch e checks obrigatórios configurados.
 - [x] Testes e validações aplicáveis registrados.
 - [x] Documentação atualizada.
 - [x] Publicação validada, quando aplicável.
@@ -509,10 +509,14 @@ Criar pipeline obrigatório e reproduzível que execute instalação limpa, veri
 #### Evidências
 
 - Arquivos/PR: `.github/workflows/quality.yml`; scripts `lint:check` nos dois `package.json`; geração explícita do Prisma Client antes do lint do backend, com URL inerte exclusiva do CI para carregar o schema sem acessar banco remoto.
-- Testes e resultados: lint, testes e builds locais aprovados em 2026-09-12; workflow remoto [Quality Gate #34674029929](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34674029929) aprovado para frontend e backend.
-- Commit: `513e1de`.
+- Testes e resultados: lint, testes e builds locais aprovados; [Quality Gate 34832170602](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34832170602) aprovou frontend, backend, documentação e schema em banco efêmero. A API do GitHub confirmou os checks obrigatórios `Backend`, `Frontend` e `Documentation` para `main`.
+- Commit: `513e1de`, `fcc30ec` e `14c8106`.
 - Deploy/migration, se aplicável: não aplicável.
-- Pendências e próxima ação: `main` não possui proteção de branch; definir os checks obrigatórios da equipe antes de marcar este item como concluído.
+- Pendências e próxima ação: —
+
+#### Atualização 2026-09-14
+
+`main` passou a exigir os três jobs do Quality Gate em modo estrito. Revisão de pull request e bloqueio de bypass administrativo não foram ativados para preservar o fluxo atual de publicação; podem ser adotados posteriormente como política de equipe.
 
 ### COD-02 — Lint verificável sem escrita
 
@@ -1276,7 +1280,8 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 
 | Data | IDs | Alteração | Evidência | Próxima etapa |
 | --- | --- | --- | --- | --- |
-| 2026-09-14 | ARQ-03, DS-03, OPS-01 a OPS-04, DOC-01 a DOC-03 | Validação automática complementar do lote publicado. | Worktree limpo; [Quality Gate 34832170602](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34832170602) aprovado; frontend HTTP 200; backend `/`, `/health/live` e `/health/ready` HTTP 200; `npm audit --omit=dev`: frontend 0, backend 3 alertas altos já classificados na cadeia Prisma 6.19.3; `prisma validate` e ajuda de seed aprovados. A API do GitHub confirma que `main` ainda não possui proteção de branch. | Executar somente a bateria manual autenticada e o ensaio isolado de recuperação/TiDB; definir os checks obrigatórios de `main`. |
+| 2026-09-14 | COD-01 | Proteção mínima de `main` configurada. | API do GitHub confirmou checks obrigatórios `Backend`, `Frontend` e `Documentation`, atualização estrita, sem force-push ou exclusão; [Quality Gate 34832170602](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34832170602) aprovado. | COD-01 concluído; executar somente a bateria manual dos itens restantes. |
+| 2026-09-14 | ARQ-03, DS-03, OPS-01 a OPS-04, DOC-01 a DOC-03 | Validação automática complementar do lote publicado. | Worktree limpo; [Quality Gate 34832170602](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34832170602) aprovado; frontend HTTP 200; backend `/`, `/health/live` e `/health/ready` HTTP 200; `npm audit --omit=dev`: frontend 0, backend 3 alertas altos já classificados na cadeia Prisma 6.19.3; `prisma validate` e ajuda de seed aprovados. | Executar somente a bateria manual autenticada e o ensaio isolado de recuperação/TiDB. |
 | 2026-09-11 | Todos | Auditoria criada; 23 melhorias registradas como pendentes. | Testes, builds, lint, Vercel e TiDB descritos na seção 3. | Priorizar P1: OPS-01, COD-01, COD-02, DS-01, UX-01 a UX-04, COD-03 e OPS-02. |
 | 2026-09-12 | OPS-01, COD-01, COD-02 | Atualizadas dependências compatíveis, scripts de lint e workflow de qualidade; ajustados fixtures expostos pelo novo typecheck. | Frontend: audit 0, lint, 368 testes e build aprovados. Backend: lint, 868 testes, build e Prisma aprovados; 3 alertas Prisma permanecem. | Publicar e validar o workflow remoto; tratar Prisma em upgrade dedicado. |
 | 2026-09-12 | UX-03 | Cadastro de técnica migrou código automático e seleção de clãs por nome; requisitos comuns ganharam orientação textual. | `e7a76a5`, `968f89d`; [Quality Gate 34697036630](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34697036630) aprovado e produção HTTP 200. | Seguir com outros cadastros de catálogo. |
