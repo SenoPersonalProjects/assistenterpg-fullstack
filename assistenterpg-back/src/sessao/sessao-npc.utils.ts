@@ -192,7 +192,9 @@ export function filtrarEventosVisiveisParaJogador<T extends { dados: unknown }>(
   );
 }
 
-export function criarSnapshotNpcSessao(npc: SnapshotNpcSessao): SnapshotNpcSessao {
+export function criarSnapshotNpcSessao(
+  npc: SnapshotNpcSessao,
+): SnapshotNpcSessao {
   return {
     ...npc,
     iniciativaValor: npc.iniciativaValor ?? null,
