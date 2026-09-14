@@ -1644,7 +1644,9 @@ export class CompendioService {
       return 1;
     };
     const trecho = (artigo: (typeof artigos)[number]) => {
-      const texto = `${artigo.resumo ?? ''}\n${artigo.conteudo}`.replace(/\s+/g, ' ').trim();
+      const texto = `${artigo.resumo ?? ''}\n${artigo.conteudo}`
+        .replace(/\s+/g, ' ')
+        .trim();
       const indice = texto.toLowerCase().indexOf(q);
       if (indice < 0) return artigo.resumo ?? texto.slice(0, 180);
       const inicio = Math.max(0, indice - 70);
@@ -1652,14 +1654,21 @@ export class CompendioService {
       return `${inicio > 0 ? '…' : ''}${texto.slice(inicio, fim)}${fim < texto.length ? '…' : ''}`;
     };
     const ordenados = artigos
-      .map((artigo) => ({ ...artigo, relevancia: pontuar(artigo), trecho: trecho(artigo) }))
+      .map((artigo) => ({
+        ...artigo,
+        relevancia: pontuar(artigo),
+        trecho: trecho(artigo),
+      }))
       .sort((a, b) => b.relevancia - a.relevancia || a.ordem - b.ordem);
     const paginaSegura = Math.max(1, pagina);
     const limiteSeguro = Math.min(50, Math.max(1, limite));
     const total = ordenados.length;
 
     return {
-      items: ordenados.slice((paginaSegura - 1) * limiteSeguro, paginaSegura * limiteSeguro),
+      items: ordenados.slice(
+        (paginaSegura - 1) * limiteSeguro,
+        paginaSegura * limiteSeguro,
+      ),
       total,
       page: paginaSegura,
       limit: limiteSeguro,
