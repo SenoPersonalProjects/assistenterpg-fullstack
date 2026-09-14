@@ -1,4 +1,4 @@
-import { TipoFichaNpcAmeaca, TipoNpcAmeaca } from '@prisma/client';
+import { Prisma, TipoFichaNpcAmeaca, TipoNpcAmeaca } from '@prisma/client';
 
 export const CAMPOS_REFERENCIA_NPC_SESSAO_EVENTO = new Set([
   'npcSessaoId',
@@ -16,6 +16,31 @@ export type AtributosNpcSessao = {
   intelecto: number;
   presenca: number;
   vigor: number;
+};
+
+export type SnapshotNpcSessao = {
+  npcAmeacaId: number | null;
+  nomeExibicao: string;
+  fichaTipo: TipoFichaNpcAmeaca;
+  tipo: TipoNpcAmeaca;
+  vd: number;
+  iniciativaValor: number | null;
+  defesa: number;
+  pontosVidaAtual: number;
+  pontosVidaMax: number;
+  peAtual: number | null;
+  peMax: number | null;
+  sanAtual: number | null;
+  sanMax: number | null;
+  eaAtual: number | null;
+  eaMax: number | null;
+  machucado: number | null;
+  deslocamentoMetros: number;
+  passivasGuia: Prisma.JsonValue | null;
+  acoesGuia: Prisma.JsonValue | null;
+  notasCena: string | null;
+  ocultoJogadores: boolean;
+  cenaId: number | null;
 };
 
 type OrigemAtributosNpc = {
@@ -165,4 +190,11 @@ export function filtrarEventosVisiveisParaJogador<T extends { dados: unknown }>(
   return eventos.filter(
     (evento) => !eventoReferenciaNpcOculto(evento.dados, npcSessaoIdsOcultos),
   );
+}
+
+export function criarSnapshotNpcSessao(npc: SnapshotNpcSessao): SnapshotNpcSessao {
+  return {
+    ...npc,
+    iniciativaValor: npc.iniciativaValor ?? null,
+  };
 }

@@ -1,5 +1,6 @@
 import {
   calcularDadosPadraoPericia,
+  criarSnapshotNpcSessao,
   filtrarNpcsVisiveisCenaAtual,
   filtrarEventosVisiveisParaJogador,
   montarAtributosNpc,
@@ -84,5 +85,33 @@ describe('utilitários de NPC da sessão', () => {
     expect(filtrarEventosVisiveisParaJogador(eventos, new Set([2]))).toEqual([
       { dados: { npcSessaoId: 3 } },
     ]);
+  });
+
+  it('preserva o snapshot completo do NPC para reversão', () => {
+    const snapshot = criarSnapshotNpcSessao({
+      npcAmeacaId: 4,
+      nomeExibicao: 'Aliado',
+      fichaTipo: 'NPC',
+      tipo: 'HUMANO',
+      vd: 1,
+      iniciativaValor: null,
+      defesa: 12,
+      pontosVidaAtual: 8,
+      pontosVidaMax: 10,
+      peAtual: null,
+      peMax: null,
+      sanAtual: null,
+      sanMax: null,
+      eaAtual: 2,
+      eaMax: 3,
+      machucado: null,
+      deslocamentoMetros: 9,
+      passivasGuia: null,
+      acoesGuia: null,
+      notasCena: null,
+      ocultoJogadores: false,
+      cenaId: 2,
+    });
+    expect(snapshot).toMatchObject({ npcAmeacaId: 4, eaAtual: 2, cenaId: 2 });
   });
 });

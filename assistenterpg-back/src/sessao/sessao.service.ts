@@ -113,6 +113,7 @@ import {
 import { assertSessaoMutavel } from './sessao-mutabilidade';
 import {
   calcularDadosPadraoPericia as calcularDadosPadraoPericiaNpc,
+  criarSnapshotNpcSessao,
   filtrarEventosVisiveisParaJogador as filtrarEventosVisiveisParaJogadorBase,
   filtrarNpcsVisiveisCenaAtual as filtrarNpcsVisiveisCenaAtualBase,
   montarAtributosNpc as montarAtributosNpcBase,
@@ -122,6 +123,7 @@ import {
   normalizarTipoNpcAmeaca as normalizarTipoNpcAmeacaBase,
   obterAtributoNpcPorBase as obterAtributoNpcPorBaseBase,
   podeControlarNpcSessao as podeControlarNpcSessaoBase,
+  type SnapshotNpcSessao,
 } from './sessao-npc.utils';
 import {
   criarContextoEfeitosTurno,
@@ -455,31 +457,6 @@ type EventoSessaoMapeado = {
     apelido: string;
     personagemNome: string | null;
   } | null;
-};
-
-type SnapshotNpcSessao = {
-  npcAmeacaId: number | null;
-  nomeExibicao: string;
-  fichaTipo: TipoFichaNpcAmeaca;
-  tipo: TipoNpcAmeaca;
-  vd: number;
-  iniciativaValor: number | null;
-  defesa: number;
-  pontosVidaAtual: number;
-  pontosVidaMax: number;
-  peAtual: number | null;
-  peMax: number | null;
-  sanAtual: number | null;
-  sanMax: number | null;
-  eaAtual: number | null;
-  eaMax: number | null;
-  machucado: number | null;
-  deslocamentoMetros: number;
-  passivasGuia: Prisma.JsonValue | null;
-  acoesGuia: Prisma.JsonValue | null;
-  notasCena: string | null;
-  ocultoJogadores: boolean;
-  cenaId: number | null;
 };
 
 type TipoParticipanteIniciativa = 'PERSONAGEM' | 'NPC';
@@ -18663,30 +18640,7 @@ export class SessaoService {
     ocultoJogadores: boolean;
     cenaId: number | null;
   }): SnapshotNpcSessao {
-    return {
-      npcAmeacaId: npc.npcAmeacaId,
-      nomeExibicao: npc.nomeExibicao,
-      fichaTipo: npc.fichaTipo,
-      tipo: npc.tipo,
-      vd: npc.vd,
-      iniciativaValor: npc.iniciativaValor ?? null,
-      defesa: npc.defesa,
-      pontosVidaAtual: npc.pontosVidaAtual,
-      pontosVidaMax: npc.pontosVidaMax,
-      peAtual: npc.peAtual,
-      peMax: npc.peMax,
-      sanAtual: npc.sanAtual,
-      sanMax: npc.sanMax,
-      eaAtual: npc.eaAtual,
-      eaMax: npc.eaMax,
-      machucado: npc.machucado,
-      deslocamentoMetros: npc.deslocamentoMetros,
-      passivasGuia: npc.passivasGuia,
-      acoesGuia: npc.acoesGuia,
-      notasCena: npc.notasCena,
-      ocultoJogadores: npc.ocultoJogadores,
-      cenaId: npc.cenaId,
-    };
+    return criarSnapshotNpcSessao(npc);
   }
 
   private montarUpdateNpcPorSnapshot(snapshot: Record<string, unknown>) {
