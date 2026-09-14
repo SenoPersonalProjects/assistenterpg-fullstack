@@ -1,10 +1,13 @@
 import {
   calcularDadosPadraoPericia,
+  filtrarNpcsVisiveisCenaAtual,
   montarAtributosNpc,
   montarAtributosNpcSessao,
   normalizarTipoFichaNpcAmeaca,
   normalizarTipoNpcAmeaca,
   obterAtributoNpcPorBase,
+  montarResumoNpcSessao,
+  podeControlarNpcSessao,
 } from './sessao-npc.utils';
 
 describe('utilitários de NPC da sessão', () => {
@@ -36,5 +39,38 @@ describe('utilitários de NPC da sessão', () => {
     expect(normalizarTipoFichaNpcAmeaca('OUTRO')).toBeNull();
     expect(normalizarTipoNpcAmeaca('MALDICAO')).toBe('MALDICAO');
     expect(normalizarTipoNpcAmeaca('INVALIDO')).toBeNull();
+  });
+
+  it('preserva a privacidade e o controle operacional de NPCs', () => {
+    const npc = {
+      controladorUsuarioId: 8,
+      personagemDono: { donoId: 7 },
+      personagemControladorSessao: { controladorUsuarioId: 9 },
+    };
+
+    expect(podeControlarNpcSessao(false, 8, npc)).toBe(true);
+    expect(podeControlarNpcSessao(false, 9, npc)).toBe(true);
+    expect(podeControlarNpcSessao(false, 10, npc)).toBe(false);
+    expect(
+      filtrarNpcsVisiveisCenaAtual(
+        [
+          { id: 1, ocultoJogadores: false },
+          { id: 2, ocultoJogadores: true },
+        ],
+        false,
+      ),
+    ).toEqual([{ id: 1, ocultoJogadores: false }]);
+    expect(
+      montarResumoNpcSessao({
+        id: 1,
+        nomeExibicao: 'Aliado',
+        fichaTipo: 'NPC',
+        tipo: 'HUMANO',
+        ocultoJogadores: false,
+      }),
+    ).toMatchObject({
+      visibilidade: 'resumida',
+      condicoesAtivas: [],
+    });
   });
 });

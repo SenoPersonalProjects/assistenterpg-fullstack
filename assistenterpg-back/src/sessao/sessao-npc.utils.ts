@@ -74,3 +74,46 @@ export function normalizarTipoNpcAmeaca(
     ? (valor as TipoNpcAmeaca)
     : null;
 }
+
+export type NpcSessaoControle = {
+  controladorUsuarioId: number | null;
+  personagemDono?: { donoId: number } | null;
+  personagemControladorSessao?: { controladorUsuarioId: number | null } | null;
+};
+
+export function podeControlarNpcSessao(
+  ehMestre: boolean,
+  usuarioId: number,
+  npc: NpcSessaoControle | null,
+): boolean {
+  return Boolean(
+    ehMestre ||
+      npc?.controladorUsuarioId === usuarioId ||
+      npc?.personagemDono?.donoId === usuarioId ||
+      npc?.personagemControladorSessao?.controladorUsuarioId === usuarioId,
+  );
+}
+
+export function montarResumoNpcSessao(npc: {
+  id: number;
+  nomeExibicao: string;
+  fichaTipo: string;
+  tipo: string;
+  ocultoJogadores: boolean;
+}) {
+  return {
+    npcSessaoId: npc.id,
+    nome: npc.nomeExibicao,
+    fichaTipo: npc.fichaTipo,
+    tipo: npc.tipo,
+    visibilidade: 'resumida' as const,
+    ocultoJogadores: npc.ocultoJogadores,
+    condicoesAtivas: [],
+  };
+}
+
+export function filtrarNpcsVisiveisCenaAtual<
+  T extends { ocultoJogadores: boolean },
+>(npcs: T[], ehMestre: boolean): T[] {
+  return ehMestre ? npcs : npcs.filter((npc) => !npc.ocultoJogadores);
+}

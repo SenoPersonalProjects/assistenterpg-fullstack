@@ -113,11 +113,14 @@ import {
 import { assertSessaoMutavel } from './sessao-mutabilidade';
 import {
   calcularDadosPadraoPericia as calcularDadosPadraoPericiaNpc,
+  filtrarNpcsVisiveisCenaAtual as filtrarNpcsVisiveisCenaAtualBase,
   montarAtributosNpc as montarAtributosNpcBase,
   montarAtributosNpcSessao as montarAtributosNpcSessaoBase,
+  montarResumoNpcSessao as montarResumoNpcSessaoBase,
   normalizarTipoFichaNpcAmeaca as normalizarTipoFichaNpcAmeacaBase,
   normalizarTipoNpcAmeaca as normalizarTipoNpcAmeacaBase,
   obterAtributoNpcPorBase as obterAtributoNpcPorBaseBase,
+  podeControlarNpcSessao as podeControlarNpcSessaoBase,
 } from './sessao-npc.utils';
 import {
   criarContextoEfeitosTurno,
@@ -7248,12 +7251,7 @@ export class SessaoService {
       } | null;
     } | null,
   ): boolean {
-    return Boolean(
-      ehMestre ||
-      npc?.controladorUsuarioId === usuarioId ||
-      npc?.personagemDono?.donoId === usuarioId ||
-      npc?.personagemControladorSessao?.controladorUsuarioId === usuarioId,
-    );
+    return podeControlarNpcSessaoBase(ehMestre, usuarioId, npc);
   }
 
   private montarResumoNpcSessao(npc: {
@@ -7263,15 +7261,7 @@ export class SessaoService {
     tipo: string;
     ocultoJogadores: boolean;
   }) {
-    return {
-      npcSessaoId: npc.id,
-      nome: npc.nomeExibicao,
-      fichaTipo: npc.fichaTipo,
-      tipo: npc.tipo,
-      visibilidade: 'resumida' as const,
-      ocultoJogadores: npc.ocultoJogadores,
-      condicoesAtivas: [],
-    };
+    return montarResumoNpcSessaoBase(npc);
   }
 
   async atualizarNpcSessao(
@@ -18728,8 +18718,7 @@ export class SessaoService {
     npcs: T[],
     ehMestre: boolean,
   ): T[] {
-    if (ehMestre) return npcs;
-    return npcs.filter((npc) => !npc.ocultoJogadores);
+    return filtrarNpcsVisiveisCenaAtualBase(npcs, ehMestre);
   }
 
   private normalizarTipoFichaNpcAmeaca(
