@@ -18,9 +18,12 @@ describe('utilitários de NPC da sessão', () => {
       presenca: 0,
       vigor: 0,
     });
-    expect(montarAtributosNpcSessao({ npcAmeacaId: 1, agilidade: 4 })).toBeNull();
-    expect(montarAtributosNpcSessao({ npcAmeacaId: null, agilidade: 4 }))
-      .toMatchObject({ agilidade: 4 });
+    expect(
+      montarAtributosNpcSessao({ npcAmeacaId: 1, agilidade: 4 }),
+    ).toBeNull();
+    expect(
+      montarAtributosNpcSessao({ npcAmeacaId: null, agilidade: 4 }),
+    ).toMatchObject({ agilidade: 4 });
   });
 
   it('resolve atributo, dados de perícia e tipos aceitos', () => {
