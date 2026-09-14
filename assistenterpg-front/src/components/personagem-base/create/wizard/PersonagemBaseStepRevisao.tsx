@@ -46,6 +46,7 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { InfoTile } from '@/components/ui/InfoTile';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import type { UserErrorState } from '@/lib/types';
 
@@ -63,6 +64,8 @@ type Props = {
   todasPericias: PericiaCatalogo[];
   equipamentos: EquipamentoCatalogo[];
   modificacoes: ModificacaoCatalogo[];
+  etapasParaEdicao?: Array<{ etapa: number; rotulo: string }>;
+  onEditarEtapa?: (etapa: number) => void;
 };
 
 const ATRIBUTO_LABEL: Record<AtributoBaseCodigo, string> = {
@@ -287,6 +290,8 @@ export function PersonagemBaseStepRevisao({
   tecnicasInatas,
   alinhamentos,
   todasPericias,
+  etapasParaEdicao = [],
+  onEditarEtapa,
 }: Props) {
   const { token } = useAuth();
 
@@ -861,6 +866,16 @@ export function PersonagemBaseStepRevisao({
       <p className="text-app-muted text-xs">
         Revise todos os dados antes de confirmar. Valores calculados automaticamente pelo sistema.
       </p>
+
+      {onEditarEtapa && etapasParaEdicao.length > 0 ? (
+        <SectionCard title="Revisar uma etapa" contentClassName="flex flex-wrap gap-2">
+          {etapasParaEdicao.map(({ etapa, rotulo }) => (
+            <Button key={etapa} type="button" size="sm" variant="ghost" onClick={() => onEditarEtapa(etapa)}>
+              Editar {rotulo}
+            </Button>
+          ))}
+        </SectionCard>
+      ) : null}
 
       {/* Informações gerais */}
       <SectionCard

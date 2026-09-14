@@ -24,7 +24,7 @@ Estados: `Pendente`, `Em andamento`, `Bloqueado`, `Em validação` e `Concluído
 
 ## Painel de progresso
 
-Progresso atual: **1/15 implementação concluída**, **7/15 em validação**, **0/15 em andamento** e **7/15 pendentes**.
+Progresso atual: **1/15 implementação concluída**, **14/15 em validação**, **0/15 em andamento** e **0/15 pendentes**.
 
 | ID | Lote | Prioridade | Status | Complementa | Próxima ação |
 | --- | --- | --- | --- | --- | --- |
@@ -35,13 +35,13 @@ Progresso atual: **1/15 implementação concluída**, **7/15 em validação**, *
 | R2-05 | 1 | P1 | Em validação | UX-05 | Simular falha de busca e validar repetição local. |
 | R2-06 | 1 | P1 | Em validação | UX-02 | Forçar falha de exclusão autenticada. |
 | R2-14 | 1 | P2 | Em validação | OPS-02 | Confirmar recepção do log no ambiente remoto. |
-| R2-07 | 2 | P2 | Pendente | COD-04 | Levar busca de anotações ao backend. |
-| R2-08 | 2 | P2 | Pendente | UX-05 | Melhorar busca e relevância do compêndio. |
-| R2-12 | 2 | P2 | Pendente | UX-03 | Permitir revisão eficiente no wizard. |
-| R2-09 | 3 | P2 | Pendente | UX-04, DS-02 | Corrigir semântica e teclado dos seletores. |
-| R2-10 | 3 | P2 | Pendente | UX-01 | Integrar notificações à pilha de diálogos. |
-| R2-11 | 3 | P2 | Pendente | UX-06 | Melhorar descoberta e teclado das abas. |
-| R2-13 | Transversal | P1 | Pendente | COD-01 | Cobrir jornadas reais dos três lotes. |
+| R2-07 | 2 | P2 | Em validação | COD-04 | Executar busca autenticada além da primeira página. |
+| R2-08 | 2 | P2 | Em validação | UX-05 | Validar siglas, trecho, relevância e paginação no compêndio. |
+| R2-12 | 2 | P2 | Em validação | UX-03 | Validar salto de etapas e revisão de dependências no wizard. |
+| R2-09 | 3 | P2 | Em validação | UX-04, DS-02 | Validar seletor por mouse, toque e teclado. |
+| R2-10 | 3 | P2 | Em validação | UX-01 | Validar sobreposição e fechamento de notificações. |
+| R2-11 | 3 | P2 | Em validação | UX-06 | Validar abas de sessão em desktop e mobile. |
+| R2-13 | Transversal | P1 | Em validação | COD-01 | Executar a bateria manual consolidada dos três lotes. |
 | R2-15 | Transversal | P2 | Concluído | DOC-01, DOC-03 | Manter o documento atualizado a cada lote. |
 
 ## Lotes de implementação
@@ -203,7 +203,7 @@ Complementa: OPS-02.
 ### R2-07 — Buscar anotações fora da página atual
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Lote: 2  
 Complementa: COD-04.
 
@@ -221,7 +221,7 @@ Complementa: COD-04.
 ### R2-08 — Melhorar a busca do compêndio
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Lote: 2  
 Complementa: UX-05.
 
@@ -239,7 +239,7 @@ Complementa: UX-05.
 ### R2-12 — Reduzir revisões repetitivas no wizard
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Lote: 2  
 Complementa: UX-03.
 
@@ -257,7 +257,7 @@ Complementa: UX-03.
 ### R2-09 — Corrigir semântica dos seletores reutilizáveis
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Lote: 3  
 Complementa: UX-04 e DS-02.
 
@@ -275,7 +275,7 @@ Complementa: UX-04 e DS-02.
 ### R2-10 — Unificar notificações à gestão de camadas
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Lote: 3  
 Complementa: UX-01.
 
@@ -293,7 +293,7 @@ Complementa: UX-01.
 ### R2-11 — Tornar abas de sessão mais descobertas e acessíveis
 
 Prioridade: P2  
-Status: Pendente  
+Status: Em validação  
 Lote: 3  
 Complementa: UX-06.
 
@@ -311,7 +311,7 @@ Complementa: UX-06.
 ### R2-13 — Cobrir jornadas críticas de interface
 
 Prioridade: P1  
-Status: Pendente  
+Status: Em validação  
 Lote: Transversal.
 
 **Diagnóstico.** A suíte cobre majoritariamente funções e contratos; não prova integralmente foco, rascunhos, troca de conversa, paginação concorrente ou sobreposição.
@@ -378,6 +378,9 @@ Registrar data, navegador, papel, viewport e evidência no histórico ao final d
 
 | Data | Itens | Alteração | Evidências | Próxima ação |
 | --- | --- | --- | --- | --- |
+| 2026-09-14 | R2-13 | Infraestrutura DOM de testes adicionada com configuração de aliases; jornadas de teclado das abas, seleção/remoção no SelectModal e abertura/fechamento de notificações foram cobertas de forma determinística. | Frontend: 71 arquivos e 389 testes aprovados; build aprovado. | Executar a bateria manual consolidada e registrar evidências por lote. |
+| 2026-09-14 | R2-09, R2-10, R2-11 | SelectModal passou a isolar a remoção do acionador e expõe relações ARIA; notificações usam a pilha compartilhada de diálogos, foco e Escape; SessionTabs ganhou setas, Home, End, IDs e rótulo da aba ativa em tela compacta. | Build e lint do frontend aprovados; `git diff --check` sem divergências. | Executar bateria manual de seletor, notificações e abas. |
+| 2026-09-14 | R2-07, R2-08, R2-12 | A busca de anotações passou a ser paginada no backend por título, conteúdo, campanha e sessão; o compêndio ganhou rota paginada, relevância, trechos e suporte às siglas PV, PE, EA, DT e RD; o wizard permite reabrir etapas visitadas e editar etapas diretamente da revisão. | Testes focados de anotações/compêndio aprovados; build do frontend e validação Prisma aprovadas. | Executar bateria manual de busca global, compêndio e revisão do wizard. |
 | 2026-09-14 | R2-01, R2-03, R2-04, R2-06, R2-14 | Consulta de anotações passou a ignorar resposta obsoleta; chat de sessão usa limite único; chat de amigos isolou rascunhos/erros por destinatário; exclusão de anotação propaga falha ao diálogo; erros de cliente ganharam coleta autenticada e sanitizada. | Frontend: 12 testes focados, lint e build aprovados. Backend: 4 testes focados, lint e build aprovados. | Executar bateria manual autenticada e confirmar logs remotos. |
 | 2026-09-14 | R2-02, R2-05 | Anotações e wizard ganharam rascunhos locais versionados e segregados por conta, com restauração, descarte explícito e limpeza após criação; a busca do compêndio passou a diferenciar falha remota de resultado vazio e oferece nova tentativa local. Estados de erro do chat de amigos também ficaram explícitos. | Testes unitários de rascunho e busca, lint e builds registrados nesta entrega. | Executar a bateria manual de rascunhos, chats e falha de busca. |
 | 2026-09-14 | R2-15 | Índice, 15 IDs, lotes e contagem da rodada 1 validados; R2-15 concluído. | `node documentacao-unica/validar-documentacao.mjs` aprovado para 25 arquivos; `git diff --check` aprovado. | Iniciar Lote 1; atualizar este registro na mesma entrega de implementação. |

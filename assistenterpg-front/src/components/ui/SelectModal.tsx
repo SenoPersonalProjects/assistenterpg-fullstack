@@ -1,7 +1,7 @@
 // src/components/ui/SelectModal.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { Modal } from './Modal';
 import { Icon } from './Icon';
 import { Input } from './Input';
@@ -54,6 +54,9 @@ export function SelectModal({
   loading = false,
   loadingText = 'Carregando opções...',
 }: SelectModalProps) {
+  const campoId = useId();
+  const ajudaId = `${campoId}-ajuda`;
+  const erroId = `${campoId}-erro`;
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedValue, setSelectedValue] = useState<string | number | null>(null);
@@ -107,7 +110,7 @@ export function SelectModal({
   return (
     <>
       <div className="flex flex-col gap-1.5">
-        {label && <label className="text-sm font-medium text-app-fg">{label}</label>}
+        {label && <label id={`${campoId}-label`} className="text-sm font-medium text-app-fg">{label}</label>}
         
         {/* ✅ TRIGGER - Usando ClickableCard */}
         <ClickableCard
@@ -116,6 +119,10 @@ export function SelectModal({
           error={!!error}
           filled={!!selectedOption}
           padding={selectedOption ? 'md' : 'lg'}
+          ariaLabelledBy={label ? `${campoId}-label` : undefined}
+          ariaDescribedBy={error ? erroId : helperText ? ajudaId : undefined}
+          ariaExpanded={isOpen}
+          ariaControls={`${campoId}-dialog`}
         >
           {selectedOption ? (
             // ✅ ESTADO PREENCHIDO
@@ -136,6 +143,7 @@ export function SelectModal({
                 {allowClear && !disabled && (
                   <button
                     type="button"
+                    data-interactive-control
                     onClick={handleClear}
                     className="flex-shrink-0 rounded-full p-1.5 hover:bg-app-danger/10 text-app-muted hover:text-app-danger transition-all"
                     title="Remover seleção"
@@ -185,9 +193,9 @@ export function SelectModal({
           )}
         </ClickableCard>
 
-        {error && <span className="text-xs text-app-danger">{error}</span>}
+        {error && <span id={erroId} className="text-xs text-app-danger">{error}</span>}
         {!error && helperText && (
-          <span className="text-xs text-app-muted">{helperText}</span>
+          <span id={ajudaId} className="text-xs text-app-muted">{helperText}</span>
         )}
       </div>
 
@@ -198,7 +206,7 @@ export function SelectModal({
         title={label || 'Selecionar opção'}
         size="lg"
       >
-        <div className="flex flex-col h-full max-h-[70vh]">
+        <div id={`${campoId}-dialog`} className="flex flex-col h-full max-h-[70vh]">
           {/* Search */}
           {searchable && (forceSearch || options.length > 5) && !loading && (
             <div className="mb-3 flex-shrink-0">

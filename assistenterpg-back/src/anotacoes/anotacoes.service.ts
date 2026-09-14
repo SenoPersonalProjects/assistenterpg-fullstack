@@ -104,6 +104,7 @@ export class AnotacoesService {
     const limite = filtros.limit ?? 20;
     const campanhaId = filtros.campanhaId ?? null;
     const sessaoId = filtros.sessaoId ?? null;
+    const busca = filtros.busca?.trim();
 
     const associacoes = await this.resolverAssociacoes(
       usuarioId,
@@ -115,6 +116,16 @@ export class AnotacoesService {
       usuarioId,
       campanhaId: associacoes.campanhaId ?? undefined,
       sessaoId: associacoes.sessaoId ?? undefined,
+      ...(busca
+        ? {
+            OR: [
+              { titulo: { contains: busca } },
+              { conteudo: { contains: busca } },
+              { campanha: { nome: { contains: busca } } },
+              { sessao: { titulo: { contains: busca } } },
+            ],
+          }
+        : {}),
     };
 
     const [total, itens] = await Promise.all([

@@ -119,24 +119,7 @@ export default function AnotacoesPage() {
     return filtros;
   }, [buscaLocal, campanhaFiltroSelecionada, campanhas, sessaoFiltroSelecionada, sessoesFiltro]);
 
-  const notasFiltradas = useMemo(() => {
-    const termo = buscaLocal.trim().toLowerCase();
-    if (!termo) return notas;
-
-    return notas.filter((nota) => {
-      const campos = [
-        nota.titulo,
-        nota.conteudo,
-        nota.campanha?.nome,
-        nota.sessao?.titulo,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      return campos.includes(termo);
-    });
-  }, [buscaLocal, notas]);
+  const notasFiltradas = useMemo(() => notas, [notas]);
 
   const notaSelecionada = useMemo(() => {
     if (!notaVisualizada) return null;
@@ -182,16 +165,19 @@ export default function AnotacoesPage() {
       pagina,
       campanhaId,
       sessaoId,
+      busca,
     }: {
       pagina: number;
       campanhaId: number | null;
       sessaoId: number | null;
+      busca: string | null;
     }) => {
       const idRequisicao = ++requisicaoNotasRef.current;
       try {
         setLoading(true);
         setErro(null);
         const resposta = await apiListarAnotacoes({
+          busca: busca ?? undefined,
           campanhaId: campanhaId ?? undefined,
           sessaoId: sessaoId ?? undefined,
           pagina,
@@ -249,7 +235,7 @@ export default function AnotacoesPage() {
     if (authLoading || !usuario) return;
 
     void carregarCampanhas();
-    void carregarNotas({ pagina: 1, campanhaId: null, sessaoId: null });
+    void carregarNotas({ pagina: 1, campanhaId: null, sessaoId: null, busca: null });
   }, [authLoading, usuario, router, carregarCampanhas, carregarNotas]);
 
   useEffect(() => {
@@ -378,6 +364,7 @@ export default function AnotacoesPage() {
         pagina: 1,
         campanhaId: campanhaFiltroSelecionada,
         sessaoId: sessaoFiltroSelecionada,
+        busca: buscaLocal.trim() || null,
       });
     } catch (error) {
       showToast(criarErroUsuario(error), 'error');
@@ -431,6 +418,7 @@ export default function AnotacoesPage() {
       pagina: 1,
       campanhaId: campanhaFiltroSelecionada,
       sessaoId: sessaoFiltroSelecionada,
+      busca: buscaLocal.trim() || null,
     });
   }
 
@@ -440,7 +428,7 @@ export default function AnotacoesPage() {
     setBuscaLocal('');
     setPaginaAtual(1);
     setNotaVisualizada(null);
-    void carregarNotas({ pagina: 1, campanhaId: null, sessaoId: null });
+    void carregarNotas({ pagina: 1, campanhaId: null, sessaoId: null, busca: null });
   }
 
   function handleMudarPagina(proximaPagina: number) {
@@ -450,6 +438,7 @@ export default function AnotacoesPage() {
       pagina: proximaPagina,
       campanhaId: campanhaFiltroSelecionada,
       sessaoId: sessaoFiltroSelecionada,
+      busca: buscaLocal.trim() || null,
     });
   }
 
@@ -462,7 +451,7 @@ export default function AnotacoesPage() {
   const temFiltrosAtivos = filtrosAtivos.length > 0;
   const listaVazia = notasFiltradas.length === 0;
   const descricaoLista = buscaLocal.trim()
-    ? 'Busca local aplicada nas anotações carregadas nesta página.'
+    ? 'Busca aplicada em todas as suas anotações acessíveis.'
     : 'Selecione uma anotação para consultar o conteúdo sem perder a lista.';
 
   return (
@@ -494,6 +483,7 @@ export default function AnotacoesPage() {
                           pagina: paginaAtual,
                           campanhaId: campanhaFiltroSelecionada,
                           sessaoId: sessaoFiltroSelecionada,
+                          busca: buscaLocal.trim() || null,
                         }),
                     },
                   ]}
@@ -509,7 +499,7 @@ export default function AnotacoesPage() {
           <PageToolbar>
             <div className="grid min-w-0 flex-1 gap-3 md:grid-cols-[minmax(13rem,1fr)_minmax(11rem,0.7fr)_minmax(11rem,0.7fr)]">
               <Input
-                label="Busca local"
+                label="Buscar anotações"
                 placeholder="Título, conteúdo, campanha ou sessão"
                 icon="search"
                 value={buscaLocal}
@@ -575,7 +565,7 @@ export default function AnotacoesPage() {
               <SectionHeader
                 icon="list"
                 title="Notas"
-                count={buscaLocal.trim() ? `${notasFiltradas.length}/${notas.length}` : totalNotas}
+                count={totalNotas}
                 description={descricaoLista}
                 action={
                   loading ? (

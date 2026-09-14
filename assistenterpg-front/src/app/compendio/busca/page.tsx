@@ -8,10 +8,10 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { PageToolbar } from '@/components/ui/PageToolbar';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
-import { apiBuscarCompendioComEstado, apiBuscarLivroPorCodigo } from '@/lib/utils/compendio';
+import { apiBuscarCompendioPaginadoComEstado, apiBuscarLivroPorCodigo } from '@/lib/utils/compendio';
 
 type Props = {
-  searchParams: Promise<{ q?: string; livroCodigo?: string }>;
+  searchParams: Promise<{ q?: string; livroCodigo?: string; page?: string }>;
 };
 
 function buildClearSearchHref(livroCodigo?: string) {
@@ -22,14 +22,15 @@ function buildClearSearchHref(livroCodigo?: string) {
 }
 
 export default async function BuscaPage({ searchParams }: Props) {
-  const { q: query, livroCodigo } = await searchParams;
+  const { q: query, livroCodigo, page } = await searchParams;
   const queryTrim = query?.trim() ?? '';
+  const pagina = Math.max(1, Number(page) || 1);
   const livro = livroCodigo ? await apiBuscarLivroPorCodigo(livroCodigo) : null;
-  const queryValida = queryTrim.length >= 3;
+  const queryValida = queryTrim.length >= 3 || ['PV', 'PE', 'EA', 'DT', 'RD'].includes(queryTrim.toUpperCase());
   const busca = queryValida
-    ? await apiBuscarCompendioComEstado(queryTrim, livroCodigo)
-    : { resultados: [], erro: null };
-  const resultados = busca.resultados;
+    ? await apiBuscarCompendioPaginadoComEstado(queryTrim, livroCodigo, pagina)
+    : { busca: null, erro: null };
+  const resultados = busca.busca?.items ?? [];
   const escopo = livro ? ` em ${livro.titulo}` : '';
   const categorias = new Set(
     resultados
@@ -47,7 +48,7 @@ export default async function BuscaPage({ searchParams }: Props) {
     {
       id: 'results',
       label: 'Resultados',
-      value: resultados.length,
+      value: busca.busca?.total ?? 0,
       icon: 'search',
       tone: 'primary',
     },
@@ -151,17 +152,31 @@ export default async function BuscaPage({ searchParams }: Props) {
               description={`Mostrando resultados para "${queryTrim}"${escopo}.`}
             />
 
+            {busca.busca?.truncated ? (
+              <p className="text-xs text-app-muted">Mostrando os primeiros resultados mais relevantes. Refine o termo para reduzir a busca.</p>
+            ) : null}
+
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {resultados.map((artigo) => (
-                <ArtigoCard
-                  key={artigo.id}
-                  artigo={artigo}
-                  livroCodigo={artigo.subcategoria?.categoria?.livro?.codigo}
-                  categoriaCodigo={artigo.subcategoria?.categoria?.codigo || ''}
-                  subcategoriaCodigo={artigo.subcategoria?.codigo || ''}
-                />
+                <div key={artigo.id} className="space-y-2">
+                  <ArtigoCard
+                    artigo={artigo}
+                    livroCodigo={artigo.subcategoria?.categoria?.livro?.codigo}
+                    categoriaCodigo={artigo.subcategoria?.categoria?.codigo || ''}
+                    subcategoriaCodigo={artigo.subcategoria?.codigo || ''}
+                  />
+                  <p className="line-clamp-3 px-2 text-xs text-app-muted">{artigo.trecho}</p>
+                </div>
               ))}
             </div>
+
+            {(busca.busca?.totalPages ?? 1) > 1 ? (
+              <div className="flex items-center justify-center gap-3">
+                {pagina > 1 ? <Link href={`/compendio/busca?q=${encodeURIComponent(queryTrim)}${livroCodigo ? `&livroCodigo=${encodeURIComponent(livroCodigo)}` : ''}&page=${pagina - 1}`}><Button size="sm" variant="secondary">Anterior</Button></Link> : null}
+                <span className="text-xs text-app-muted">Página {pagina} de {busca.busca?.totalPages}</span>
+                {pagina < (busca.busca?.totalPages ?? 1) ? <Link href={`/compendio/busca?q=${encodeURIComponent(queryTrim)}${livroCodigo ? `&livroCodigo=${encodeURIComponent(livroCodigo)}` : ''}&page=${pagina + 1}`}><Button size="sm" variant="secondary">Próxima</Button></Link> : null}
+              </div>
+            ) : null}
           </section>
         )}
       </div>

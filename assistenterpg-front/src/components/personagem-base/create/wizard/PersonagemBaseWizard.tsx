@@ -268,8 +268,10 @@ export function PersonagemBaseWizard(props: Props) {
   const [loadingPreviewGlobal, setLoadingPreviewGlobal] = useState(false);
   const [loadingStep, setLoadingStep] = useState(false);
   const [rascunhoRestaurado, setRascunhoRestaurado] = useState(false);
+  const [etapasVisitadas, setEtapasVisitadas] = useState<number[]>([1]);
 
   const requestIdRef = useRef(0);
+  const tituloEtapaRef = useRef<HTMLDivElement>(null);
   const previewDebounceRef = useRef<number | null>(null);
   const rascunhoHidratadoRef = useRef(false);
   const rascunhoRestaurandoRef = useRef(false);
@@ -843,6 +845,14 @@ export function PersonagemBaseWizard(props: Props) {
     };
   }, [loadingStep]);
 
+  useEffect(() => {
+    setEtapasVisitadas((atual) => (atual.includes(step) ? atual : [...atual, step]));
+  }, [step]);
+
+  useEffect(() => {
+    if (erro) tituloEtapaRef.current?.focus();
+  }, [erro, step]);
+
   function handlePrev() {
     if (loadingStep || submitting) return;
     if (step === 1) {
@@ -865,8 +875,8 @@ export function PersonagemBaseWizard(props: Props) {
   }
 
   function handleBreadcrumbClick(targetStep: number) {
-    if (targetStep === step - 1) {
-      handlePrev();
+    if (etapasVisitadas.includes(targetStep)) {
+      setStep(targetStep);
       return;
     }
 
@@ -896,8 +906,8 @@ export function PersonagemBaseWizard(props: Props) {
     return STEP_LABELS.map((label, index) => ({
       index: index + 1,
       label,
-    })).filter((s) => s.index === step || s.index === step - 1 || s.index === step + 1);
-  }, [step]);
+    })).filter((s) => etapasVisitadas.includes(s.index) || s.index === step + 1);
+  }, [etapasVisitadas, step]);
 
   return (
     <div className="rounded-xl border border-white/5 bg-app-surface/45 p-4 sm:p-5">
@@ -915,7 +925,7 @@ export function PersonagemBaseWizard(props: Props) {
             </Button>
           </div>
         ) : null}
-        <div className="space-y-3 mb-6">
+        <div ref={tituloEtapaRef} tabIndex={-1} className="space-y-3 mb-6 outline-none">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-app-fg">
@@ -929,13 +939,10 @@ export function PersonagemBaseWizard(props: Props) {
           </div>
 
           <div className="flex items-center justify-center gap-2 px-2 pb-1 overflow-x-auto no-scrollbar">
-            {step > 2 && <span className="opacity-50 px-1">…</span>}
-
             {visibleSteps.map(({ index, label }) => {
               const isActive = step === index;
-              const isPrevious = index === step - 1;
               const isNext = index === step + 1;
-              const isClickable = isPrevious || isNext;
+              const isClickable = etapasVisitadas.includes(index) || isNext;
               return (
                 <button
                   key={index}
@@ -969,7 +976,6 @@ export function PersonagemBaseWizard(props: Props) {
               );
             })}
 
-            {step < MAX_STEP - 1 && <span className="opacity-50 px-1">…</span>}
           </div>
         </div>
 
@@ -1310,6 +1316,10 @@ export function PersonagemBaseWizard(props: Props) {
                 todasPericias={pericias}
                 equipamentos={equipamentos}
                 modificacoes={modificacoes}
+                etapasParaEdicao={etapasVisitadas
+                  .filter((etapa) => etapa < MAX_STEP)
+                  .map((etapa) => ({ etapa, rotulo: STEP_LABELS[etapa - 1] }))}
+                onEditarEtapa={setStep}
               />
             </>
           )}

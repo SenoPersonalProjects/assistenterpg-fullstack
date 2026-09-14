@@ -595,6 +595,43 @@ export type BuscaCompendioComEstado = {
   erro: string | null;
 };
 
+export type ResultadoBuscaCompendio = CompendioArtigoCompleto & {
+  relevancia: number;
+  trecho: string;
+};
+
+export type BuscaCompendioPaginada = {
+  items: ResultadoBuscaCompendio[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  truncated: boolean;
+};
+
+export async function apiBuscarCompendioPaginadoComEstado(
+  query: string,
+  livroCodigo?: string,
+  pagina = 1,
+): Promise<{ busca: BuscaCompendioPaginada | null; erro: string | null }> {
+  if (!query || (query.trim().length < 3 && !['PV', 'PE', 'EA', 'DT', 'RD'].includes(query.trim().toUpperCase()))) {
+    return { busca: null, erro: null };
+  }
+  try {
+    const params = new URLSearchParams({ q: query, page: String(pagina), limit: '20' });
+    if (livroCodigo) params.set('livroCodigo', livroCodigo);
+    const busca = await fetchJson<BuscaCompendioPaginada>(
+      `/compendio/buscar/paginado?${params.toString()}`,
+      'Falha na busca',
+      { cache: 'no-store' },
+    );
+    return { busca, erro: null };
+  } catch (error) {
+    logCompendioWarning('Falha na busca paginada do compêndio', error);
+    return { busca: null, erro: 'Não foi possível pesquisar o compêndio agora. Tente novamente.' };
+  }
+}
+
 export async function apiBuscarCompendioComEstado(
   query: string,
   livroCodigo?: string,

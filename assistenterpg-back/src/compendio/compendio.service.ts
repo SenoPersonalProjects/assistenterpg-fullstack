@@ -31,6 +31,8 @@ const ESCUDO_MESTRE_RESUMO_MAX_CHARS = 900;
 const ESCUDO_MESTRE_DETALHE_MAX_CHARS = 2_400;
 const ESCUDO_MESTRE_BUSCA_MIN_CHARS = 3;
 const ESCUDO_MESTRE_BUSCA_LIMITE = 30;
+const SIGLAS_BUSCA_COMPENDIO = new Set(['PV', 'PE', 'EA', 'DT', 'RD']);
+const LIMITE_BUSCA_COMPENDIO = 200;
 
 type EscudoMestreFonte = 'BASE' | 'SUPLEMENTO';
 
@@ -1558,7 +1560,10 @@ export class CompendioService {
   async buscar(query: string, livroCodigo?: string) {
     const queryTrimmed = query?.trim() || '';
 
-    if (queryTrimmed.length < 3) {
+    if (
+      queryTrimmed.length < 3 &&
+      !SIGLAS_BUSCA_COMPENDIO.has(queryTrimmed.toUpperCase())
+    ) {
       throw new CompendioBuscaInvalidaException(3, queryTrimmed.length);
     }
 
@@ -1588,6 +1593,79 @@ export class CompendioService {
       orderBy: { ordem: 'asc' },
       take: 20,
     });
+  }
+
+  async buscarPaginado(
+    query: string,
+    livroCodigo?: string,
+    pagina = 1,
+    limite = 20,
+  ) {
+    const queryTrimmed = query?.trim() || '';
+    if (
+      queryTrimmed.length < 3 &&
+      !SIGLAS_BUSCA_COMPENDIO.has(queryTrimmed.toUpperCase())
+    ) {
+      throw new CompendioBuscaInvalidaException(3, queryTrimmed.length);
+    }
+
+    const q = queryTrimmed.toLowerCase();
+    const artigos = await this.prisma.compendioArtigo.findMany({
+      where: {
+        ativo: true,
+        subcategoria: {
+          ativo: true,
+          categoria: {
+            ativo: true,
+            livro: {
+              status: StatusPublicacao.PUBLICADO,
+              ...(livroCodigo ? { codigo: livroCodigo } : {}),
+            },
+          },
+        },
+        OR: [
+          { titulo: { contains: q } },
+          { resumo: { contains: q } },
+          { palavrasChave: { contains: q } },
+          { conteudo: { contains: q } },
+        ],
+      },
+      include: this.artigoInclude(),
+      orderBy: { ordem: 'asc' },
+      take: LIMITE_BUSCA_COMPENDIO,
+    });
+
+    const pontuar = (artigo: (typeof artigos)[number]) => {
+      const titulo = artigo.titulo.toLowerCase();
+      const palavrasChave = artigo.palavrasChave?.toLowerCase() ?? '';
+      if (titulo === q) return 4;
+      if (titulo.includes(q)) return 3;
+      if (palavrasChave.includes(q)) return 2;
+      return 1;
+    };
+    const trecho = (artigo: (typeof artigos)[number]) => {
+      const texto = `${artigo.resumo ?? ''}\n${artigo.conteudo}`.replace(/\s+/g, ' ').trim();
+      const indice = texto.toLowerCase().indexOf(q);
+      if (indice < 0) return artigo.resumo ?? texto.slice(0, 180);
+      const inicio = Math.max(0, indice - 70);
+      const fim = Math.min(texto.length, indice + q.length + 110);
+      return `${inicio > 0 ? '…' : ''}${texto.slice(inicio, fim)}${fim < texto.length ? '…' : ''}`;
+    };
+    const ordenados = artigos
+      .map((artigo) => ({ ...artigo, relevancia: pontuar(artigo), trecho: trecho(artigo) }))
+      .sort((a, b) => b.relevancia - a.relevancia || a.ordem - b.ordem);
+    const paginaSegura = Math.max(1, pagina);
+    const limiteSeguro = Math.min(50, Math.max(1, limite));
+    const total = ordenados.length;
+
+    return {
+      items: ordenados.slice((paginaSegura - 1) * limiteSeguro, paginaSegura * limiteSeguro),
+      total,
+      page: paginaSegura,
+      limit: limiteSeguro,
+      totalPages: Math.max(1, Math.ceil(total / limiteSeguro)),
+      truncated: total === LIMITE_BUSCA_COMPENDIO,
+    };
   }
 
   async listarDestaques(livroCodigo?: string) {

@@ -11,6 +11,10 @@ type ClickableCardProps = {
   padding?: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
   className?: string;
+  ariaLabelledBy?: string;
+  ariaDescribedBy?: string;
+  ariaExpanded?: boolean;
+  ariaControls?: string;
 };
 
 export function ClickableCard({
@@ -21,6 +25,10 @@ export function ClickableCard({
   padding = 'md',
   children,
   className = '',
+  ariaLabelledBy,
+  ariaDescribedBy,
+  ariaExpanded,
+  ariaControls,
 }: ClickableCardProps) {
   const paddingClasses = {
     sm: 'p-3',
@@ -30,16 +38,24 @@ export function ClickableCard({
 
   return (
     <div
-      onClick={!disabled ? onClick : undefined}
+      onClick={(event) => {
+        if (disabled || (event.target instanceof Element && event.target.closest('[data-interactive-control]'))) return;
+        onClick();
+      }}
       role="button"
       tabIndex={disabled ? -1 : 0}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
         if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
           e.preventDefault();
           onClick();
         }
       }}
       aria-disabled={disabled}
+      aria-labelledby={ariaLabelledBy}
+      aria-describedby={ariaDescribedBy}
+      aria-expanded={ariaExpanded}
+      aria-controls={ariaControls}
       className={`
         group w-full rounded-lg border-2 transition-all
         ${error 

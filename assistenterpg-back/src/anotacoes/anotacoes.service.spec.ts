@@ -72,6 +72,23 @@ describe('AnotacoesService', () => {
     expect(prisma.anotacao.update).not.toHaveBeenCalled();
   });
 
+  it('combina a busca global com o escopo autorizado do usuário', async () => {
+    prisma.anotacao.count.mockResolvedValue(0);
+    prisma.anotacao.findMany.mockResolvedValue([]);
+
+    await service.listar(7, { busca: 'pista importante', page: 1, limit: 20 });
+
+    expect(prisma.anotacao.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        usuarioId: 7,
+        OR: expect.arrayContaining([
+          { titulo: { contains: 'pista importante' } },
+          { conteudo: { contains: 'pista importante' } },
+        ]),
+      }),
+    });
+  });
+
   it('bloqueia remocao de anotação de outro usuário', async () => {
     prisma.anotacao.findUnique.mockResolvedValue({
       id: 12,

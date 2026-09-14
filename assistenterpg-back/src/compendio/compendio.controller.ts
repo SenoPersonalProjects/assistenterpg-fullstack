@@ -244,6 +244,21 @@ export class CompendioController {
 
   // ==================== BUSCA & DESTAQUES ====================
 
+  @Get('buscar/paginado')
+  async buscarPaginado(
+    @Query('q') query: string,
+    @Query('livroCodigo') livroCodigo?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.compendioService.buscarPaginado(
+      query,
+      livroCodigo,
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
+  }
+
   @Get('buscar')
   async buscar(
     @Query('q') query: string,

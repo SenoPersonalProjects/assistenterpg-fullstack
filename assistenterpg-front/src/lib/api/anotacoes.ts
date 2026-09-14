@@ -7,6 +7,7 @@ import type {
 } from '@/lib/types';
 
 export type FiltrarAnotacoesDto = {
+  busca?: string;
   campanhaId?: number;
   sessaoId?: number;
   pagina?: number;
@@ -17,6 +18,7 @@ export async function apiListarAnotacoes(
   filtros: FiltrarAnotacoesDto = {},
 ): Promise<ListResult<AnotacaoResumo>> {
   const params = new URLSearchParams();
+  if (filtros.busca?.trim()) params.set('busca', filtros.busca.trim());
   if (filtros.campanhaId) params.set('campanhaId', String(filtros.campanhaId));
   if (filtros.sessaoId) params.set('sessaoId', String(filtros.sessaoId));
   if (filtros.pagina) params.set('page', String(filtros.pagina));

@@ -25,7 +25,11 @@ export function CompendioSearch({
   const [query, setQuery] = useState(initialQuery);
   const router = useRouter();
   const trimmedQuery = query.trim();
-  const tooShort = trimmedQuery.length > 0 && trimmedQuery.length < 3;
+  const siglasValidas = ['PV', 'PE', 'EA', 'DT', 'RD'];
+  const tooShort =
+    trimmedQuery.length > 0 &&
+    trimmedQuery.length < 3 &&
+    !siglasValidas.includes(trimmedQuery.toUpperCase());
 
   useEffect(() => {
     setQuery(initialQuery);
@@ -34,7 +38,7 @@ export function CompendioSearch({
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (trimmedQuery.length >= 3) {
+    if (!tooShort && trimmedQuery) {
       const params = new URLSearchParams({ q: trimmedQuery });
       if (livroCodigo) params.set('livroCodigo', livroCodigo);
       router.push(`/compendio/busca?${params.toString()}`);
@@ -58,8 +62,8 @@ export function CompendioSearch({
         onChange={(event) => setQuery(event.target.value)}
         placeholder={placeholder ?? (livroCodigo ? 'Buscar neste livro...' : 'Buscar no compêndio...')}
         icon="search"
-        minLength={3}
-        helperText={tooShort ? 'Digite pelo menos 3 caracteres para buscar.' : undefined}
+        minLength={2}
+        helperText={tooShort ? 'Digite pelo menos 3 caracteres ou uma sigla oficial, como PV ou DT.' : undefined}
         rightIcon={query.length > 0 ? 'close' : undefined}
         rightIconLabel="Limpar busca"
         onRightIconClick={() => setQuery('')}
