@@ -93,7 +93,7 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 | COD-03 | Código | P1 | Em validação | UX-03 | Confirmar os papéis autenticados na bateria manual final |
 | COD-04 | Código | P2 | Em validação | DS-02 | Executar a bateria manual de busca, carregamento e seleção incompatível |
 | ARQ-01 | Arquitetura | P2 | Em andamento | COD-03 | Delimitar a próxima extração coesa da sessão |
-| ARQ-02 | Arquitetura | P2 | Em andamento | Observabilidade | Instrumentar frequência e latência dos fluxos remanescentes |
+| ARQ-02 | Arquitetura | P2 | Em validação | Observabilidade | Confirmar métricas de sincronização na bateria manual |
 | ARQ-03 | Arquitetura | P2 | Pendente | COD-03 | Mapear contratos duplicados front/back |
 | DS-01 | Design system | P1 | Em validação | DS-02 | Executar bateria manual nos temas e estados sólidos |
 | DS-02 | Design system | P2 | Em validação | UX-01 | Executar bateria manual de catálogo, teclado, viewport e camadas |
@@ -643,7 +643,7 @@ Definir componente e contrato comuns para seleção pesquisável de catálogo, c
 ### ARQ-01 — Extração incremental das responsabilidades da sessão
 
 Prioridade: P2  
-Status: Em andamento  
+Status: Em validação  
 Responsável: A definir  
 Última atualização: 2026-09-13  
 Dependências: COD-03
@@ -666,7 +666,7 @@ Extrair casos de uso por domínio — recursos, turnos, habilidades, elenco, con
 #### Checklist
 
 - [x] Solução definida.
-- [ ] Implementação concluída.
+- [x] Implementação concluída.
 - [ ] Critérios de aceitação verificados.
 - [x] Testes e validações aplicáveis registrados.
 - [x] Documentação atualizada.
@@ -722,11 +722,15 @@ Medir chamadas e latência antes de consolidar solicitações, cancelar resposta
 - Testes e resultados: `sessao-utils.test.ts` (11 cenários), lint, testes e builds completos de frontend/backend aprovados em 2026-09-13.
 - Commit: `48f7943` perf(sessao): evita polling em aba oculta.
 - Deploy/migration, se aplicável: sem migration ou seed; [Quality Gate 34762898631](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34762898631) aprovado e produção HTTP 200 em 2026-09-13.
-- Pendências e próxima ação: instrumentar frequência, falha e latência antes de alterar mais intervalos ou fluxos remotos.
+- Pendências e próxima ação: confirmar na bateria manual as métricas de origem, duração e falha antes de alterar mais intervalos ou fluxos remotos.
 
 #### Atualização 2026-09-13
 
 O polling da sessão deixa de executar com a aba oculta e faz uma sincronização única ao voltar a ficar visível. A lista de NPCs disponíveis para o mestre também deixou de ser recarregada ao trocar apenas a seleção local. A contingência para Socket.IO e a proteção contra sincronizações concorrentes foram preservadas.
+
+#### Atualização 2026-09-14
+
+Sincronizações agora registram origem (`polling`, visibilidade, realtime ou manual), duração e sucesso/falha na Performance API e em evento local do navegador. Respostas descartadas para preservar mutações otimistas também são registradas como sincronização bem-sucedida, evitando uma lacuna na métrica.
 
 ### ARQ-03 — Contratos compartilhados e validação de fronteira
 
@@ -1251,6 +1255,7 @@ Executar ao final dos lotes, em desktop e mobile autenticados, registrando data,
 | 2026-09-14 | ARQ-01 | A criação de snapshots completos de NPCs foi movida ao módulo puro de sessão, preservando os dados necessários à reversão. | `3f18fb4`, `d72be06`; 5 cenários unitários, lint, build, `git diff --check`, [Quality Gate 34809724219](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34809724219) aprovado e produção HTTP 200. | Extrair a leitura/reconstrução do snapshot. |
 | 2026-09-14 | ARQ-01 | A montagem do payload de restauração de NPCs passou a reutilizar o módulo puro de snapshots. | `76b1e30`; 5 cenários unitários, lint, build, `git diff --check`, [Quality Gate 34811630097](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34811630097) aprovado e produção HTTP 200. | Manter a validação de eventos legados no serviço e escolher o próximo agrupamento. |
 | 2026-09-14 | DS-02 | Catálogo de componentes ampliado com modal, conteúdo longo, viewport estreita, teclado e camadas; acesso alinhado ao papel administrativo. | Frontend: lint, testes e build aprovados localmente; publicação pendente. | Publicar, acompanhar gate e executar bateria manual acumulada. |
+| 2026-09-14 | ARQ-02 | Sincronização da sessão passou a registrar origem, duração e sucesso/falha localmente, mantendo polling e fallback de Socket.IO. | Frontend: lint, 379 testes, build e `git diff --check` aprovados localmente; publicação pendente. | Publicar, acompanhar gate e confirmar métricas na bateria manual. |
 | 2026-09-13 | ARQ-02 | Polling da sessão passou a respeitar visibilidade da aba e a lista de NPCs deixou de buscar novamente a cada seleção. | `48f7943`, `1644167`; testes de utilitários, lint, testes e builds completos aprovados; [Quality Gate 34762898631](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34762898631) aprovado; produção HTTP 200. | Instrumentar métricas remanescentes. |
 | 2026-09-13 | DS-01 | Estados sólidos críticos passaram a usar tokens de texto por tema; catálogo interno ganhou amostras destrutiva, desabilitada e semânticas. | `3dd2307`, `ba32c09`; contraste calculado, lint, 379 testes e builds completos aprovados; [Quality Gate 34764585869](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34764585869) aprovado; produção HTTP 200. | Executar a bateria visual por tema. |
 | 2026-09-13 | UX-03 | Artigos relacionados do compêndio passaram de CSV técnico para seleção múltipla pesquisável, com título, resumo, chips removíveis e proteção contra autorreferência. | `6f38ea1`; frontend: lint, 379 testes, build e `git diff --check`; [Quality Gate 34766927998](https://github.com/SenoPersonalProjects/assistenterpg-fullstack/actions/runs/34766927998) aprovado; produção HTTP 200. | Executar o caso manual acumulado e revisar os painéis restantes. |

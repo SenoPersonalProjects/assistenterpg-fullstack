@@ -3,6 +3,7 @@ import {
   calcularIntervaloPolling,
   deveExecutarPollingSessao,
 } from '@/lib/campanha/sessao-utils';
+import type { OrigemSincronizacaoSessao } from '@/lib/campanha/sessao-telemetria';
 import {
   type AckSessaoRealtime,
   conectarSocketSessao,
@@ -31,6 +32,7 @@ type UseSessaoRealtimeParams = {
   sessaoId: number;
   sincronizarTempoReal: (
     evento?: EventoSessaoAtualizada,
+    origem?: OrigemSincronizacaoSessao,
   ) => void | Promise<void>;
 };
 
@@ -64,14 +66,14 @@ export function useSessaoRealtime({
       ) {
         return;
       }
-      void sincronizarTempoReal();
+      void sincronizarTempoReal(undefined, 'POLLING');
     };
     const intervalo = window.setInterval(() => {
       sincronizarSeVisivel();
     }, intervaloMs);
     const handleVisibilidade = () => {
       if (document.visibilityState === 'visible') {
-        void sincronizarTempoReal();
+        void sincronizarTempoReal(undefined, 'VISIBILIDADE');
       }
     };
     document.addEventListener('visibilitychange', handleVisibilidade);
@@ -251,7 +253,7 @@ export function useSessaoRealtime({
     const handleSessaoAtualizada = (evento: EventoSessaoAtualizada) => {
       if (!evento) return;
       if (evento.campanhaId !== campanhaId || evento.sessaoId !== sessaoId) return;
-      void sincronizarTempoReal(evento);
+      void sincronizarTempoReal(evento, 'REALTIME');
     };
 
     socket.on('connect', handleConnect);

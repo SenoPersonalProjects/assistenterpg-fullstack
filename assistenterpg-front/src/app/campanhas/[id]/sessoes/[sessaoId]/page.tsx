@@ -132,6 +132,10 @@ import {
   OPCOES_DURACAO_CONDICAO,
   parseInteiroComSinal,
 } from '@/lib/campanha/sessao-utils';
+import {
+  registrarMetricaSincronizacaoSessao,
+  type OrigemSincronizacaoSessao,
+} from '@/lib/campanha/sessao-telemetria';
 import { formatarCustos } from '@/lib/campanha/sessao-habilidades';
 import {
   aplicarAtualizacaoIncrementalSessao,
@@ -836,6 +840,7 @@ export default function SessaoCampanhaPage() {
 
   const sincronizarTempoReal = useCallback(async (
     evento?: EventoSessaoAtualizada,
+    origem: OrigemSincronizacaoSessao = 'MANUAL',
   ) => {
     if (!idsValidos || !usuario || sincronizandoTempoRealRef.current) return;
 
@@ -857,6 +862,7 @@ export default function SessaoCampanhaPage() {
     }
 
     sincronizandoTempoRealRef.current = true;
+    const inicioSincronizacao = performance.now();
     const versaoRecursosNoInicio = versaoRecursosLocaisRef.current;
     try {
       const afterId = chatRef.current.length
@@ -879,6 +885,11 @@ export default function SessaoCampanhaPage() {
         versaoRecursosNoInicio !== versaoRecursosLocaisRef.current ||
         recursosPendentesRef.current.size > 0
       ) {
+        registrarMetricaSincronizacaoSessao({
+          origem,
+          duracaoMs: performance.now() - inicioSincronizacao,
+          sucesso: true,
+        });
         return;
       }
 
@@ -887,8 +898,18 @@ export default function SessaoCampanhaPage() {
       sincronizarEstadosDerivados(detalheAtual);
       anexarMensagensNoChat(mensagensNovas);
       if (eventos) setEventosSessao(eventos);
+      registrarMetricaSincronizacaoSessao({
+        origem,
+        duracaoMs: performance.now() - inicioSincronizacao,
+        sucesso: true,
+      });
     } catch {
       // sincronizacao silenciosa de fallback/realtime
+      registrarMetricaSincronizacaoSessao({
+        origem,
+        duracaoMs: performance.now() - inicioSincronizacao,
+        sucesso: false,
+      });
     } finally {
       sincronizandoTempoRealRef.current = false;
     }
