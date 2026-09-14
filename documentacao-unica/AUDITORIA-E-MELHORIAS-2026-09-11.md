@@ -71,7 +71,7 @@ Ele também é o acompanhamento vivo das melhorias identificadas. Os identificad
 ### Regras de atualização
 
 - Estado inicial: **0/23 melhorias concluídas**.
-- Progresso atual: **1/23 melhorias concluídas**.
+- Progresso atual: **2/23 melhorias concluídas**.
 - Não marcar como concluído somente por haver código ou commit: registrar testes, build, revisão e publicação quando aplicável.
 - Itens não aplicáveis devem ser marcados como `Não aplicável`, com justificativa datada no histórico do item.
 - Não renomear ou reutilizar IDs. Novas descobertas devem usar novos IDs, mantendo este conjunto preservado.

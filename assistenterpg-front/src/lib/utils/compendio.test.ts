@@ -13,6 +13,7 @@ import {
   apiBuscarArtigoPorCodigo,
   apiBuscarCategoriaPorCodigo,
   apiBuscarCompendio,
+  apiBuscarCompendioComEstado,
   apiBuscarLivroPorCodigo,
   apiBuscarSubcategoriaPorCodigo,
   apiListarCategorias,
@@ -241,6 +242,17 @@ describe('compendio api fallbacks', () => {
 
     expect(resultados).toEqual([]);
     expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves the failure state for the search interface', async () => {
+    fetchMock.mockRejectedValue(new Error('timeout'));
+
+    const busca = await apiBuscarCompendioComEstado('energia');
+
+    expect(busca).toEqual({
+      resultados: [],
+      erro: 'Não foi possível pesquisar o compêndio agora. Tente novamente.',
+    });
   });
 
   it('passes book code to compendio search when provided', async () => {

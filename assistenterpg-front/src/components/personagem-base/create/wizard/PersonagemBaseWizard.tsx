@@ -29,6 +29,12 @@ import {
   type PreviewItensInventarioResponse,
 } from '@/lib/api';
 import { converterPreviewPersonagemParaInventario } from '@/lib/utils/inventario-preview';
+import {
+  carregarRascunhoWizardPersonagem,
+  removerRascunhoWizardPersonagem,
+  salvarRascunhoWizardPersonagem,
+  type DadosRascunhoWizardPersonagem,
+} from '@/lib/personagem-base/wizard-draft';
 
 import { Button } from '@/components/ui/Button';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -248,7 +254,7 @@ export function PersonagemBaseWizard(props: Props) {
     carregarCaminhosDaTrilha,
   } = props;
 
-  const { token } = useAuth();
+  const { token, usuario } = useAuth();
 
   const editInitialValues = mode === 'edit' ? (props as EditProps).initialValues : undefined;
 
@@ -261,9 +267,12 @@ export function PersonagemBaseWizard(props: Props) {
   const [previewGlobal, setPreviewGlobal] = useState<PersonagemBasePreview | null>(null);
   const [loadingPreviewGlobal, setLoadingPreviewGlobal] = useState(false);
   const [loadingStep, setLoadingStep] = useState(false);
+  const [rascunhoRestaurado, setRascunhoRestaurado] = useState(false);
 
   const requestIdRef = useRef(0);
   const previewDebounceRef = useRef<number | null>(null);
+  const rascunhoHidratadoRef = useRef(false);
+  const rascunhoRestaurandoRef = useRef(false);
 
   const hydratedWizardRef = useRef(false);
   useEffect(() => {
@@ -371,6 +380,7 @@ export function PersonagemBaseWizard(props: Props) {
     tecnicaInataId,
     setTecnicaInataId,
     graus,
+    setGraus,
     handleGrauChange,
 
     periciasClasseEscolhidasCodigos,
@@ -381,14 +391,17 @@ export function PersonagemBaseWizard(props: Props) {
     setPericiasLivresCodigos,
 
     poderesGenericos,
+    setPoderesGenericos,
     togglePoderGenerico,
     addPoderGenericoInstancia,
     removePoderGenericoInstancia,
     updatePoderGenericoInstancia,
     habilidadesConfig,
+    setHabilidadesConfig,
     updateHabilidadeConfig,
 
     passivasAtributosAtivos,
+    setPassivasAtributosAtivos,
     togglePassivaAtributo,
 
     trilhas,
@@ -405,6 +418,192 @@ export function PersonagemBaseWizard(props: Props) {
   });
 
   const trilhaSelecionada = trilhas.find((t) => String(t.id) === String(trilhaId));
+
+  const dadosRascunho = useMemo<DadosRascunhoWizardPersonagem>(
+    () => ({
+      step,
+      nome,
+      nivel,
+      estudouEscolaTecnica,
+      idade,
+      prestigioBase,
+      prestigioClaBase,
+      alinhamentoId,
+      background,
+      claId,
+      origemId,
+      classeId,
+      trilhaId,
+      caminhoId,
+      agilidade,
+      forca,
+      intelecto,
+      presenca,
+      vigor,
+      atributoChaveEa,
+      tecnicaInataId,
+      graus,
+      periciasClasseEscolhidasCodigos,
+      periciasOrigemEscolhidasCodigos,
+      periciasLivresCodigos,
+      poderesGenericos,
+      habilidadesConfig,
+      passivasAtributosAtivos,
+      grausTreinamento,
+      periciasLivresExtras,
+      passivasAtributosConfig,
+      itensInventario,
+    }),
+    [
+      agilidade,
+      alinhamentoId,
+      atributoChaveEa,
+      background,
+      caminhoId,
+      claId,
+      classeId,
+      estudouEscolaTecnica,
+      forca,
+      graus,
+      grausTreinamento,
+      habilidadesConfig,
+      idade,
+      intelecto,
+      itensInventario,
+      nivel,
+      nome,
+      origemId,
+      passivasAtributosAtivos,
+      passivasAtributosConfig,
+      periciasClasseEscolhidasCodigos,
+      periciasLivresCodigos,
+      periciasLivresExtras,
+      periciasOrigemEscolhidasCodigos,
+      poderesGenericos,
+      presenca,
+      prestigioBase,
+      prestigioClaBase,
+      step,
+      tecnicaInataId,
+      trilhaId,
+      vigor,
+    ],
+  );
+
+  useEffect(() => {
+    if (mode !== 'create' || !usuario || rascunhoHidratadoRef.current) return;
+    rascunhoHidratadoRef.current = true;
+    const rascunho = carregarRascunhoWizardPersonagem(usuario.id);
+    if (!rascunho) return;
+    rascunhoRestaurandoRef.current = true;
+
+    const restaurar = async () => {
+      setNome(rascunho.nome);
+      setNivel(rascunho.nivel);
+      setEstudouEscolaTecnica(rascunho.estudouEscolaTecnica);
+      setIdade(rascunho.idade);
+      setPrestigioBase(rascunho.prestigioBase);
+      setPrestigioClaBase(rascunho.prestigioClaBase);
+      setAlinhamentoId(rascunho.alinhamentoId);
+      setBackground(rascunho.background);
+      setClaId(rascunho.claId);
+      setOrigemId(rascunho.origemId);
+      setClasseId(rascunho.classeId);
+      setAgilidade(rascunho.agilidade);
+      setForca(rascunho.forca);
+      setIntelecto(rascunho.intelecto);
+      setPresenca(rascunho.presenca);
+      setVigor(rascunho.vigor);
+      setAtributoChaveEa(rascunho.atributoChaveEa);
+      setTecnicaInataId(rascunho.tecnicaInataId);
+      setGraus(rascunho.graus);
+      setPericiasClasseEscolhidasCodigos(rascunho.periciasClasseEscolhidasCodigos);
+      setPericiasOrigemEscolhidasCodigos(rascunho.periciasOrigemEscolhidasCodigos);
+      setPericiasLivresCodigos(rascunho.periciasLivresCodigos);
+      setPoderesGenericos(rascunho.poderesGenericos);
+      setHabilidadesConfig(rascunho.habilidadesConfig);
+      setPassivasAtributosAtivos(rascunho.passivasAtributosAtivos);
+      setGrausTreinamento(rascunho.grausTreinamento);
+      setPericiasLivresExtras(rascunho.periciasLivresExtras);
+      setPassivasAtributosConfig(rascunho.passivasAtributosConfig);
+      setItensInventario(rascunho.itensInventario);
+      setStep(Math.min(MAX_STEP, Math.max(1, rascunho.step)));
+
+      const classeIdRascunho = Number(rascunho.classeId);
+      const trilhaIdRascunho = Number(rascunho.trilhaId);
+      if (Number.isInteger(classeIdRascunho) && classeIdRascunho > 0) {
+        await carregarTrilhasDaClasse(classeIdRascunho);
+        if (Number.isInteger(trilhaIdRascunho) && trilhaIdRascunho > 0) {
+          setTrilhaId(rascunho.trilhaId);
+          await carregarCaminhosDaTrilha(trilhaIdRascunho);
+          setCaminhoId(rascunho.caminhoId);
+        }
+      }
+      rascunhoRestaurandoRef.current = false;
+      setRascunhoRestaurado(true);
+    };
+
+    void restaurar().catch(() => {
+      rascunhoRestaurandoRef.current = false;
+      setRascunhoRestaurado(true);
+    });
+  }, [
+    carregarCaminhosDaTrilha,
+    carregarTrilhasDaClasse,
+    mode,
+    setAgilidade,
+    setAlinhamentoId,
+    setAtributoChaveEa,
+    setBackground,
+    setCaminhoId,
+    setClaId,
+    setClasseId,
+    setEstudouEscolaTecnica,
+    setForca,
+    setGraus,
+    setHabilidadesConfig,
+    setIdade,
+    setIntelecto,
+    setNivel,
+    setNome,
+    setOrigemId,
+    setPassivasAtributosAtivos,
+    setPericiasClasseEscolhidasCodigos,
+    setPericiasLivresCodigos,
+    setPericiasOrigemEscolhidasCodigos,
+    setPoderesGenericos,
+    setPresenca,
+    setPrestigioBase,
+    setPrestigioClaBase,
+    setTecnicaInataId,
+    setTrilhaId,
+    setVigor,
+    usuario,
+  ]);
+
+  useEffect(() => {
+    if (mode !== 'create' || !usuario || submitting || rascunhoRestaurandoRef.current) return;
+    const possuiDados =
+      Boolean(dadosRascunho.nome.trim()) ||
+      Boolean(dadosRascunho.claId) ||
+      Boolean(dadosRascunho.origemId) ||
+      dadosRascunho.step > 1;
+    if (!possuiDados) return;
+    salvarRascunhoWizardPersonagem(usuario.id, dadosRascunho);
+  }, [dadosRascunho, mode, submitting, usuario]);
+
+  useEffect(() => {
+    if (mode !== 'create' || !usuario || submitting) return;
+    const possuiDados =
+      Boolean(dadosRascunho.nome.trim()) || dadosRascunho.step > 1;
+    if (!possuiDados) return;
+    const avisarAntesDeSair = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', avisarAntesDeSair);
+    return () => window.removeEventListener('beforeunload', avisarAntesDeSair);
+  }, [dadosRascunho.nome, dadosRascunho.step, mode, submitting, usuario]);
 
   const previewPayload = useMemo(() => {
     if (!nome.trim() || !classeId || !origemId || !claId) return null;
@@ -603,6 +802,7 @@ export function PersonagemBaseWizard(props: Props) {
       } else {
         await (props as CreateProps).onSubmitCreate(previewPayload);
 
+        if (usuario) removerRascunhoWizardPersonagem(usuario.id);
         resetCreateState();
         setGrausTreinamento([]);
         setPassivasAtributosConfig({});
@@ -610,6 +810,7 @@ export function PersonagemBaseWizard(props: Props) {
         setItensInventario([]);
         setPreviewGlobal(null);
         setStep(1);
+        setRascunhoRestaurado(false);
       }
     } catch (e) {
       setErro(
@@ -651,6 +852,18 @@ export function PersonagemBaseWizard(props: Props) {
     setStep((s) => Math.max(1, s - 1));
   }
 
+  function handleDescartarRascunho() {
+    if (usuario) removerRascunhoWizardPersonagem(usuario.id);
+    resetCreateState();
+    setGrausTreinamento([]);
+    setPassivasAtributosConfig({});
+    setPericiasLivresExtras(0);
+    setItensInventario([]);
+    setPreviewGlobal(null);
+    setStep(1);
+    setRascunhoRestaurado(false);
+  }
+
   function handleBreadcrumbClick(targetStep: number) {
     if (targetStep === step - 1) {
       handlePrev();
@@ -689,6 +902,19 @@ export function PersonagemBaseWizard(props: Props) {
   return (
     <div className="rounded-xl border border-white/5 bg-app-surface/45 p-4 sm:p-5">
       <div className="space-y-6 overflow-hidden">
+        {mode === 'create' && rascunhoRestaurado ? (
+          <div
+            role="status"
+            className="flex flex-col gap-3 rounded-lg border border-app-primary/30 bg-app-primary/10 p-3 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p className="text-sm text-app-fg">
+              Rascunho recuperado neste dispositivo. Revise os dados antes de criar o personagem.
+            </p>
+            <Button type="button" size="sm" variant="ghost" onClick={handleDescartarRascunho}>
+              Descartar rascunho
+            </Button>
+          </div>
+        ) : null}
         <div className="space-y-3 mb-6">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">

@@ -31,6 +31,7 @@ import { AmizadesModule } from './amizades/amizades.module';
 import { ChatAmigosModule } from './chat-amigos/chat-amigos.module';
 import { SecurityModule } from './common/security/security.module';
 import { HealthModule } from './health/health.module';
+import { ObservabilidadeModule } from './observabilidade/observabilidade.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { HealthModule } from './health/health.module';
     }),
     PrismaModule,
     HealthModule,
+    ObservabilidadeModule,
     SecurityModule,
     UsuarioModule,
     AuthModule,

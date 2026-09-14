@@ -10,7 +10,12 @@ export type ErroClienteObservavel = {
 
 function sanitizarMensagem(valor: unknown): string {
   const mensagem = valor instanceof Error ? valor.message : String(valor ?? 'Erro desconhecido');
-  return mensagem.replace(/\s+/g, ' ').trim().slice(0, 500);
+  return mensagem
+    .replace(/\b(bearer\s+)[^\s]+/gi, '$1[redigido]')
+    .replace(/\b(token|senha|password|authorization)=([^\s&]+)/gi, '$1=[redigido]')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 500);
 }
 
 export function criarErroClienteObservavel(

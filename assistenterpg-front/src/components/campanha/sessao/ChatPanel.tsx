@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
+import { LIMITE_MENSAGEM_CHAT_SESSAO } from '@/lib/campanha/sessao-chat';
 import { Icon } from '@/components/ui/Icon';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -18,7 +19,7 @@ import { formatarDataHora } from '@/lib/utils/formatters';
 
 const LIMIAR_AGRUPAMENTO_MS = 5 * 60 * 1000;
 const ALTURA_MAX_TEXTAREA = 120;
-const LIMITE_MENSAGEM_CHAT = 120;
+const LIMITE_MENSAGEM_CHAT = LIMITE_MENSAGEM_CHAT_SESSAO;
 
 type ChatPanelProps = {
   chat: MensagemChatSessao[];

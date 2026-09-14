@@ -25,6 +25,7 @@ import {
   type ChatConversa,
   type ChatMensagem,
 } from '@/lib/api/chat-amigos';
+import { criarErroUsuario } from '@/lib/api';
 import {
   conectarSocketChatAmigos,
   type EventoChatLeitura,
@@ -68,13 +69,16 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
   const hidden = !usuario || isPublicPath(pathname);
   const [open, setOpen] = useState(false);
   const [loadingConversas, setLoadingConversas] = useState(false);
+  const [erroConversas, setErroConversas] = useState<string | null>(null);
   const [conversas, setConversas] = useState<ChatConversa[]>([]);
   const [selectedAmigoId, setSelectedAmigoId] = useState<number | null>(null);
   const [mensagens, setMensagens] = useState<Record<number, ChatMensagem[]>>({});
   const [cursors, setCursors] = useState<Record<number, number | null>>({});
-  const [loadingMensagens, setLoadingMensagens] = useState(false);
-  const [draft, setDraft] = useState('');
-  const [sending, setSending] = useState(false);
+  const [loadingMensagens, setLoadingMensagens] = useState<Record<number, boolean>>({});
+  const [errosMensagens, setErrosMensagens] = useState<Record<number, string | null>>({});
+  const [rascunhos, setRascunhos] = useState<Record<number, string>>({});
+  const [enviandoPorAmigo, setEnviandoPorAmigo] = useState<Record<number, boolean>>({});
+  const [errosEnvio, setErrosEnvio] = useState<Record<number, string | null>>({});
   const selectedAmigoIdRef = useRef<number | null>(null);
   const openRef = useRef(false);
 
@@ -106,10 +110,13 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
     if (!usuario) return;
 
     setLoadingConversas(true);
+    setErroConversas(null);
     try {
       const lista = await apiListarConversasAmigos();
       setConversas(lista);
       setSelectedAmigoId((atual) => atual ?? lista[0]?.amigo.id ?? null);
+    } catch (error) {
+      setErroConversas(criarErroUsuario(error).message);
     } finally {
       setLoadingConversas(false);
     }
@@ -120,6 +127,9 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
       setConversas([]);
       setMensagens({});
       setCursors({});
+      setRascunhos({});
+      setErrosMensagens({});
+      setErrosEnvio({});
       setSelectedAmigoId(null);
       setOpen(false);
       return;
@@ -130,7 +140,8 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
 
   const carregarMensagens = useCallback(
     async (amigoId: number, append = false) => {
-      setLoadingMensagens(true);
+      setLoadingMensagens((atual) => ({ ...atual, [amigoId]: true }));
+      setErrosMensagens((atual) => ({ ...atual, [amigoId]: null }));
       try {
         const pagina = await apiListarMensagensAmigo(amigoId, {
           cursor: append ? cursors[amigoId] : undefined,
@@ -143,8 +154,13 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
             : pagina.itens,
         }));
         setCursors((atual) => ({ ...atual, [amigoId]: pagina.nextCursor }));
+      } catch (error) {
+        setErrosMensagens((atual) => ({
+          ...atual,
+          [amigoId]: criarErroUsuario(error).message,
+        }));
       } finally {
-        setLoadingMensagens(false);
+        setLoadingMensagens((atual) => ({ ...atual, [amigoId]: false }));
       }
     },
     [cursors],
@@ -244,23 +260,26 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
 
   const enviarMensagem = async (event: FormEvent) => {
     event.preventDefault();
-    if (!selectedAmigoId || !draft.trim() || sending) return;
+    const amigoId = selectedAmigoId;
+    const rascunho = amigoId ? rascunhos[amigoId] ?? '' : '';
+    if (!amigoId || !rascunho.trim() || enviandoPorAmigo[amigoId]) return;
 
-    const texto = draft.trim();
-    setDraft('');
-    setSending(true);
+    const texto = rascunho.trim();
+    setRascunhos((atuais) => ({ ...atuais, [amigoId]: '' }));
+    setErrosEnvio((atuais) => ({ ...atuais, [amigoId]: null }));
+    setEnviandoPorAmigo((atuais) => ({ ...atuais, [amigoId]: true }));
     try {
-      const resultado = await apiEnviarMensagemAmigo(selectedAmigoId, texto);
+      const resultado = await apiEnviarMensagemAmigo(amigoId, texto);
       setMensagens((atuais) => ({
         ...atuais,
-        [selectedAmigoId]: upsertMensagem(
-          atuais[selectedAmigoId] ?? [],
+        [amigoId]: upsertMensagem(
+          atuais[amigoId] ?? [],
           resultado.mensagem,
         ),
       }));
       setConversas((atuais) =>
         atuais.map((conversa) =>
-          conversa.amigo.id === selectedAmigoId
+          conversa.amigo.id === amigoId
             ? {
                 ...conversa,
                 conversaId: resultado.conversa.id,
@@ -271,10 +290,14 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
             : conversa,
         ),
       );
-    } catch {
-      setDraft(texto);
+    } catch (error) {
+      setRascunhos((atuais) => ({ ...atuais, [amigoId]: texto }));
+      setErrosEnvio((atuais) => ({
+        ...atuais,
+        [amigoId]: criarErroUsuario(error).message,
+      }));
     } finally {
-      setSending(false);
+      setEnviandoPorAmigo((atuais) => ({ ...atuais, [amigoId]: false }));
     }
   };
 
@@ -284,6 +307,19 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
   const mensagensSelecionadas = selectedAmigoId
     ? mensagens[selectedAmigoId] ?? []
     : [];
+  const carregandoMensagensSelecionadas = selectedAmigoId
+    ? Boolean(loadingMensagens[selectedAmigoId])
+    : false;
+  const erroMensagensSelecionadas = selectedAmigoId
+    ? errosMensagens[selectedAmigoId] ?? null
+    : null;
+  const rascunhoSelecionado = selectedAmigoId ? rascunhos[selectedAmigoId] ?? '' : '';
+  const enviandoSelecionado = selectedAmigoId
+    ? Boolean(enviandoPorAmigo[selectedAmigoId])
+    : false;
+  const erroEnvioSelecionado = selectedAmigoId
+    ? errosEnvio[selectedAmigoId] ?? null
+    : null;
 
   return (
     <FriendChatContext.Provider value={{ unreadCount, openChat }}>
@@ -316,6 +352,13 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
                   {loadingConversas ? (
                     <div className="rounded-xl border border-app-border bg-app-bg/60 p-3 text-sm text-app-muted">
                       Carregando...
+                    </div>
+                  ) : erroConversas ? (
+                    <div className="space-y-2 rounded-xl border border-app-danger/40 bg-app-danger/5 p-3 text-xs text-app-fg">
+                      <p>{erroConversas}</p>
+                      <Button type="button" variant="secondary" size="xs" onClick={() => void carregarConversas()}>
+                        Tentar novamente
+                      </Button>
                     </div>
                   ) : conversas.length === 0 ? (
                     <div className="rounded-xl border border-app-border bg-app-bg/60 p-3 text-xs text-app-muted">
@@ -394,7 +437,7 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
                             type="button"
                             variant="secondary"
                             size="xs"
-                            disabled={loadingMensagens}
+                            disabled={carregandoMensagensSelecionadas}
                             onClick={() =>
                               carregarMensagens(selectedConversa.amigo.id, true)
                             }
@@ -404,7 +447,14 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
                         </div>
                       )}
 
-                      {loadingMensagens && mensagensSelecionadas.length === 0 ? (
+                      {erroMensagensSelecionadas && mensagensSelecionadas.length === 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-sm text-app-danger">{erroMensagensSelecionadas}</p>
+                          <Button type="button" variant="secondary" size="xs" onClick={() => void carregarMensagens(selectedConversa.amigo.id)}>
+                            Tentar novamente
+                          </Button>
+                        </div>
+                      ) : carregandoMensagensSelecionadas && mensagensSelecionadas.length === 0 ? (
                         <p className="text-sm text-app-muted">Carregando mensagens...</p>
                       ) : mensagensSelecionadas.length === 0 ? (
                           <EmptyState
@@ -456,8 +506,18 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
                     >
                       <div className="flex gap-2">
                         <textarea
-                          value={draft}
-                          onChange={(event) => setDraft(event.target.value)}
+                          value={rascunhoSelecionado}
+                          onChange={(event) => {
+                            if (!selectedAmigoId) return;
+                            setRascunhos((atuais) => ({
+                              ...atuais,
+                              [selectedAmigoId]: event.target.value,
+                            }));
+                            setErrosEnvio((atuais) => ({
+                              ...atuais,
+                              [selectedAmigoId]: null,
+                            }));
+                          }}
                           rows={1}
                           maxLength={2000}
                           placeholder="Mensagem..."
@@ -472,13 +532,18 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
                         <Button
                           type="submit"
                           size="sm"
-                          disabled={!draft.trim() || sending}
+                          disabled={!rascunhoSelecionado.trim() || enviandoSelecionado}
                           className="shrink-0"
                         >
                           <Icon name="chat" className="mr-2 h-4 w-4" />
                           Enviar
                         </Button>
                       </div>
+                      {erroEnvioSelecionado ? (
+                        <p className="mt-2 text-xs text-app-danger" role="alert">
+                          {erroEnvioSelecionado}
+                        </p>
+                      ) : null}
                     </form>
                   </>
                 ) : (

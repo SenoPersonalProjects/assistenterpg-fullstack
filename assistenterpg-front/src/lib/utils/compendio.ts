@@ -587,22 +587,38 @@ export async function apiBuscarCompendio(
   query: string,
   livroCodigo?: string,
 ): Promise<CompendioArtigoCompleto[]> {
+  return (await apiBuscarCompendioComEstado(query, livroCodigo)).resultados;
+}
+
+export type BuscaCompendioComEstado = {
+  resultados: CompendioArtigoCompleto[];
+  erro: string | null;
+};
+
+export async function apiBuscarCompendioComEstado(
+  query: string,
+  livroCodigo?: string,
+): Promise<BuscaCompendioComEstado> {
   if (!query || query.trim().length < 3) {
-    return [];
+    return { resultados: [], erro: null };
   }
 
   try {
     const params = new URLSearchParams({ q: query });
     if (livroCodigo) params.set('livroCodigo', livroCodigo);
 
-    return await fetchJson<CompendioArtigoCompleto[]>(
+    const resultados = await fetchJson<CompendioArtigoCompleto[]>(
       `/compendio/buscar?${params.toString()}`,
       'Falha na busca',
       { cache: 'no-store' },
     );
+    return { resultados, erro: null };
   } catch (error) {
-    logCompendioWarning('Falha na busca do compêndio; usando lista vazia', error);
-    return [];
+    logCompendioWarning('Falha na busca do compêndio', error);
+    return {
+      resultados: [],
+      erro: 'Não foi possível pesquisar o compêndio agora. Tente novamente.',
+    };
   }
 }
 

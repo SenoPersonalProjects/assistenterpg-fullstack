@@ -3,11 +3,12 @@ import { ArtigoCard } from '@/components/compendio/ArtigoCard';
 import { CompendioSearch } from '@/components/compendio/CompendioSearch';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { PageToolbar } from '@/components/ui/PageToolbar';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
-import { apiBuscarCompendio, apiBuscarLivroPorCodigo } from '@/lib/utils/compendio';
+import { apiBuscarCompendioComEstado, apiBuscarLivroPorCodigo } from '@/lib/utils/compendio';
 
 type Props = {
   searchParams: Promise<{ q?: string; livroCodigo?: string }>;
@@ -25,7 +26,10 @@ export default async function BuscaPage({ searchParams }: Props) {
   const queryTrim = query?.trim() ?? '';
   const livro = livroCodigo ? await apiBuscarLivroPorCodigo(livroCodigo) : null;
   const queryValida = queryTrim.length >= 3;
-  const resultados = queryValida ? await apiBuscarCompendio(queryTrim, livroCodigo) : [];
+  const busca = queryValida
+    ? await apiBuscarCompendioComEstado(queryTrim, livroCodigo)
+    : { resultados: [], erro: null };
+  const resultados = busca.resultados;
   const escopo = livro ? ` em ${livro.titulo}` : '';
   const categorias = new Set(
     resultados
@@ -112,6 +116,17 @@ export default async function BuscaPage({ searchParams }: Props) {
             title="Digite pelo menos 3 caracteres"
             description="Use a barra de busca para encontrar artigos, regras e referências do compêndio."
           />
+        ) : busca.erro ? (
+          <div className="space-y-3">
+            <ErrorAlert message={busca.erro} />
+            <Link
+              href={`/compendio/busca?q=${encodeURIComponent(queryTrim)}${livroCodigo ? `&livroCodigo=${encodeURIComponent(livroCodigo)}` : ''}`}
+            >
+              <Button size="sm" variant="secondary">
+                Tentar novamente
+              </Button>
+            </Link>
+          </div>
         ) : resultados.length === 0 ? (
           <EmptyState
             variant="card"

@@ -64,8 +64,12 @@ export function ConfirmDialog({
     try {
       await onConfirm();
       onClose();
-    } catch {
-      setSubmissionError('Não foi possível concluir a ação. Tente novamente.');
+    } catch (error) {
+      setSubmissionError(
+        error instanceof Error && error.message
+          ? error.message
+          : 'Não foi possível concluir a ação. Tente novamente.',
+      );
     } finally {
       setIsSubmitting(false);
     }

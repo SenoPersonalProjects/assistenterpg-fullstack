@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react';
 import { apiEnviarMensagemTextoSessaoCampanha, criarErroUsuario } from '@/lib/api';
 import type { MensagemChatSessao, UserErrorState } from '@/lib/types';
-
-const LIMITE_MENSAGEM_CHAT = 100;
+import {
+  LIMITE_MENSAGEM_CHAT_SESSAO,
+  mensagemChatSessaoValida,
+} from '@/lib/campanha/sessao-chat';
 
 type UseSessaoChatParams = {
   campanhaId: number;
@@ -31,8 +33,10 @@ export function useSessaoChat({
   const handleEnviarMensagem = useCallback(async () => {
     const mensagemLimpa = mensagem.trim();
     if (!mensagemLimpa) return;
-    if (mensagemLimpa.length > LIMITE_MENSAGEM_CHAT) {
-      setErro(`Mensagem deve ter no máximo ${LIMITE_MENSAGEM_CHAT} caracteres.`);
+    if (!mensagemChatSessaoValida(mensagemLimpa)) {
+      setErro(
+        `Mensagem deve ter no máximo ${LIMITE_MENSAGEM_CHAT_SESSAO} caracteres.`,
+      );
       return;
     }
 

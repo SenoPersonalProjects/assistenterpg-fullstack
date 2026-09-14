@@ -6,7 +6,8 @@ Atualizado em: 2026-09-14
 
 - operação, ambiente, migrations e recuperação: [`OPERACAO-E-AMBIENTE.md`](./OPERACAO-E-AMBIENTE.md)
 - arquitetura e contratos de fronteira: [`ARQUITETURA-E-CONTRATOS.md`](./ARQUITETURA-E-CONTRATOS.md)
-- decisões, evidências e acompanhamento: [`AUDITORIA-E-MELHORIAS-2026-09-11.md`](./AUDITORIA-E-MELHORIAS-2026-09-11.md)
+- acompanhamento ativo de melhorias: [`AUDITORIA-E-MELHORIAS-2026-09-14.md`](./AUDITORIA-E-MELHORIAS-2026-09-14.md)
+- auditoria anterior e histórico de evidências: [`AUDITORIA-E-MELHORIAS-2026-09-11.md`](./AUDITORIA-E-MELHORIAS-2026-09-11.md)
 
 As seções detalhadas abaixo são um acervo legado de entidades e contratos. Para
 operação diária, use os guias atuais acima; eles são a superfície validada de
@@ -44,7 +45,8 @@ Para reduzir ambiguidade e facilitar manutenção, este README permanece como vi
 - erros de operação e debug (codigo -> ação): [`entidades/erros-operação-debug.md`](./entidades/erros-operação-debug.md)
 - checklist de cobertura de erros (back x front): [`entidades/checklist-cobertura-erros-front-back.md`](./entidades/checklist-cobertura-erros-front-back.md)
 - auditoria de consistência (docs x regras x schema): [`entidades/auditoria-consistência.md`](./entidades/auditoria-consistência.md)
-- auditoria e acompanhamento de melhorias: [`AUDITORIA-E-MELHORIAS-2026-09-11.md`](./AUDITORIA-E-MELHORIAS-2026-09-11.md)
+- acompanhamento ativo — rodada 2: [`AUDITORIA-E-MELHORIAS-2026-09-14.md`](./AUDITORIA-E-MELHORIAS-2026-09-14.md)
+- auditoria e acompanhamento — rodada 1: [`AUDITORIA-E-MELHORIAS-2026-09-11.md`](./AUDITORIA-E-MELHORIAS-2026-09-11.md)
 - smoke autenticado de rolagens autoritativas: [`GUIA-SMOKE-ROLAGENS-AUTORITATIVAS.md`](./GUIA-SMOKE-ROLAGENS-AUTORITATIVAS.md)
 - política de compatibilidade de sessão: [`POLITICA-COMPATIBILIDADE-SESSAO.md`](./POLITICA-COMPATIBILIDADE-SESSAO.md)
 

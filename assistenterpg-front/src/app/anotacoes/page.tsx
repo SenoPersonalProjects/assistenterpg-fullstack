@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { NotePaperCard } from '@/components/anotacoes/NotePaperCard';
 import { Badge } from '@/components/ui/Badge';
@@ -36,6 +36,13 @@ import {
 } from '@/lib/api';
 import type { UserErrorState } from '@/lib/types';
 import { formatarDataHora } from '@/lib/utils/formatters';
+import {
+  carregarRascunhoAnotacao,
+  rascunhosAnotacaoDiferem,
+  removerRascunhoAnotacao,
+  salvarRascunhoAnotacao,
+  type RascunhoAnotacao,
+} from '@/lib/anotacoes/anotacao-draft';
 
 const LIMITE_PAGINA = 20;
 
@@ -47,6 +54,7 @@ export default function AnotacoesPage() {
 
   const [notas, setNotas] = useState<AnotacaoResumo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [carregamentoConcluido, setCarregamentoConcluido] = useState(false);
   const [erro, setErro] = useState<UserErrorState | null>(null);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
@@ -68,6 +76,10 @@ export default function AnotacoesPage() {
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [modalFormularioAberto, setModalFormularioAberto] = useState(false);
   const [notaVisualizada, setNotaVisualizada] = useState<AnotacaoResumo | null>(null);
+  const [formInicial, setFormInicial] = useState<RascunhoAnotacao | null>(null);
+  const [confirmarDescarte, setConfirmarDescarte] = useState(false);
+  const requisicaoNotasRef = useRef(0);
+  const rascunhoRestauradoParaUsuarioRef = useRef<number | null>(null);
 
   const campanhaFiltroSelecionada = filtroCampanhaId
     ? Number(filtroCampanhaId)
@@ -76,7 +88,20 @@ export default function AnotacoesPage() {
   const campanhaFormSelecionada = formCampanhaId ? Number(formCampanhaId) : null;
   const sessaoFormSelecionada = formSessaoId ? Number(formSessaoId) : null;
 
-  const carregamentoInicial = authLoading || loading;
+  const carregamentoInicial = authLoading || (!carregamentoConcluido && loading);
+
+  const rascunhoAtual = useMemo<RascunhoAnotacao>(
+    () => ({
+      editandoId,
+      titulo: formTitulo,
+      conteudo: formConteudo,
+      campanhaId: formCampanhaId,
+      sessaoId: formSessaoId,
+    }),
+    [editandoId, formCampanhaId, formConteudo, formSessaoId, formTitulo],
+  );
+  const formularioFoiAlterado =
+    modalFormularioAberto && rascunhosAnotacaoDiferem(formInicial, rascunhoAtual);
 
   const filtrosAtivos = useMemo(() => {
     const filtros: string[] = [];
@@ -153,39 +178,42 @@ export default function AnotacoesPage() {
   );
 
   const carregarNotas = useCallback(
-    async (
-      pagina = paginaAtual,
-      overrides?: { campanhaId?: number | null; sessaoId?: number | null },
-    ) => {
+    async ({
+      pagina,
+      campanhaId,
+      sessaoId,
+    }: {
+      pagina: number;
+      campanhaId: number | null;
+      sessaoId: number | null;
+    }) => {
+      const idRequisicao = ++requisicaoNotasRef.current;
       try {
         setLoading(true);
         setErro(null);
-        const campanhaId =
-          overrides?.campanhaId !== undefined
-            ? overrides.campanhaId
-            : campanhaFiltroSelecionada;
-        const sessaoId =
-          overrides?.sessaoId !== undefined
-            ? overrides.sessaoId
-            : sessaoFiltroSelecionada;
         const resposta = await apiListarAnotacoes({
           campanhaId: campanhaId ?? undefined,
           sessaoId: sessaoId ?? undefined,
           pagina,
           limite: LIMITE_PAGINA,
         });
+        if (idRequisicao !== requisicaoNotasRef.current) return;
         setNotas(resposta.items);
         setTotalPaginas(resposta.totalPages);
         setTotalNotas(resposta.total);
       } catch (error) {
+        if (idRequisicao !== requisicaoNotasRef.current) return;
         const mensagem = criarErroUsuario(error);
         setErro(mensagem);
         showToast(mensagem, 'error');
       } finally {
-        setLoading(false);
+        if (idRequisicao === requisicaoNotasRef.current) {
+          setLoading(false);
+          setCarregamentoConcluido(true);
+        }
       }
     },
-    [campanhaFiltroSelecionada, paginaAtual, sessaoFiltroSelecionada, showToast],
+    [showToast],
   );
 
   const carregarCampanhas = useCallback(async () => {
@@ -221,8 +249,39 @@ export default function AnotacoesPage() {
     if (authLoading || !usuario) return;
 
     void carregarCampanhas();
-    void carregarNotas(1);
+    void carregarNotas({ pagina: 1, campanhaId: null, sessaoId: null });
   }, [authLoading, usuario, router, carregarCampanhas, carregarNotas]);
+
+  useEffect(() => {
+    if (!usuario || rascunhoRestauradoParaUsuarioRef.current === usuario.id) return;
+    rascunhoRestauradoParaUsuarioRef.current = usuario.id;
+    const rascunho = carregarRascunhoAnotacao(usuario.id);
+    if (!rascunho) return;
+    setEditandoId(rascunho.editandoId);
+    setFormTitulo(rascunho.titulo);
+    setFormConteudo(rascunho.conteudo);
+    setFormCampanhaId(rascunho.campanhaId);
+    setFormSessaoId(rascunho.sessaoId);
+    setFormInicial(null);
+    setModalFormularioAberto(true);
+    showToast('Rascunho de anotação restaurado.', 'info');
+  }, [showToast, usuario]);
+
+  useEffect(() => {
+    if (!usuario || !modalFormularioAberto) return;
+    if (!formularioFoiAlterado) return;
+    salvarRascunhoAnotacao(usuario.id, rascunhoAtual);
+  }, [formularioFoiAlterado, modalFormularioAberto, rascunhoAtual, usuario]);
+
+  useEffect(() => {
+    if (!formularioFoiAlterado) return;
+    const avisarAntesDeSair = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', avisarAntesDeSair);
+    return () => window.removeEventListener('beforeunload', avisarAntesDeSair);
+  }, [formularioFoiAlterado]);
 
   useEffect(() => {
     if (campanhaFiltroSelecionada) {
@@ -248,16 +307,35 @@ export default function AnotacoesPage() {
     setFormCampanhaId('');
     setFormSessaoId('');
     setEditandoId(null);
+    setFormInicial(null);
   }
 
   function abrirModalCriacao() {
     limparFormulario();
+    setFormInicial({
+      editandoId: null,
+      titulo: '',
+      conteudo: '',
+      campanhaId: '',
+      sessaoId: '',
+    });
     setNotaVisualizada(null);
     setModalFormularioAberto(true);
   }
 
   function fecharModalFormulario() {
     if (salvando) return;
+    if (formularioFoiAlterado) {
+      setConfirmarDescarte(true);
+      return;
+    }
+    setModalFormularioAberto(false);
+    limparFormulario();
+  }
+
+  function descartarFormulario() {
+    if (usuario) removerRascunhoAnotacao(usuario.id);
+    setConfirmarDescarte(false);
     setModalFormularioAberto(false);
     limparFormulario();
   }
@@ -293,9 +371,14 @@ export default function AnotacoesPage() {
 
       setModalFormularioAberto(false);
       setNotaVisualizada(null);
+      if (usuario) removerRascunhoAnotacao(usuario.id);
       limparFormulario();
-      await carregarNotas(1);
       setPaginaAtual(1);
+      await carregarNotas({
+        pagina: 1,
+        campanhaId: campanhaFiltroSelecionada,
+        sessaoId: sessaoFiltroSelecionada,
+      });
     } catch (error) {
       showToast(criarErroUsuario(error), 'error');
     } finally {
@@ -310,6 +393,13 @@ export default function AnotacoesPage() {
     setFormConteudo(nota.conteudo);
     setFormCampanhaId(nota.campanha?.id ? String(nota.campanha.id) : '');
     setFormSessaoId(nota.sessao?.id ? String(nota.sessao.id) : '');
+    setFormInicial({
+      editandoId: nota.id,
+      titulo: nota.titulo,
+      conteudo: nota.conteudo,
+      campanhaId: nota.campanha?.id ? String(nota.campanha.id) : '',
+      sessaoId: nota.sessao?.id ? String(nota.sessao.id) : '',
+    });
     setModalFormularioAberto(true);
   }
 
@@ -328,7 +418,7 @@ export default function AnotacoesPage() {
           setNotaVisualizada((atual) => (atual?.id === nota.id ? null : atual));
           showToast('Anotação removida.', 'success');
         } catch (error) {
-          showToast(criarErroUsuario(error), 'error');
+          throw new Error(criarErroUsuario(error).message);
         }
       },
     });
@@ -337,7 +427,11 @@ export default function AnotacoesPage() {
   function handleBuscar() {
     setPaginaAtual(1);
     setNotaVisualizada(null);
-    void carregarNotas(1);
+    void carregarNotas({
+      pagina: 1,
+      campanhaId: campanhaFiltroSelecionada,
+      sessaoId: sessaoFiltroSelecionada,
+    });
   }
 
   function handleLimparFiltros() {
@@ -346,13 +440,17 @@ export default function AnotacoesPage() {
     setBuscaLocal('');
     setPaginaAtual(1);
     setNotaVisualizada(null);
-    void carregarNotas(1, { campanhaId: null, sessaoId: null });
+    void carregarNotas({ pagina: 1, campanhaId: null, sessaoId: null });
   }
 
   function handleMudarPagina(proximaPagina: number) {
     setPaginaAtual(proximaPagina);
     setNotaVisualizada(null);
-    void carregarNotas(proximaPagina);
+    void carregarNotas({
+      pagina: proximaPagina,
+      campanhaId: campanhaFiltroSelecionada,
+      sessaoId: sessaoFiltroSelecionada,
+    });
   }
 
   if (carregamentoInicial) {
@@ -391,7 +489,12 @@ export default function AnotacoesPage() {
                       id: 'refresh',
                       label: 'Atualizar',
                       icon: 'refresh',
-                      onSelect: () => void carregarNotas(paginaAtual),
+                      onSelect: () =>
+                        void carregarNotas({
+                          pagina: paginaAtual,
+                          campanhaId: campanhaFiltroSelecionada,
+                          sessaoId: sessaoFiltroSelecionada,
+                        }),
                     },
                   ]}
                 />
@@ -691,6 +794,17 @@ export default function AnotacoesPage() {
           />
         </div>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={confirmarDescarte}
+        onClose={() => setConfirmarDescarte(false)}
+        onConfirm={async () => descartarFormulario()}
+        title="Descartar alterações?"
+        description="O rascunho desta anotação será removido deste navegador."
+        confirmLabel="Descartar"
+        cancelLabel="Continuar editando"
+        variant="warning"
+      />
 
       <ConfirmDialog
         isOpen={isOpen}
