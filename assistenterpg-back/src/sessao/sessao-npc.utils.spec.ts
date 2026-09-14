@@ -1,6 +1,7 @@
 import {
   calcularDadosPadraoPericia,
   filtrarNpcsVisiveisCenaAtual,
+  filtrarEventosVisiveisParaJogador,
   montarAtributosNpc,
   montarAtributosNpcSessao,
   normalizarTipoFichaNpcAmeaca,
@@ -72,5 +73,16 @@ describe('utilitários de NPC da sessão', () => {
       visibilidade: 'resumida',
       condicoesAtivas: [],
     });
+  });
+
+  it('oculta eventos que referenciam NPCs ocultos, inclusive aninhados', () => {
+    const eventos = [
+      { dados: { npcSessaoId: 2 } },
+      { dados: { contexto: { alvoNpcId: '2' } } },
+      { dados: { npcSessaoId: 3 } },
+    ];
+    expect(filtrarEventosVisiveisParaJogador(eventos, new Set([2]))).toEqual([
+      { dados: { npcSessaoId: 3 } },
+    ]);
   });
 });

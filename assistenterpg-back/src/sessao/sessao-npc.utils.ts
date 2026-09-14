@@ -1,5 +1,15 @@
 import { TipoFichaNpcAmeaca, TipoNpcAmeaca } from '@prisma/client';
 
+export const CAMPOS_REFERENCIA_NPC_SESSAO_EVENTO = new Set([
+  'npcSessaoId',
+  'alvoNpcSessaoId',
+  'origemNpcSessaoId',
+  'npcId',
+  'alvoNpcId',
+  'origemNpcId',
+  'npcSessaoIdRestaurado',
+]);
+
 export type AtributosNpcSessao = {
   agilidade: number;
   forca: number;
@@ -116,4 +126,42 @@ export function filtrarNpcsVisiveisCenaAtual<
   T extends { ocultoJogadores: boolean },
 >(npcs: T[], ehMestre: boolean): T[] {
   return ehMestre ? npcs : npcs.filter((npc) => !npc.ocultoJogadores);
+}
+
+export function normalizarInteiroEvento(valor: unknown): number | null {
+  if (typeof valor === 'number' && Number.isInteger(valor)) return valor;
+  if (typeof valor !== 'string' || !/^\d+$/.test(valor.trim())) return null;
+  const numero = Number(valor.trim());
+  return Number.isInteger(numero) ? numero : null;
+}
+
+export function eventoReferenciaNpcOculto(
+  valor: unknown,
+  npcSessaoIdsOcultos: Set<number>,
+): boolean {
+  if (Array.isArray(valor)) {
+    return valor.some((item) =>
+      eventoReferenciaNpcOculto(item, npcSessaoIdsOcultos),
+    );
+  }
+  if (!valor || typeof valor !== 'object') return false;
+  const registro = valor as Record<string, unknown>;
+  if (registro.ocultoJogadores === true) return true;
+  return Object.entries(registro).some(([chave, item]) => {
+    const npcSessaoId = CAMPOS_REFERENCIA_NPC_SESSAO_EVENTO.has(chave)
+      ? normalizarInteiroEvento(item)
+      : null;
+    return (
+      (npcSessaoId !== null && npcSessaoIdsOcultos.has(npcSessaoId)) ||
+      eventoReferenciaNpcOculto(item, npcSessaoIdsOcultos)
+    );
+  });
+}
+
+export function filtrarEventosVisiveisParaJogador<
+  T extends { dados: unknown },
+>(eventos: T[], npcSessaoIdsOcultos: Set<number>): T[] {
+  return eventos.filter(
+    (evento) => !eventoReferenciaNpcOculto(evento.dados, npcSessaoIdsOcultos),
+  );
 }

@@ -113,6 +113,7 @@ import {
 import { assertSessaoMutavel } from './sessao-mutabilidade';
 import {
   calcularDadosPadraoPericia as calcularDadosPadraoPericiaNpc,
+  filtrarEventosVisiveisParaJogador as filtrarEventosVisiveisParaJogadorBase,
   filtrarNpcsVisiveisCenaAtual as filtrarNpcsVisiveisCenaAtualBase,
   montarAtributosNpc as montarAtributosNpcBase,
   montarAtributosNpcSessao as montarAtributosNpcSessaoBase,
@@ -18826,12 +18827,9 @@ export class SessaoService {
   private filtrarEventosVisiveisParaJogador<
     T extends { dados: Prisma.JsonValue | null },
   >(eventos: T[], npcSessaoIdsOcultos: Set<number>): T[] {
-    return eventos.filter(
-      (evento) =>
-        !this.eventoSessaoReferenciaNpcOculto(
-          evento.dados,
-          npcSessaoIdsOcultos,
-        ),
+    return filtrarEventosVisiveisParaJogadorBase(
+      eventos,
+      npcSessaoIdsOcultos,
     );
   }
 
