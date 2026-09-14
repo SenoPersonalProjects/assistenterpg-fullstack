@@ -18827,10 +18827,7 @@ export class SessaoService {
   private filtrarEventosVisiveisParaJogador<
     T extends { dados: Prisma.JsonValue | null },
   >(eventos: T[], npcSessaoIdsOcultos: Set<number>): T[] {
-    return filtrarEventosVisiveisParaJogadorBase(
-      eventos,
-      npcSessaoIdsOcultos,
-    );
+    return filtrarEventosVisiveisParaJogadorBase(eventos, npcSessaoIdsOcultos);
   }
 
   private eventoSessaoReferenciaNpcOculto(

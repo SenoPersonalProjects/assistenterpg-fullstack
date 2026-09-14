@@ -158,9 +158,10 @@ export function eventoReferenciaNpcOculto(
   });
 }
 
-export function filtrarEventosVisiveisParaJogador<
-  T extends { dados: unknown },
->(eventos: T[], npcSessaoIdsOcultos: Set<number>): T[] {
+export function filtrarEventosVisiveisParaJogador<T extends { dados: unknown }>(
+  eventos: T[],
+  npcSessaoIdsOcultos: Set<number>,
+): T[] {
   return eventos.filter(
     (evento) => !eventoReferenciaNpcOculto(evento.dados, npcSessaoIdsOcultos),
   );
