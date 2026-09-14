@@ -200,3 +200,24 @@ export function criarSnapshotNpcSessao(
     iniciativaValor: npc.iniciativaValor ?? null,
   };
 }
+
+export function montarAtualizacaoNpcPorSnapshot(snapshot: SnapshotNpcSessao) {
+  return {
+    nomeExibicao: snapshot.nomeExibicao,
+    vd: snapshot.vd,
+    iniciativaValor: snapshot.iniciativaValor,
+    defesa: snapshot.defesa,
+    pontosVidaAtual: snapshot.pontosVidaAtual,
+    pontosVidaMax: snapshot.pontosVidaMax,
+    sanAtual: snapshot.sanAtual,
+    sanMax: snapshot.sanMax,
+    eaAtual: snapshot.eaAtual,
+    eaMax: snapshot.eaMax,
+    peAtual: snapshot.peAtual,
+    peMax: snapshot.peMax,
+    machucado: snapshot.machucado,
+    deslocamentoMetros: snapshot.deslocamentoMetros,
+    notasCena: snapshot.notasCena,
+    ocultoJogadores: snapshot.ocultoJogadores,
+  } satisfies Prisma.NpcAmeacaSessaoUpdateInput;
+}

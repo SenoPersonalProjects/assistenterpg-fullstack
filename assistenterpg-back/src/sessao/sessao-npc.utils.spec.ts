@@ -9,6 +9,7 @@ import {
   normalizarTipoNpcAmeaca,
   obterAtributoNpcPorBase,
   montarResumoNpcSessao,
+  montarAtualizacaoNpcPorSnapshot,
   podeControlarNpcSessao,
 } from './sessao-npc.utils';
 
@@ -113,5 +114,12 @@ describe('utilitários de NPC da sessão', () => {
       cenaId: 2,
     });
     expect(snapshot).toMatchObject({ npcAmeacaId: 4, eaAtual: 2, cenaId: 2 });
+    expect(montarAtualizacaoNpcPorSnapshot(snapshot)).toMatchObject({
+      pontosVidaAtual: 8,
+      pontosVidaMax: 10,
+      eaAtual: 2,
+      eaMax: 3,
+      ocultoJogadores: false,
+    });
   });
 });

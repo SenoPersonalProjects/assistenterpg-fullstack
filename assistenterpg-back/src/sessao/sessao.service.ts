@@ -118,6 +118,7 @@ import {
   filtrarNpcsVisiveisCenaAtual as filtrarNpcsVisiveisCenaAtualBase,
   montarAtributosNpc as montarAtributosNpcBase,
   montarAtributosNpcSessao as montarAtributosNpcSessaoBase,
+  montarAtualizacaoNpcPorSnapshot,
   montarResumoNpcSessao as montarResumoNpcSessaoBase,
   normalizarTipoFichaNpcAmeaca as normalizarTipoFichaNpcAmeacaBase,
   normalizarTipoNpcAmeaca as normalizarTipoNpcAmeacaBase,
@@ -18649,24 +18650,7 @@ export class SessaoService {
       return null;
     }
 
-    return {
-      nomeExibicao: dados.nomeExibicao,
-      vd: dados.vd,
-      iniciativaValor: dados.iniciativaValor,
-      defesa: dados.defesa,
-      pontosVidaAtual: dados.pontosVidaAtual,
-      pontosVidaMax: dados.pontosVidaMax,
-      sanAtual: dados.sanAtual,
-      sanMax: dados.sanMax,
-      eaAtual: dados.eaAtual,
-      eaMax: dados.eaMax,
-      peAtual: dados.peAtual,
-      peMax: dados.peMax,
-      machucado: dados.machucado,
-      deslocamentoMetros: dados.deslocamentoMetros,
-      notasCena: dados.notasCena,
-      ocultoJogadores: dados.ocultoJogadores,
-    } satisfies Prisma.NpcAmeacaSessaoUpdateInput;
+    return montarAtualizacaoNpcPorSnapshot(dados);
   }
 
   private filtrarNpcsVisiveisCenaAtual<T extends { ocultoJogadores: boolean }>(
