@@ -15328,13 +15328,16 @@ export class SessaoService {
               motivoEncerramento: 'EMPATE_FINAL',
             },
           });
-          for (const item of disputa.participantes)
-            await this.encerrarDominioTx(
-              tx,
-              item.dominio,
-              usuarioId,
-              'COLAPSO_EMPATE',
-            );
+          await Promise.all(
+            disputa.participantes.map((item) =>
+              this.encerrarDominioTx(
+                tx,
+                item.dominio,
+                usuarioId,
+                'COLAPSO_EMPATE',
+              ),
+            ),
+          );
         }
       } else {
         const margem = resultados[0].valor - resultados[1].valor;
@@ -15351,18 +15354,21 @@ export class SessaoService {
             primeiraResolucaoPendente: false,
           },
         });
-        for (const item of disputa.participantes.filter(
-          (p) => p.id !== vencedor.id,
-        ))
-          await tx.disputaDominioParticipante.update({
-            where: { id: item.id },
-            data: {
-              refinado: false,
-              forcarNaRodada: null,
-              pressionarDominioSessaoId: null,
-              primeiraResolucaoPendente: false,
-            },
-          });
+        await Promise.all(
+          disputa.participantes
+            .filter((p) => p.id !== vencedor.id)
+            .map((item) =>
+              tx.disputaDominioParticipante.update({
+                where: { id: item.id },
+                data: {
+                  refinado: false,
+                  forcarNaRodada: null,
+                  pressionarDominioSessaoId: null,
+                  primeiraResolucaoPendente: false,
+                },
+              }),
+            ),
+        );
         if (dominancia >= 3 || disputa.resolucoesConcluidas >= 2)
           await tx.disputaDominioSessao.update({
             where: { id: disputa.id },
