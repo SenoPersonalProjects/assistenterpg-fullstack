@@ -49,7 +49,7 @@ export class MelhoriaTreinamentoDto {
 
 export class GrauTreinamentoDto {
   @IsInt()
-  @IsIn([3, 7, 11, 16])
+  @IsIn([3, 8, 11, 16])
   nivel: number;
 
   @IsArray()

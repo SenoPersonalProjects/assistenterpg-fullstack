@@ -84,6 +84,8 @@ type SessionCharacterDetailsTabsProps = {
     variacaoHabilidadeId?: number,
     acumulos?: number,
     gastoPE?: number,
+    condicaoSessaoId?: number,
+    ignorarSobrecarga?: boolean,
   ) => void;
   onUsarHabilidadeClasse: (
     personagemSessaoId: number,

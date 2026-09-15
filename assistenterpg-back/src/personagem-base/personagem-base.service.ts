@@ -3957,14 +3957,14 @@ export class PersonagemBaseService {
     niveisDisponiveis: Array<{ nivel: number; maxMelhorias: number }>;
     limitesGrau: { graduado: number; veterano: number; expert: number };
   } {
-    const niveisValidos = [3, 7, 11, 16];
+    const niveisValidos = [3, 8, 11, 16];
     const niveisDisponiveis = niveisValidos
       .filter((n) => nivel >= n)
       .map((n) => ({ nivel: n, maxMelhorias: 2 + intelecto }));
 
     return {
       niveisDisponiveis,
-      limitesGrau: { graduado: 3, veterano: 9, expert: 16 },
+      limitesGrau: { graduado: 3, veterano: 8, expert: 16 },
     };
   }
 

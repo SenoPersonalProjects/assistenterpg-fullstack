@@ -56,7 +56,7 @@ describe('engine de capacidades de entidades vinculadas', () => {
       ataquesDistribuidos: 30,
       resistenciasMax: 30,
       resistenciasDistribuidas: 30,
-      tetoAtributo: 3,
+      tetoAtributo: 4,
       tetoAtaque: 12,
       tetoResistencia: 13,
     });
@@ -136,7 +136,7 @@ describe('engine de capacidades de entidades vinculadas', () => {
     expect([1, 5, 9, 13, 17].map(resolverLimiteVagasCorpos)).toEqual([
       1, 2, 3, 4, 5,
     ]);
-    expect(resolverTetoAtributoVinculado(5, 7)).toBe(3);
+    expect(resolverTetoAtributoVinculado(5, 7)).toBe(7);
     expect(resolverTetoAtributoVinculado(14, 4)).toBe(4);
     expect(resolverTetoAtributoVinculado(17, 6)).toBe(6);
   });

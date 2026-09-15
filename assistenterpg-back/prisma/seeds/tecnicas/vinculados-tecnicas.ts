@@ -28,7 +28,7 @@ const CONFIGURACOES: ConfigSeed[] = [
       usaTemplates: false,
       tipoGrauCodigo: 'TECNICA_SHIKIGAMI',
     },
-    calculoJson: { regra: 'SHIKIGAMI_V1', versao: '1.0.0' },
+    calculoJson: { regra: 'SHIKIGAMI_V2', versao: '1.4.0' },
   },
   {
     tecnicaCodigo: 'DEZ_SOMBRAS',
@@ -44,7 +44,7 @@ const CONFIGURACOES: ConfigSeed[] = [
       exigeDesbloqueio: true,
       tipoGrauCodigo: 'TECNICA_SHIKIGAMI',
     },
-    calculoJson: { regra: 'SHIKIGAMI_V1', versao: '1.0.0' },
+    calculoJson: { regra: 'SHIKIGAMI_V2', versao: '1.4.0' },
   },
   {
     tecnicaCodigo: 'NAOINATA_TECNICA_CORPOS_AMALDICOADOS',

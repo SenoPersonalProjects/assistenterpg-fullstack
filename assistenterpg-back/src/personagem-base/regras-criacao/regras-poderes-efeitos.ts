@@ -54,7 +54,7 @@ type GrauLivre = { tipoGrauCodigo: string; valor: number };
 function getMaxNivelTreinoPermitidoPorNivelPersonagem(nivel: number): number {
   // 0=destreinado, 1=treinado (5), 2=graduado (10), 3=veterano (15), 4=expert (20)
   if (nivel >= 16) return 4;
-  if (nivel >= 9) return 3;
+  if (nivel >= 8) return 3;
   if (nivel >= 3) return 2;
   return 1;
 }

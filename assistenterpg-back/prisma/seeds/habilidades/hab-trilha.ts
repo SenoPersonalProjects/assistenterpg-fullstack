@@ -112,6 +112,17 @@ export const habilidadesTrilhaSeed: SeedHabilidadeTrilha[] = [
   { trilhaNome: 'Mestre de Barreiras', caminhoNome: 'Apoio de Campo', habilidadeNome: 'Versátil', nivelConcedido: 20 },
 ];
 
+const DESCRICOES_HABILIDADES_TRILHA: Record<string, string> = {
+  'Absorver Agonia':
+    'Ao reduzir um inimigo a 0 PV com um feitiço, obtenha Pontos de Agonia conforme o PV máximo normal do alvo: 1 (até 50), 2 (51–100), 3 (101–150), 4 (151–200) ou 5 (201+). Cada ponto recupera 1 PE ou 1 EA; a cada 2 pontos não usados assim, receba +1 no limite de PE ou EA até o fim da cena. Alvos criados para alimentar a habilidade, invocados pelo usuário ou totalmente indefesos não geram Agonia.',
+  'Cabo de Guerra':
+    'Ao participar de uma Disputa de Domínios, recebe +1d20 e +5 nos Testes de Refinamento.',
+  'Isso Acaba Aqui':
+    'Quando o Acerto Garantido da própria Técnica Inata tiver sucesso dentro da Expansão de Domínio, pode gastar +2 PE e +2 EA para ampliar significativamente sua eficácia, conforme definido com o mestre.',
+  'Chega de Limitações':
+    'Recebe +1 grau em Técnicas de Barreira e aprende a manifestar Expansão de Domínio Aberta quando possuir uma expansão completa e cumprir os requisitos narrativos.',
+};
+
 export async function seedHabilidadesTrilha(prisma: PrismaClient) {
   console.log('Cadastrando habilidades de trilha...');
 
@@ -124,7 +135,7 @@ export async function seedHabilidadesTrilha(prisma: PrismaClient) {
       update: {
         tipo: 'TRILHA',
         hereditaria: false,
-        descricao: null,
+        descricao: DESCRICOES_HABILIDADES_TRILHA[nome] ?? null,
         
         // ✅ NOVO: Fonte e suplemento
         fonte: TipoFonte.SISTEMA_BASE,
@@ -134,7 +145,7 @@ export async function seedHabilidadesTrilha(prisma: PrismaClient) {
         nome,
         tipo: 'TRILHA',
         hereditaria: false,
-        descricao: null,
+        descricao: DESCRICOES_HABILIDADES_TRILHA[nome] ?? null,
         
         // ✅ NOVO: Fonte e suplemento
         fonte: TipoFonte.SISTEMA_BASE,

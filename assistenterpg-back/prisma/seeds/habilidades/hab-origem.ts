@@ -118,9 +118,9 @@ export const habilidadesOrigemSeed: SeedHabilidade[] = [
     tipo: 'ORIGEM',
     hereditaria: false,
     descricao:
-      'Você possui um poder paranormal à sua escolha. Porém, começa o jogo com metade da Sanidade normal para sua classe.',
+      'Você possui um Poder Genérico à sua escolha. Porém, começa o jogo com metade da Sanidade normal para sua classe.',
     mecanicasEspeciais: {
-      paranormal: { escolhePoder: true },
+      poderGenerico: { escolhePoder: true },
       sanidade: { multiplicadorInicial: 0.5 },
     },
   },

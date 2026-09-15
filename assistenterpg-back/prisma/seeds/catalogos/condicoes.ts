@@ -29,6 +29,9 @@ const CONDICOES_ICONES: Record<string, string> = {
   Inconsciente: 'moon',
   Indefeso: 'shield-defense',
   'Cura Acelerada': 'heart',
+  'Domínio Instável': 'warning',
+  'Esgotamento da Técnica': 'minus',
+  'Esgotamento de Domínio': 'minus',
   Lento: 'minimize',
   Machucado: 'heart',
   Morrendo: 'warning',
@@ -38,6 +41,7 @@ const CONDICOES_ICONES: Record<string, string> = {
   Perturbado: 'spirit',
   Petrificado: 'stop',
   'Produção Acelerada': 'bolt',
+  Sobrecarga: 'bolt',
   Sangrando: 'heart',
   Silenciado: 'volume-off',
   Surdo: 'volume-off',
@@ -180,6 +184,24 @@ export const condicoesSeed: SeedCondicao[] = [
     'No início de cada turno do alvo, recupera PV igual ao valor atual de acúmulos desta condição. Não possui limite global; limites podem ser definidos por fonte.',
   },
   {
+    codigo: 'DOMINIO_INSTAVEL',
+    nome: 'Domínio Instável',
+    descricao:
+      'O Domínio já sofreu uma Instabilidade. Uma nova Instabilidade faz o Domínio colapsar; durante uma disputa, cada Instabilidade também reduz a Dominância em 1.',
+  },
+  {
+    codigo: 'ESGOTAMENTO_TECNICA',
+    nome: 'Esgotamento da Técnica',
+    descricao:
+      'Não pode usar a Técnica Inata durante a duração. Um Domínio manifestado normalmente causa 2 rodadas deste esgotamento; uma expansão interrompida depois de gastar recursos causa 1 rodada.',
+  },
+  {
+    codigo: 'ESGOTAMENTO_DOMINIO',
+    nome: 'Esgotamento de Domínio',
+    descricao:
+      'Não pode abrir outro Domínio até o próximo descanso. Recuperação Neural pode removê-lo, conforme seus pré-requisitos e custos.',
+  },
+  {
     nome: 'Lento',
     descricao:
       'Todas as formas de deslocamento ficam pela metade; não pode correr ou investir. Condição de paralisia.',
@@ -220,7 +242,13 @@ export const condicoesSeed: SeedCondicao[] = [
     codigo: 'PRODUCAO_ACELERADA',
     nome: 'Produção Acelerada',
     descricao:
-    'No início de cada turno do alvo, recupera EA igual ao valor atual de acúmulos desta condição. Pela fonte Kokusen, acumula até Produção Acelerada 5.',
+    'No início de cada turno do alvo, recupera EA igual ao valor atual de acúmulos desta condição. Fontes distintas acumulam separadamente e respeitam seus próprios limites.',
+  },
+  {
+    codigo: 'SOBRECARGA_NEURAL',
+    nome: 'Sobrecarga',
+    descricao:
+      'Esforço neural acumulado por Recuperação Neural. Aumenta progressivamente o custo em EA e, nos níveis altos, penaliza Técnica Inata e Refinamento. O limite normal é 3; Tolerância Neural o eleva para 4.',
   },
   {
     nome: 'Sangrando',
@@ -235,7 +263,7 @@ export const condicoesSeed: SeedCondicao[] = [
   {
     nome: 'Surdo',
     descricao:
-      'Não faz testes de Percepção para ouvir, sofre -2d20 em Iniciativa e é considerado ruim para rituais. Condição de sentidos.',
+      'Não faz testes de Percepção para ouvir, sofre -2d20 em Iniciativa e fica Ruim para Lançar Feitiços. Condição de sentidos.',
   },
   {
     nome: 'Surpreendido',

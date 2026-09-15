@@ -28,6 +28,8 @@ type UseSessaoHabilidadesReturn = {
     variacaoHabilidadeId?: number,
     acumulos?: number,
     gastoPE?: number,
+    condicaoSessaoId?: number,
+    ignorarSobrecarga?: boolean,
   ) => Promise<void>;
   handleUsarHabilidadeClasse: (
     personagemSessaoId: number,
@@ -79,6 +81,8 @@ export function useSessaoHabilidades({
       variacaoHabilidadeId?: number,
       acumulos?: number,
       gastoPE?: number,
+      condicaoSessaoId?: number,
+      ignorarSobrecarga?: boolean,
     ) => {
       if (sessaoEncerrada || acaoHabilidadePendente) return;
 
@@ -124,6 +128,16 @@ export function useSessaoHabilidades({
               }
               return Math.max(1, Math.trunc(gastoPE));
             })(),
+            condicaoSessaoId: (() => {
+              if (
+                typeof condicaoSessaoId !== 'number' ||
+                !Number.isFinite(condicaoSessaoId)
+              ) {
+                return undefined;
+              }
+              return Math.max(1, Math.trunc(condicaoSessaoId));
+            })(),
+            ignorarSobrecarga: ignorarSobrecarga || undefined,
           },
         );
         setDetalhe(atualizado);

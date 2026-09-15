@@ -445,7 +445,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         codigo: 'NAOINATA_EXPANSAO_DOMINIO',
         nome: 'Expansao de Domínio',
         descricao:
-          'Manifesta domínio inato dentro de barreira imbuida com técnica inata.',
+          'Manifesta o Domínio Inato em uma barreira imbuída com a Técnica Inata. O Acerto Garantido afeta cada alvo no início do próprio turno.',
         execucao: TipoExecucao.ACAO_COMPLETA,
         area: AreaEfeito.ESFERA,
         alcance: 'Raio curto (9m)',
@@ -459,15 +459,16 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
           exigeDominioInato: true,
           exigeMudra: true,
         },
+        custoSustentacaoEA: 2,
         efeito:
-          'Acerto garantido para técnicas selecionadas dentro do domínio. Tipos comuns: letal, aperfeicoado e restritivo. Custos e refinamento variam até 20 EA.',
+          'Domínio fechado: Integridade base 4, +1 para cada grau de Técnica de Barreira acima de 2; pode investir +2 EA por +1 Integridade, até o grau de Barreira. Disputas usam Refinamento derivado de Jujutsu, Barreira e circunstâncias; o vencedor obtém Dominância. O mudra integra a abertura e não ocupa as mãos após a formação, salvo regra específica.',
         ordem: 20,
       },
       {
         codigo: 'NAOINATA_EXPANSAO_DOMINIO_ABERTA',
         nome: 'Expansao de Domínio Aberta',
         descricao:
-          'Domínio sem fechamento completo de barreira, com ponto focal para acerto garantido.',
+          'Domínio sem casca convencional, com ponto focal e alcance amplo. Não pode ser rompido como um Domínio fechado, mas também não aprisiona fisicamente os alvos.',
         execucao: TipoExecucao.ACAO_COMPLETA,
         area: AreaEfeito.OUTROS,
         alcance: 'Area ampliada a partir do totem',
@@ -477,13 +478,14 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         custoPE: 4,
         requisitos: {
           graus: [
-            { tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 3 },
-            { tipoGrauCodigo: 'TECNICA_BARREIRA', valorMinimo: 2 },
+            { tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 4 },
+            { tipoGrauCodigo: 'TECNICA_BARREIRA', valorMinimo: 4 },
             { tipoGrauCodigo: 'TECNICA_REVERSA', valorMinimo: 2 },
           ],
         },
+        custoSustentacaoEA: 2,
         efeito:
-          'Permite rota de fuga, mas amplia alcance e poder com acerto garantido se expandindo do centro até a borda por turnos.',
+          'A técnica continua existindo dentro e fora de Domínios fechados sobrepostos, podendo atacar a estrutura externa deles. Não recebe bônus gratuito de Refinamento apenas por ser aberto; sua vantagem é estrutural.',
         ordem: 30,
       },
       {
@@ -557,22 +559,23 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         codigo: 'NAOINATA_CESTA_OCA',
         nome: 'Cesta Oca',
         descricao:
-          'Barreira esférica defensiva que anula acerto garantido de domínios.',
+          'Barreira pessoal defensiva que protege contra Acerto Garantido enquanto permanecer íntegra.',
         execucao: TipoExecucao.ACAO_PADRAO,
         area: AreaEfeito.ESFERA,
         alcance: 'Pessoal',
         alvo: 'Você',
         duracao: 'Sustentado',
         custoEA: 1,
+        custoSustentacaoEA: 1,
         efeito:
-          'Neutraliza acerto garantido de domínios imbuido com técnica amaldiçoada. Exige duas mãos livres e pode ser quebrada por ataques diretos de energia amaldiçoada.',
+          'Integridade igual a 2 + metade arredondada para cima do grau em Técnica Anti-Barreira. Exige duas mãos livres, pode sofrer Rupturas de ataques com Energia Amaldiçoada e, ao chegar a 0, precisa ser reativada com o custo integral.',
         ordem: 10,
       },
       {
         codigo: 'NAOINATA_DOMINIO_SIMPLES',
         nome: 'Domínio Simples',
         descricao:
-          'Pequeno domínio defensivo ao redor do usuário, focado em sobrevivencia.',
+          'Domínio defensivo de área que neutraliza Acerto Garantido enquanto mantiver Integridade.',
         execucao: TipoExecucao.ACAO_PADRAO,
         area: AreaEfeito.ESFERA,
         alcance: 'Até curto',
@@ -582,8 +585,9 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         requisitos: {
           narrativo: 'Requer ensino de alguém que possua Domínio Simples.',
         },
+        custoSustentacaoEA: 1,
         efeito:
-          'Concede +5 Defesa contra ataques externos e anula acerto garantido de domínios enquanto sustentado.',
+          'Integridade igual a 3 + metade arredondada para cima do grau em Técnica Anti-Barreira. Contra Expansão verdadeira, sofre corrosão e funciona como defesa temporária; pode restaurar toda a Integridade com ação padrão e 2 EA. Ao ativar, a Adição Pés Enraizados concede +2 Integridade, mas sair do espaço encerra o efeito.',
         ordem: 20,
         variacoes: [
           {
@@ -616,7 +620,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         codigo: 'NAOINATA_AMPLIFICACAO_DOMINIO',
         nome: 'Amplificacao de Domínio',
         descricao:
-          'Reveste corpo com veu vazio de domínio para enfraquecer técnicas ao contato.',
+          'Reveste o usuário com um véu de Domínio pessoal para interferir em Técnicas Amaldiçoadas por contato.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Pessoal',
         alvo: 'Você',
@@ -628,8 +632,9 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
             { tipoGrauCodigo: 'TECNICA_BARREIRA', valorMinimo: 1 },
           ],
         },
+        custoSustentacaoEA: 1,
         efeito:
-          'Anula ou enfraquece técnicas amaldiçoadas em contato. Enquanto ativa, usuário não pode usar própria técnica inata. Contra dano recebido, concede RD 6 base.',
+          'Enfraquece Técnicas Amaldiçoadas por contato e ajuda a atravessar defesas produzidas por uma Técnica. Enquanto ativa, o usuário não usa normalmente a própria Técnica Inata. Não é Domínio Simples e não neutraliza Acerto Garantido de área por si só.',
         ordem: 30,
         variacoes: [
           {
@@ -906,6 +911,29 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
             ordem: 10,
           },
         ],
+      },
+      {
+        codigo: 'NAOINATA_RECUPERACAO_NEURAL',
+        nome: 'Recuperação Neural',
+        descricao:
+          'Força a Técnica Amaldiçoada Reversa sobre o cérebro para restaurar uma função esgotada após uma Expansão de Domínio.',
+        execucao: TipoExecucao.ACAO_COMPLETA,
+        alcance: 'Pessoal',
+        alvo: 'Você',
+        duracao: 'Instantânea',
+        custoEA: 4,
+        custoPE: 2,
+        requisitos: {
+          graus: [{ tipoGrauCodigo: 'TECNICA_REVERSA', valorMinimo: 2 }],
+          narrativo:
+            'Requer ter realizado pelo menos 3 Expansões de Domínio ao longo da vida, vencendo ou perdendo disputas.',
+        },
+        efeito:
+          'Remove Esgotamento da Técnica ou Esgotamento de Domínio à escolha e aplica 1 Sobrecarga. Cada uso remove apenas um esgotamento. Se ultrapassaria o limite de Sobrecarga, exige Exceder o Limite.',
+        mecanicasSessao: {
+          tipo: 'RECUPERACAO_NEURAL',
+        },
+        ordem: 60,
       },
     ],
   },

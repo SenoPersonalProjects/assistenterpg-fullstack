@@ -3702,13 +3702,15 @@ export default function SessaoCampanhaPage() {
       onToggleTecnicasNaoInatas={atualizarTecnicasNaoInatasAbertas}
       acumulosHabilidade={acumulosHabilidade}
       onAtualizarAcumulosHabilidade={atualizarAcumuloHabilidade}
-      onUsarHabilidade={(personagemSessaoId, habilidadeTecnicaId, variacaoId, acumulos, gastoPE) =>
+      onUsarHabilidade={(personagemSessaoId, habilidadeTecnicaId, variacaoId, acumulos, gastoPE, condicaoSessaoId, ignorarSobrecarga) =>
         void handleUsarHabilidade(
           personagemSessaoId,
           habilidadeTecnicaId,
           variacaoId,
           acumulos,
           gastoPE,
+          condicaoSessaoId,
+          ignorarSobrecarga,
         )
       }
       onUsarHabilidadeClasse={(personagemSessaoId, payload) =>
@@ -4152,13 +4154,15 @@ export default function SessaoCampanhaPage() {
                   acaoHabilidadePendente={acaoHabilidadePendente}
                   acumulosHabilidade={acumulosHabilidade}
                   onAtualizarAcumulosHabilidade={atualizarAcumuloHabilidade}
-                  onUsarHabilidade={(personagemSessaoId, habilidadeTecnicaId, variacaoId, acumulos, gastoPE) =>
+                  onUsarHabilidade={(personagemSessaoId, habilidadeTecnicaId, variacaoId, acumulos, gastoPE, condicaoSessaoId, ignorarSobrecarga) =>
                     void handleUsarHabilidade(
                       personagemSessaoId,
                       habilidadeTecnicaId,
                       variacaoId,
                       acumulos,
                       gastoPE,
+                      condicaoSessaoId,
+                      ignorarSobrecarga,
                     )
                   }
                   onUsarHabilidadeClasse={(personagemSessaoId, payload) =>

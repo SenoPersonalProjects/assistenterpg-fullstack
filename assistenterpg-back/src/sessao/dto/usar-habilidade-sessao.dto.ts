@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsUUID, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsUUID, Min } from 'class-validator';
 
 export class UsarHabilidadeSessaoDto {
   @IsOptional()
@@ -23,4 +23,13 @@ export class UsarHabilidadeSessaoDto {
   @IsInt()
   @Min(1)
   gastoPE?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  condicaoSessaoId?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  ignorarSobrecarga?: boolean;
 }

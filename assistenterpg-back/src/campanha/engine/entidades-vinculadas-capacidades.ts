@@ -70,11 +70,12 @@ export function resolverLimiteVagasCorpos(nivel: number): number {
 }
 
 export function resolverTetoAtributoVinculado(
-  nivel: number,
+  _nivel: number,
   maiorAtributoDono: number,
 ): number {
-  const tetoNivel = nivel >= 16 ? 7 : nivel >= 13 ? 5 : 3;
-  return Math.max(0, Math.min(tetoNivel, maiorAtributoDono));
+  // O capítulo 9.1.1 limita o atributo do Shikigami pelo maior atributo
+  // efetivo do invocador; a faixa de nível já limita apenas o pool total.
+  return Math.max(0, maiorAtributoDono);
 }
 
 function resolverTetoAtaqueShikigami(nivel: number): number {
@@ -208,7 +209,7 @@ export function calcularFichaAutomaticaVinculado(
 
   return {
     ativo: true,
-    versaoRegra: '1.0.0',
+    versaoRegra: '1.4.0',
     motivoRecalculo: input.motivoRecalculo ?? null,
     nivelReferencia: input.nivel,
     grauReferencia: input.grau,

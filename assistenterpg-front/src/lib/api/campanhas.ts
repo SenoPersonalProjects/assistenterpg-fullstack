@@ -59,6 +59,8 @@ export type UsarHabilidadeSessaoCampanhaPayload = {
   variacaoHabilidadeId?: number;
   acumulos?: number;
   gastoPE?: number;
+  condicaoSessaoId?: number;
+  ignorarSobrecarga?: boolean;
 };
 
 export type UsarHabilidadeClasseSessaoCampanhaPayload = {

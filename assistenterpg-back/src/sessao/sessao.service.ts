@@ -810,6 +810,15 @@ const CONDICAO_AUTOMACAO_CHAVES = {
 
 const FONTE_KOKUSEN = 'KOKUSEN';
 const LIMITE_PRODUCAO_KOKUSEN = 5;
+const MECANICA_RECUPERACAO_NEURAL = 'RECUPERACAO_NEURAL';
+const CODIGO_CONDICAO_SOBRECARGA_NEURAL = 'SOBRECARGA_NEURAL';
+const CODIGOS_CONDICAO_ESGOTAMENTO_NEURAL = [
+  'ESGOTAMENTO_TECNICA',
+  'ESGOTAMENTO_DOMINIO',
+] as const;
+const NOME_PODER_TOLERANCIA_NEURAL = 'Tolerância Neural';
+const LIMITE_SOBRECARGA_NEURAL_PADRAO = 3;
+const LIMITE_SOBRECARGA_NEURAL_TOLERANCIA = 4;
 const CHAVE_ESTADO_HABILIDADES_CLASSE_SESSAO = 'HABILIDADES_CLASSE_SESSAO';
 const LIMITE_APRIMORAMENTO_TEMPORARIO_POR_TECNICA = 2;
 const CAMPOS_REFERENCIA_NPC_SESSAO_EVENTO = new Set([
@@ -8060,6 +8069,7 @@ export class SessaoService {
       habilidadeTecnicaId: dto.habilidadeTecnicaId,
       variacaoHabilidadeId: dto.variacaoHabilidadeId ?? null,
       acumulos: dto.acumulos ?? null,
+      condicaoSessaoId: dto.condicaoSessaoId ?? null,
     };
 
     const criadoAgora = await this.executarMutacaoIdempotenteSessao(
@@ -8161,6 +8171,21 @@ export class SessaoService {
                       },
                     },
                   },
+                  poderesGenericos: {
+                    include: {
+                      habilidade: {
+                        select: {
+                          id: true,
+                          nome: true,
+                          codigo: true,
+                          descricao: true,
+                          tipo: true,
+                          origem: true,
+                          mecanicasEspeciais: true,
+                        },
+                      },
+                    },
+                  },
                   personagemBase: {
                     select: {
                       grausAprimoramento: {
@@ -8184,6 +8209,21 @@ export class SessaoService {
                                 },
                                 orderBy: { ordem: 'asc' },
                               },
+                            },
+                          },
+                        },
+                      },
+                      poderesGenericos: {
+                        include: {
+                          habilidade: {
+                            select: {
+                              id: true,
+                              nome: true,
+                              codigo: true,
+                              descricao: true,
+                              tipo: true,
+                              origem: true,
+                              mecanicasEspeciais: true,
                             },
                           },
                         },
@@ -8427,6 +8467,19 @@ export class SessaoService {
             },
           });
 
+          const efeitoRecuperacaoNeural =
+            await this.aplicarRecuperacaoNeuralTx(tx, {
+              mecanicaSessao,
+              condicaoSessaoId: dto.condicaoSessaoId,
+              ignorarSobrecarga: dto.ignorarSobrecarga === true,
+              sessaoId,
+              cenaId: cenaAtual.id,
+              personagemSessaoId,
+              personagem: personagemSessao.personagemCampanha,
+              rodadaAtual: sessao.rodadaAtual,
+              usuarioId,
+            });
+
           if (
             custo.isSustentada &&
             ((custo.custoSustentacaoEA ?? 0) > 0 ||
@@ -8495,6 +8548,7 @@ export class SessaoService {
                       custo.custoEscalonamentoSustentacaoPE,
                     gastoPE: ehConversaoPeEmEa ? dto.gastoPE : null,
                     eaProduzida: custo.producaoEAInstantanea || null,
+                    recuperacaoNeural: efeitoRecuperacaoNeural,
                     escalonamentoTipo: custo.escalonamentoTipo,
                     escalonamentoEfeito: custo.escalonamentoEfeito,
                     resumoEscalonamento: custo.resumoEscalonamento,
@@ -13400,6 +13454,207 @@ export class SessaoService {
       where: { id: iniciativa.id },
       data: { ladoAtualId },
     });
+  }
+
+  private async aplicarRecuperacaoNeuralTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      mecanicaSessao: Record<string, unknown>;
+      condicaoSessaoId?: number;
+      ignorarSobrecarga: boolean;
+      sessaoId: number;
+      cenaId: number;
+      personagemSessaoId: number;
+      personagem: PersonagemCampanhaTecnicasSessaoRaw;
+      rodadaAtual: number;
+      usuarioId: number;
+    },
+  ): Promise<Record<string, unknown> | null> {
+    if (args.mecanicaSessao.tipo !== MECANICA_RECUPERACAO_NEURAL) return null;
+
+    if (!args.condicaoSessaoId) {
+      throw new BusinessException(
+        'Selecione o esgotamento que sera removido pela Recuperacao Neural.',
+        'SESSAO_RECUPERACAO_NEURAL_ESGOTAMENTO_OBRIGATORIO',
+      );
+    }
+
+    const esgotamento = await tx.condicaoPersonagemSessao.findFirst({
+      where: {
+        id: args.condicaoSessaoId,
+        sessaoId: args.sessaoId,
+        personagemSessaoId: args.personagemSessaoId,
+        ativo: true,
+        condicao: {
+          codigo: { in: [...CODIGOS_CONDICAO_ESGOTAMENTO_NEURAL] },
+        },
+      },
+      select: {
+        id: true,
+        condicaoId: true,
+        condicao: { select: { codigo: true, nome: true } },
+      },
+    });
+    if (!esgotamento) {
+      throw new BusinessException(
+        'O esgotamento selecionado nao esta ativo neste personagem.',
+        'SESSAO_RECUPERACAO_NEURAL_ESGOTAMENTO_INVALIDO',
+        { condicaoSessaoId: args.condicaoSessaoId },
+      );
+    }
+
+    const poderes = [
+      ...(args.personagem.personagemBase?.poderesGenericos ?? []),
+      ...(args.personagem.poderesGenericos ?? []),
+    ];
+    const possuiToleranciaNeural = poderes.some(
+      ({ habilidade }) => habilidade.nome === NOME_PODER_TOLERANCIA_NEURAL,
+    );
+    const limiteSobrecarga = possuiToleranciaNeural
+      ? LIMITE_SOBRECARGA_NEURAL_TOLERANCIA
+      : LIMITE_SOBRECARGA_NEURAL_PADRAO;
+    const sobrecargaAtiva = await tx.condicaoPersonagemSessao.findFirst({
+      where: {
+        sessaoId: args.sessaoId,
+        personagemSessaoId: args.personagemSessaoId,
+        ativo: true,
+        condicao: { codigo: CODIGO_CONDICAO_SOBRECARGA_NEURAL },
+      },
+      select: { id: true, acumulos: true, condicaoId: true },
+    });
+    const sobrecargaAnterior = sobrecargaAtiva?.acumulos ?? 0;
+
+    const recuperacoesNaCena = await tx.eventoSessao.findMany({
+      where: {
+        sessaoId: args.sessaoId,
+        cenaId: args.cenaId,
+        personagemAtorId: args.personagemSessaoId,
+        tipoEvento: 'RECUPERACAO_NEURAL_USADA',
+      },
+      select: { dados: true },
+    });
+    const toleranciaJaConsumida = recuperacoesNaCena.some((evento) => {
+      const dados = this.extrairRegistro(evento.dados);
+      return dados.sobrecargaIgnorada === true;
+    });
+    if (args.ignorarSobrecarga && !possuiToleranciaNeural) {
+      throw new BusinessException(
+        'Apenas quem possui Tolerância Neural pode ignorar Sobrecarga.',
+        'SESSAO_RECUPERACAO_NEURAL_TOLERANCIA_NECESSARIA',
+      );
+    }
+    if (args.ignorarSobrecarga && toleranciaJaConsumida) {
+      throw new BusinessException(
+        'Tolerância Neural já foi usada nesta cena.',
+        'SESSAO_RECUPERACAO_NEURAL_TOLERANCIA_JA_USADA',
+      );
+    }
+    const sobrecargaIgnorada = args.ignorarSobrecarga;
+
+    if (sobrecargaAnterior >= limiteSobrecarga && !sobrecargaIgnorada) {
+      throw new BusinessException(
+        'A Recuperacao Neural ultrapassaria seu limite de Sobrecarga Neural.',
+        'SESSAO_RECUPERACAO_NEURAL_SOBRECARGA_LIMITE',
+        { limiteSobrecarga, sobrecargaAtual: sobrecargaAnterior },
+      );
+    }
+
+    await tx.condicaoPersonagemSessao.update({
+      where: { id: esgotamento.id },
+      data: {
+        ativo: false,
+        removidaEm: new Date(),
+        motivoRemocao: 'Removido por Recuperacao Neural.',
+      },
+    });
+    await tx.eventoSessao.create({
+      data: {
+        sessaoId: args.sessaoId,
+        cenaId: args.cenaId,
+        personagemAtorId: args.personagemSessaoId,
+        tipoEvento: 'CONDICAO_REMOVIDA',
+        dados: this.jsonParaPersistencia({
+          condicaoSessaoId: esgotamento.id,
+          condicaoId: esgotamento.condicaoId,
+          condicaoNome: esgotamento.condicao.nome,
+          motivoRemocao: 'Recuperacao Neural',
+          removidaPorId: args.usuarioId,
+        }),
+      },
+    });
+
+    let sobrecargaNova = sobrecargaAnterior;
+    if (!sobrecargaIgnorada) {
+      sobrecargaNova += 1;
+      if (sobrecargaAtiva) {
+        await tx.condicaoPersonagemSessao.update({
+          where: { id: sobrecargaAtiva.id },
+          data: { acumulos: sobrecargaNova },
+        });
+      } else {
+        const condicaoSobrecarga = await tx.condicao.findUnique({
+          where: { codigo: CODIGO_CONDICAO_SOBRECARGA_NEURAL },
+          select: { id: true, nome: true },
+        });
+        if (!condicaoSobrecarga) {
+          throw new BusinessException(
+            'A condicao Sobrecarga Neural nao esta cadastrada.',
+            'SESSAO_RECUPERACAO_NEURAL_SOBRECARGA_NOT_FOUND',
+          );
+        }
+        const criada = await tx.condicaoPersonagemSessao.create({
+          data: {
+            sessaoId: args.sessaoId,
+            personagemSessaoId: args.personagemSessaoId,
+            condicaoId: condicaoSobrecarga.id,
+            cenaId: args.cenaId,
+            turnoAplicacao: args.rodadaAtual,
+            duracaoModo: CONDICAO_DURACAO_MODOS.ATE_REMOVER,
+            ativo: true,
+            automatica: false,
+            contadorTurnos: 0,
+            acumulos: sobrecargaNova,
+            fonteCodigo: MECANICA_RECUPERACAO_NEURAL,
+            limiteFonte: limiteSobrecarga,
+            origemDescricao: 'Recuperacao Neural',
+          },
+        });
+        await tx.eventoSessao.create({
+          data: {
+            sessaoId: args.sessaoId,
+            cenaId: args.cenaId,
+            personagemAtorId: args.personagemSessaoId,
+            tipoEvento: 'CONDICAO_APLICADA',
+            dados: this.jsonParaPersistencia({
+              condicaoSessaoId: criada.id,
+              condicaoId: condicaoSobrecarga.id,
+              condicaoNome: condicaoSobrecarga.nome,
+              acumulos: sobrecargaNova,
+              fonteCodigo: MECANICA_RECUPERACAO_NEURAL,
+              aplicadoPorId: args.usuarioId,
+            }),
+          },
+        });
+      }
+    }
+
+    const resultado = {
+      condicaoSessaoId: esgotamento.id,
+      condicaoRemovida: esgotamento.condicao.nome,
+      sobrecargaAnterior,
+      sobrecargaNova,
+      sobrecargaIgnorada,
+    };
+    await tx.eventoSessao.create({
+      data: {
+        sessaoId: args.sessaoId,
+        cenaId: args.cenaId,
+        personagemAtorId: args.personagemSessaoId,
+        tipoEvento: 'RECUPERACAO_NEURAL_USADA',
+        dados: this.jsonParaPersistencia({ ...resultado, usuarioId: args.usuarioId }),
+      },
+    });
+    return resultado;
   }
 
   private async criarCondicaoDaSustentacaoTx(

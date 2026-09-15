@@ -705,16 +705,33 @@ export const habilidadesPoderesGenericosSeed = [
     origem: 'GERAL',
     hereditaria: false,
     descricao:
-      'Escolha 2 perícias para aumentar o grau de treinamento delas. Precisa passar pelas etapas de cada grau de treinamento para ir pro próximo. Esse poder pode ser escolhido várias vezes.',
+      'Escolha 2 perícias para aumentar em um grau o treinamento delas, respeitando os marcos gerais, o limite permitido pelo nível e a ordem dos graus. Este poder pode ser escolhido mais de uma vez.',
     mecanicasEspeciais: {
       repetivel: true,
       escolha: { tipo: 'PERICIAS', quantidade: 2 },
       progressao: [
         { nivelMinimo: 1, grauNovo: 5 },
         { nivelMinimo: 3, grauNovo: 10 },
-        { nivelMinimo: 9, grauNovo: 15 },
+        { nivelMinimo: 8, grauNovo: 15 },
         { nivelMinimo: 16, grauNovo: 20 },
       ],
+    },
+  },
+  {
+    nome: 'Tolerância Neural',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Seu limite de Sobrecarga Neural aumenta de 3 para 4. Uma vez por cena, ao usar Recuperação Neural, você pode ignorar uma aplicação de Sobrecarga. Requer Recuperação Neural.',
+    requisitos: {
+      narrativo: 'Requer Recuperação Neural.',
+    },
+    mecanicasEspeciais: {
+      toleranciaNeural: {
+        limiteSobrecarga: 4,
+        ignorarAplicacaoPorCena: true,
+      },
     },
   },
 

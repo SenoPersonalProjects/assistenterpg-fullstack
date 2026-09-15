@@ -41,6 +41,8 @@ type SessionTechniqueBlockProps = {
     variacaoHabilidadeId?: number,
     acumulos?: number,
     gastoPE?: number,
+    condicaoSessaoId?: number,
+    ignorarSobrecarga?: boolean,
   ) => void;
   onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
   onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
@@ -76,6 +78,22 @@ function ehConversaoPeEmEa(mecanicasSessao: unknown): boolean {
     mecanicasSessao !== null &&
     (mecanicasSessao as { tipo?: unknown }).tipo === 'CONVERTER_PE_EM_EA'
   );
+}
+
+function ehRecuperacaoNeural(mecanicasSessao: unknown): boolean {
+  return (
+    typeof mecanicasSessao === 'object' &&
+    mecanicasSessao !== null &&
+    (mecanicasSessao as { tipo?: unknown }).tipo === 'RECUPERACAO_NEURAL'
+  );
+}
+
+function montarChaveCondicaoHabilidade(
+  personagemSessaoId: number,
+  habilidadeTecnicaId: number,
+  variacaoHabilidadeId?: number,
+): string {
+  return `condicao:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
 }
 
 function parseAcumulos(
@@ -347,6 +365,27 @@ export function SessionTechniqueBlock({
             const conversaoInstantaneaBase = ehConversaoPeEmEa(
               custoBase.mecanicasSessao,
             );
+            const recuperacaoNeuralBase = ehRecuperacaoNeural(
+              custoBase.mecanicasSessao,
+            );
+            const chaveCondicaoBase = montarChaveCondicaoHabilidade(
+              card.personagemSessaoId,
+              habilidade.id,
+            );
+            const esgotamentosAtivos = (card.condicoesAtivas ?? []).filter(
+              (condicao) =>
+                condicao.nome === 'Esgotamento da Técnica' ||
+                condicao.nome === 'Esgotamento de Domínio',
+            );
+            const condicaoRecuperacaoNeuralId = Math.trunc(
+              Number(acumulosHabilidade[chaveCondicaoBase]) || 0,
+            );
+            const chaveIgnorarSobrecargaBase = `ignorar-sobrecarga:${chaveCondicaoBase}`;
+            const possuiToleranciaNeural = card.outrasHabilidades.some(
+              (outraHabilidade) => outraHabilidade.nome === 'Tolerância Neural',
+            );
+            const ignorarSobrecargaBase =
+              acumulosHabilidade[chaveIgnorarSobrecargaBase] === '1';
             const gastoPEBase = Math.max(
               2,
               Math.trunc(Number(acumulosHabilidade[chaveGastoPEBase]) || 2),
@@ -519,6 +558,48 @@ export function SessionTechniqueBlock({
                       </div>
                     </div>
                   ) : null}
+                  {recuperacaoNeuralBase ? (
+                    <div className="rounded border border-app-border bg-app-bg/80 p-2 space-y-1">
+                      <label className="text-xs font-semibold text-app-fg" htmlFor={chaveCondicaoBase}>
+                        Esgotamento a remover
+                      </label>
+                      <select
+                        id={chaveCondicaoBase}
+                        value={condicaoRecuperacaoNeuralId || ''}
+                        disabled={!card.podeEditar || sessaoEncerrada || esgotamentosAtivos.length === 0}
+                        onChange={(event) =>
+                          onAtualizarAcumulosHabilidade(chaveCondicaoBase, event.target.value)
+                        }
+                        className="h-8 w-full rounded border border-app-border bg-app-surface px-2 text-xs text-app-fg"
+                      >
+                        <option value="">Selecione um esgotamento ativo</option>
+                        {esgotamentosAtivos.map((condicao) => (
+                          <option key={condicao.id} value={condicao.id}>
+                            {condicao.nome}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[11px] text-app-muted">
+                        Remove um esgotamento e aplica 1 Sobrecarga Neural.
+                      </p>
+                      {possuiToleranciaNeural ? (
+                        <label className="flex items-center gap-2 text-[11px] text-app-fg">
+                          <input
+                            type="checkbox"
+                            checked={ignorarSobrecargaBase}
+                            disabled={!card.podeEditar || sessaoEncerrada}
+                            onChange={(event) =>
+                              onAtualizarAcumulosHabilidade(
+                                chaveIgnorarSobrecargaBase,
+                                event.target.checked ? '1' : '',
+                              )
+                            }
+                          />
+                          Usar Tolerância Neural para ignorar esta Sobrecarga (1 vez por cena).
+                        </label>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {card.podeEditar && (testesBaseResolvidos || danoBaseDisponivel) ? (
                     <div className="flex flex-wrap items-center gap-1.5">
                       {testesBaseResolvidos ? (
@@ -585,10 +666,18 @@ export function SessionTechniqueBlock({
                             undefined,
                             acumulosBase,
                             conversaoInstantaneaBase ? gastoPEBase : undefined,
+                            recuperacaoNeuralBase
+                              ? condicaoRecuperacaoNeuralId || undefined
+                              : undefined,
+                            recuperacaoNeuralBase
+                              ? ignorarSobrecargaBase
+                              : undefined,
                           )
                         }
                         disabled={
-                          sessaoEncerrada || acaoHabilidadePendente === chaveBase
+                          sessaoEncerrada ||
+                          acaoHabilidadePendente === chaveBase ||
+                          (recuperacaoNeuralBase && !condicaoRecuperacaoNeuralId)
                         }
                       >
                         {acaoHabilidadePendente === chaveBase

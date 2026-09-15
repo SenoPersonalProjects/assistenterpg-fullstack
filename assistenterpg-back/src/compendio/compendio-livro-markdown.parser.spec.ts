@@ -13,7 +13,7 @@ const markdownPath = join(
   'seeds',
   'compendio',
   'assets',
-  'Maledicencia_RPG_1_1.docx.md',
+  'Maledicencia_RPG_1_4.docx.md',
 );
 
 function parseLivro(): LivroSeed {
@@ -58,7 +58,7 @@ describe('parseLivroPrincipalMarkdown', () => {
     );
   });
 
-  it('creates a v1.1 summary intro and preserves markdown tables from the source', () => {
+  it('creates a versioned summary intro and preserves markdown tables from the source', () => {
     const livro = parseLivro();
     const artigos = getAllArticles(livro);
     const apresentacao = artigos.find(
@@ -66,15 +66,16 @@ describe('parseLivroPrincipalMarkdown', () => {
     );
     const pericias = artigos.find((artigo) => artigo.codigo === 'pericias');
 
-    expect(apresentacao?.titulo).toBe('Livro Principal v1.1');
-    expect(apresentacao?.conteudo).toContain('# Livro Principal v1.1');
+    expect(apresentacao?.titulo).toBe('Livro Principal v1.4');
+    expect(apresentacao?.conteudo).toContain('# Livro Principal v1.4');
     expect(apresentacao?.conteudo).toContain('## Sumário');
     expect(apresentacao?.conteudo).toContain(
       '/compendio/livros/livro-principal/introducao-ao-sistema-jujutsu-kaisen-rpg',
     );
     expect(apresentacao?.conteudo.match(/^\* \[\d+\./gm)).toHaveLength(14);
     expect(apresentacao?.conteudo).not.toContain('Capa ainda');
-    expect(apresentacao?.conteudo).not.toContain('Maledic');
+    expect(apresentacao?.conteudo).toContain('Novidades da versão 1.4');
+    expect(apresentacao?.conteudo).toContain('Refinamento e Dominância');
     expect(pericias?.conteudo).toContain('| Per');
     expect(pericias?.conteudo).toContain('| Acrobacia |');
   });

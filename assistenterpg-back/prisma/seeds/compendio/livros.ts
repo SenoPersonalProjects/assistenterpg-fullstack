@@ -14,7 +14,7 @@ import { buildSobrevivendoAoJujutsuLivro } from './sobrevivendo-ao-jujutsu-livro
 const LIVRO_PRINCIPAL_MARKDOWN_PATH = join(
   __dirname,
   'assets',
-  'Maledicencia_RPG_1_1.docx.md',
+  'Maledicencia_RPG_1_4.docx.md',
 );
 
 function carregarLivroPrincipal(): LivroSeed {

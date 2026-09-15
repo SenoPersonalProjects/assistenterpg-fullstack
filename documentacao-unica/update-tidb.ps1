@@ -429,6 +429,15 @@ function Get-SeedCommand {
         DestructiveRelations = $false
       }
     }
+    'maledicencia-1-4' {
+      return [pscustomobject]@{
+        Name = 'maledicencia-1-4'
+        Tool = 'npm'
+        Arguments = @('run', 'seed:maledicencia-1-4')
+        ValidatesCompendio = $false
+        DestructiveRelations = $false
+      }
+    }
     'correcoes-texto' {
       return [pscustomobject]@{
         Name = 'correcoes-texto'
@@ -479,7 +488,7 @@ function Get-SeedCommand {
       }
     }
     default {
-      throw "Seed não permitido: $Seed. Permitidos: compendio, sobrevivendo, equipamentos, técnicas-inatas, tecnicas-nao-inatas, tecnicas-vinculados, correcoes-texto, modificacoes-aplicaveis, full."
+      throw "Seed não permitido: $Seed. Permitidos: compendio, sobrevivendo, equipamentos, técnicas-inatas, tecnicas-nao-inatas, tecnicas-vinculados, maledicencia-1-4, correcoes-texto, modificacoes-aplicaveis, full."
     }
   }
 }

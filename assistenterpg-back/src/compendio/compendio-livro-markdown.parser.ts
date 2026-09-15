@@ -433,7 +433,26 @@ function parseCategory(
   };
 }
 
-function createIntroCategory(categorias: CategoriaSeed[]): CategoriaSeed {
+function getLivroPrincipalVersao(markdown: string): string {
+  const match = markdown.match(/^Maledic[^\n]*?RPG\s*\\?-\s*([\d.]+)/im);
+  return match?.[1] ?? '1.0';
+}
+
+function getChangelogLivroPrincipal(versao: string): string {
+  if (versao !== '1.4') return '';
+
+  return `
+## Novidades da versão 1.4
+
+Maledicência RPG 1.4 revisa profundamente Expansões de Domínio, substituindo o antigo Cabo de Guerra por Refinamento e Dominância para múltiplos Domínios. Também consolida Concentração, Instabilidade, Integridade e Rupturas de barreira, Domínios Abertos, Esgotamentos, Recuperação Neural e técnicas anti-Domínio.
+
+A revisão inclui Pontos de Manifestação para combate simplificado, as regras completas de Shikigamis e Corpos Amaldiçoados, Sanidade, Medo e Traumas, a distinção entre EA e PE, Ajustes Ritualísticos de Adição/Subtração e o guia ampliado de Técnicas Inatas. Terminologia, referências e formatação do livro foram padronizadas.`;
+}
+
+function createIntroCategory(
+  categorias: CategoriaSeed[],
+  versao: string,
+): CategoriaSeed {
   const codigo = 'apresentacao-e-sumario';
   const summaryItems = categorias.map((categoria, index) => {
     const firstSubcategoria = categoria.subcategorias[0];
@@ -456,10 +475,10 @@ function createIntroCategory(categorias: CategoriaSeed[]): CategoriaSeed {
     subcategorias: [
       createSubcategoria({
         codigo,
-        nome: 'Livro Principal v1.1',
-        descricao: 'Versão e sumário navegável do livro principal.',
+        nome: `Livro Principal v${versao}`,
+        descricao: `Versão ${versao} e sumário navegável do livro principal.`,
         ordem: 1,
-        markdown: `# Livro Principal v1.1\n\n## Sumário\n\n${summaryItems.join('\n')}`,
+        markdown: `# Livro Principal v${versao}\n\n## Sumário\n\n${summaryItems.join('\n')}${getChangelogLivroPrincipal(versao)}`,
         categoriaCodigo: codigo,
         categoriaNome: 'Apresentação e Sumário',
         chapterNumber: 1,
@@ -495,7 +514,9 @@ export function parseLivroPrincipalMarkdown(markdown: string): LivroSeed {
     );
   }
 
-  categorias.unshift(createIntroCategory(categorias));
+  categorias.unshift(
+    createIntroCategory(categorias, getLivroPrincipalVersao(normalizedMarkdown)),
+  );
 
   return {
     codigo: 'livro-principal',

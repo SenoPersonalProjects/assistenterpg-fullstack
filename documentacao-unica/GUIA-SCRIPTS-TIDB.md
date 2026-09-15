@@ -76,6 +76,7 @@ Seeds liberados no `update-tidb.ps1`:
 - `sobrevivendo`: seed do suplemento oficial.
 - `técnicas-inatas`: seed focado de técnicas inatas.
 - `tecnicas-nao-inatas`: seed focado de técnicas não inatas.
+- `maledicencia-1-4`: catálogo mecânico idempotente da revisão 1.4 (condições, poderes, trilhas, técnicas não inatas e vinculados).
 - `correcoes-texto`: seed seguro para reaplicar textos corrigidos em catálogos, equipamentos e habilidades sem rodar o seed completo.
 - `modificacoes-aplicaveis`: recria relações de modificações aplicáveis; usar com atenção.
 - `full`: seed completo. Bloqueado por padrão.
