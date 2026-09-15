@@ -15,12 +15,20 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const isPublicRoute = isPublicAuthPagePath(pathname);
 
   if (isPublicRoute) {
-    return <>{children}</>;
+    return (
+      <div id="conteudo-principal" tabIndex={-1}>
+        {children}
+      </div>
+    );
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-app-bg p-8">
+      <div
+        id="conteudo-principal"
+        tabIndex={-1}
+        className="min-h-screen flex items-center justify-center bg-app-bg p-8"
+      >
         <Loading variant="dice" size="lg" message="Entoando encantamentos..." />
       </div>
     );
