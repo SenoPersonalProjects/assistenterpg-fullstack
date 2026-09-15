@@ -29,7 +29,8 @@ param(
   [switch]$ValidateOnly,
   [string]$ConfirmationText = '',
   [switch]$SkipConnectionTest,
-  [switch]$AllowFullSeed
+  [switch]$AllowFullSeed,
+  [string]$ResolveRolledBackMigration = ''
 )
 
 Set-StrictMode -Version 2.0
@@ -808,6 +809,16 @@ try {
   }
 
   if ($Migrate) {
+    if (-not [string]::IsNullOrWhiteSpace($ResolveRolledBackMigration)) {
+      Write-Step "Recuperando migration remota marcada como falha: $ResolveRolledBackMigration"
+      Invoke-NativeCommand `
+        -FilePath $npxExe `
+        -Arguments @('prisma', 'migrate', 'resolve', '--rolled-back', $ResolveRolledBackMigration) `
+        -Label 'prisma migrate resolve remoto' `
+        -WorkingDirectory $backPath `
+        -Environment $prismaEnv | Out-Null
+      Write-Ok 'Migration falha marcada como revertida'
+    }
     Write-Step 'Aplicando migrations Prisma no TiDB'
     Invoke-NativeCommand `
       -FilePath $npxExe `

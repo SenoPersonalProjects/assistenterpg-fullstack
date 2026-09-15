@@ -460,6 +460,10 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
           exigeMudra: true,
         },
         custoSustentacaoEA: 2,
+        mecanicasSessao: {
+          tipo: 'EXPANSAO_DOMINIO',
+          dominio: { tipo: 'FECHADO', acertoGarantido: true },
+        },
         efeito:
           'Domínio fechado: Integridade base 4, +1 para cada grau de Técnica de Barreira acima de 2; pode investir +2 EA por +1 Integridade, até o grau de Barreira. Disputas usam Refinamento derivado de Jujutsu, Barreira e circunstâncias; o vencedor obtém Dominância. O mudra integra a abertura e não ocupa as mãos após a formação, salvo regra específica.',
         ordem: 20,
@@ -484,6 +488,10 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
           ],
         },
         custoSustentacaoEA: 2,
+        mecanicasSessao: {
+          tipo: 'EXPANSAO_DOMINIO',
+          dominio: { tipo: 'ABERTO', acertoGarantido: true },
+        },
         efeito:
           'A técnica continua existindo dentro e fora de Domínios fechados sobrepostos, podendo atacar a estrutura externa deles. Não recebe bônus gratuito de Refinamento apenas por ser aberto; sua vantagem é estrutural.',
         ordem: 30,
@@ -567,6 +575,10 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         duracao: 'Sustentado',
         custoEA: 1,
         custoSustentacaoEA: 1,
+        mecanicasSessao: {
+          tipo: 'DEFESA_ANTI_DOMINIO',
+          defesa: { tipo: 'CESTA_OCA', neutralizaAcertoGarantido: true },
+        },
         efeito:
           'Integridade igual a 2 + metade arredondada para cima do grau em Técnica Anti-Barreira. Exige duas mãos livres, pode sofrer Rupturas de ataques com Energia Amaldiçoada e, ao chegar a 0, precisa ser reativada com o custo integral.',
         ordem: 10,
@@ -586,6 +598,10 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
           narrativo: 'Requer ensino de alguém que possua Domínio Simples.',
         },
         custoSustentacaoEA: 1,
+        mecanicasSessao: {
+          tipo: 'DEFESA_ANTI_DOMINIO',
+          defesa: { tipo: 'DOMINIO_SIMPLES', neutralizaAcertoGarantido: true },
+        },
         efeito:
           'Integridade igual a 3 + metade arredondada para cima do grau em Técnica Anti-Barreira. Contra Expansão verdadeira, sofre corrosão e funciona como defesa temporária; pode restaurar toda a Integridade com ação padrão e 2 EA. Ao ativar, a Adição Pés Enraizados concede +2 Integridade, mas sair do espaço encerra o efeito.',
         ordem: 20,
@@ -633,6 +649,10 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
           ],
         },
         custoSustentacaoEA: 1,
+        mecanicasSessao: {
+          tipo: 'DEFESA_ANTI_DOMINIO',
+          defesa: { tipo: 'AMPLIFICACAO', neutralizaAcertoGarantido: false },
+        },
         efeito:
           'Enfraquece Técnicas Amaldiçoadas por contato e ajuda a atravessar defesas produzidas por uma Técnica. Enquanto ativa, o usuário não usa normalmente a própria Técnica Inata. Não é Domínio Simples e não neutraliza Acerto Garantido de área por si só.',
         ordem: 30,

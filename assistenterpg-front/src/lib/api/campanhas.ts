@@ -61,6 +61,19 @@ export type UsarHabilidadeSessaoCampanhaPayload = {
   gastoPE?: number;
   condicaoSessaoId?: number;
   ignorarSobrecarga?: boolean;
+  investimentoIntegridade?: number;
+  alvosPersonagemSessaoIds?: number[];
+  alvosNpcSessaoIds?: number[];
+};
+
+export type AcaoDominioSessaoPayload = {
+  clientRequestId: string;
+  acao: 'FORMAR' | 'INTERROMPER' | 'REFINAR' | 'FORCAR' | 'PRESSIONAR' | 'ESTABILIZAR' | 'REFORCAR' | 'RECONFIGURAR' | 'DESFAZER' | 'REGISTRAR_RUPTURA' | 'ATRAVESSAR';
+  dominioAlvoId?: number;
+  resultadoAtaque?: number;
+  potenciaRuptura?: 'NORMAL' | 'POTENCIALIZADO' | 'EXCEPCIONAL';
+  golpeConcentrado?: boolean;
+  motivo?: string;
 };
 
 export type UsarHabilidadeClasseSessaoCampanhaPayload = {
@@ -1137,6 +1150,19 @@ export async function apiUsarHabilidadeSessaoCampanha(
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/personagens/${personagemSessaoId}/habilidades/usar`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiExecutarAcaoDominioSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  dominioId: number,
+  payload: AcaoDominioSessaoPayload,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/dominios/${dominioId}/acoes`,
     payload,
   );
   return data;

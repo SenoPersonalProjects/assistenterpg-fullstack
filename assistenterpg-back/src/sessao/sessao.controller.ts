@@ -27,6 +27,14 @@ import { DesfazerEventoSessaoDto } from './dto/desfazer-evento-sessao.dto';
 import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciativa-sessao.dto';
 import { AtualizarValorIniciativaSessaoDto } from './dto/atualizar-valor-iniciativa-sessao.dto';
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
+import {
+  AcaoDominioSessaoDto,
+  CriarDefesaAntiDominioSessaoDto,
+  CriarDisputaDominioSessaoDto,
+  CriarDominioNpcSessaoDto,
+  DormirInterludioSessaoDto,
+  ResolverDisputaDominioSessaoDto,
+} from './dto/dominio-sessao.dto';
 import { UsarHabilidadeClasseSessaoDto } from './dto/usar-habilidade-classe-sessao.dto';
 import { EncerrarSustentacaoSessaoDto } from './dto/encerrar-sustentacao-sessao.dto';
 import { ControleTurnoSessaoDto } from './dto/controle-turno-sessao.dto';
@@ -247,6 +255,81 @@ export class SessaoController {
       );
     }
     return resultado.detalhe;
+  }
+
+  @Post(':sessaoId/npcs/dominios')
+  async criarDominioNpcSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: CriarDominioNpcSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.criarDominioNpcSessao(campanhaId, sessaoId, req.user.id, dto);
+    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'DOMINIO_ATUALIZADO');
+    return resultado.detalhe;
+  }
+
+  @Post(':sessaoId/dominios/:dominioId/acoes')
+  async executarAcaoDominioSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('dominioId', ParseIntPipe) dominioId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AcaoDominioSessaoDto,
+  ) {
+    const detalhe = await this.sessaoService.executarAcaoDominioSessao(campanhaId, sessaoId, dominioId, req.user.id, dto);
+    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'DOMINIO_ATUALIZADO');
+    return detalhe;
+  }
+
+  @Post(':sessaoId/disputas-dominios')
+  async criarDisputaDominioSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: CriarDisputaDominioSessaoDto,
+  ) {
+    const detalhe = await this.sessaoService.criarDisputaDominioSessao(campanhaId, sessaoId, req.user.id, dto);
+    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'DOMINIO_DISPUTA_ATUALIZADA');
+    return detalhe;
+  }
+
+  @Post(':sessaoId/disputas-dominios/:disputaId/resolver')
+  async resolverDisputaDominioSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('disputaId', ParseIntPipe) disputaId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: ResolverDisputaDominioSessaoDto,
+  ) {
+    const detalhe = await this.sessaoService.resolverDisputaDominioSessao(campanhaId, sessaoId, disputaId, req.user.id, dto);
+    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'DOMINIO_DISPUTA_ATUALIZADA');
+    return detalhe;
+  }
+
+  @Post(':sessaoId/defesas-anti-dominio')
+  async criarDefesaAntiDominioSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: CriarDefesaAntiDominioSessaoDto,
+  ) {
+    const detalhe = await this.sessaoService.criarDefesaAntiDominioSessao(campanhaId, sessaoId, req.user.id, dto);
+    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'DOMINIO_DEFESA_ATUALIZADA');
+    return detalhe;
+  }
+
+  @Post(':sessaoId/personagens/:personagemSessaoId/dormir-interludio')
+  async dormirInterludioSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('personagemSessaoId', ParseIntPipe) personagemSessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: DormirInterludioSessaoDto,
+  ) {
+    const detalhe = await this.sessaoService.dormirInterludioSessao(campanhaId, sessaoId, personagemSessaoId, req.user.id, dto);
+    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'DOMINIO_INTERLUDIO_DESCANSO');
+    return detalhe;
   }
 
   @Post(':sessaoId/personagens/:personagemSessaoId/habilidades-classe/usar')

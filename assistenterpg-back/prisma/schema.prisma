@@ -480,7 +480,7 @@ model Usuario {
   sustentacoesSessaoCriadas                PersonagemSessaoHabilidadeSustentada[]      @relation("SustentacaoSessaoCriadaPor")
   sustentacoesSessaoDesativadas            PersonagemSessaoHabilidadeSustentada[]      @relation("SustentacaoSessaoDesativadaPor")
   personagensSessaoControlados             PersonagemSessao[]                          @relation("PersonagemSessaoControladorUsuario")
-  npcsSessaoControlados                    NpcAmeacaSessao[]                          @relation("NpcSessaoControladorUsuario")
+  npcsSessaoControlados                    NpcAmeacaSessao[]                           @relation("NpcSessaoControladorUsuario")
   npcsAmeacas                              NpcAmeaca[]
   preferencias                             PreferenciaUsuario?
   tokensAuth                               AuthToken[]
@@ -1254,6 +1254,9 @@ model Sessao {
   personagens            PersonagemSessao[]                     @relation("PersonagensDaSessao")
   npcs                   NpcAmeacaSessao[]
   habilidadesSustentadas PersonagemSessaoHabilidadeSustentada[]
+  dominios               DominioSessao[]
+  disputasDominios       DisputaDominioSessao[]
+  defesasAntiDominio     DefesaAntiDominioSessao[]
   condicoes              CondicaoPersonagemSessao[]
   eventos                EventoSessao[]
   anotacoes              Anotacao[]
@@ -1379,12 +1382,15 @@ model Cena {
   id       Int @id @default(autoincrement())
   sessaoId Int
 
-  sessao      Sessao                     @relation(fields: [sessaoId], references: [id])
-  personagens PersonagemSessao[]         @relation("PersonagensDaCena")
-  npcs        NpcAmeacaSessao[]
-  condicoes   CondicaoPersonagemSessao[]
-  eventos     EventoSessao[]
-  itensSessao ItemSessaoCampanha[]
+  sessao             Sessao                     @relation(fields: [sessaoId], references: [id])
+  personagens        PersonagemSessao[]         @relation("PersonagensDaCena")
+  npcs               NpcAmeacaSessao[]
+  condicoes          CondicaoPersonagemSessao[]
+  eventos            EventoSessao[]
+  itensSessao        ItemSessaoCampanha[]
+  dominios           DominioSessao[]
+  disputasDominios   DisputaDominioSessao[]
+  defesasAntiDominio DefesaAntiDominioSessao[]
 }
 
 model PersonagemCampanhaEntidadeVinculada {
@@ -1518,9 +1524,13 @@ model NpcAmeacaSessao {
   entidadeVinculada                PersonagemCampanhaEntidadeVinculada? @relation(fields: [entidadeVinculadaId], references: [id], onDelete: SetNull)
   personagemDono                   PersonagemCampanha?                  @relation("NpcSessaoDonoPersonagem", fields: [personagemDonoId], references: [id], onDelete: SetNull)
   personagemControladorSessao      PersonagemSessao?                    @relation("NpcSessaoControladorPersonagem", fields: [personagemControladorSessaoId], references: [id], onDelete: SetNull)
-  controladorUsuario               Usuario?                              @relation("NpcSessaoControladorUsuario", fields: [controladorUsuarioId], references: [id], onDelete: SetNull)
+  controladorUsuario               Usuario?                             @relation("NpcSessaoControladorUsuario", fields: [controladorUsuarioId], references: [id], onDelete: SetNull)
   condicoes                        CondicaoPersonagemSessao[]
   transferenciasItensSessaoDestino TransferenciaItemSessaoCampanha[]
+  dominios                         DominioSessao[]
+  alvosDeDominios                  DominioSessaoAlvo[]
+  alvosDeDisputas                  DisputaDominioAlvo[]
+  defesasAntiDominio               DefesaAntiDominioSessao[]
 
   @@index([sessaoId])
   @@index([cenaId])
@@ -1544,15 +1554,163 @@ model PersonagemSessao {
   sessao             Sessao             @relation("PersonagensDaSessao", fields: [sessaoId], references: [id])
   cena               Cena?              @relation("PersonagensDaCena", fields: [cenaId], references: [id])
   personagemCampanha PersonagemCampanha @relation(fields: [personagemCampanhaId], references: [id])
-  controladorUsuario  Usuario?           @relation("PersonagemSessaoControladorUsuario", fields: [controladorUsuarioId], references: [id], onDelete: SetNull)
+  controladorUsuario Usuario?           @relation("PersonagemSessaoControladorUsuario", fields: [controladorUsuarioId], references: [id], onDelete: SetNull)
 
   condicoes              CondicaoPersonagemSessao[]
   habilidadesSustentadas PersonagemSessaoHabilidadeSustentada[]
   eventosComoAtor        EventoSessao[]                         @relation("EventosComoAtor")
   eventosComoAlvo        EventoSessao[]                         @relation("EventosComoAlvo")
   npcsControlados        NpcAmeacaSessao[]                      @relation("NpcSessaoControladorPersonagem")
+  dominios               DominioSessao[]                        @relation("DominioSessaoPersonagem")
+  alvosDeDominios        DominioSessaoAlvo[]                    @relation("DominioSessaoAlvoPersonagem")
+  alvosDeDisputas        DisputaDominioAlvo[]
+  defesasAntiDominio     DefesaAntiDominioSessao[]              @relation("DefesaAntiDominioPersonagem")
 
   @@index([controladorUsuarioId])
+}
+
+model DominioSessao {
+  id                       Int       @id @default(autoincrement())
+  sessaoId                 Int
+  cenaId                   Int
+  personagemSessaoId       Int?
+  npcSessaoId              Int?
+  habilidadeTecnicaId      Int?
+  nome                     String    @db.VarChar(160)
+  descricaoAcertoGarantido String?   @db.Text
+  tipo                     String    @db.VarChar(20)
+  estado                   String    @default("ABRINDO") @db.VarChar(20)
+  acertoGarantidoAtivo     Boolean   @default(true)
+  grauBarreira             Int       @default(2)
+  integridadeMax           Int?
+  integridadeAtual         Int?
+  rupturas                 Int       @default(0)
+  exteriorReforcado        Boolean   @default(false)
+  instavel                 Boolean   @default(false)
+  investimentoIntegridade  Int       @default(0)
+  rodadaAbertura           Int
+  rodadaUltimaPressao      Int?
+  sustentacaoHabilidadeId  Int?
+  criadoPorUsuarioId       Int
+  criadoEm                 DateTime  @default(now())
+  encerradoEm              DateTime?
+  encerradoPorUsuarioId    Int?
+  motivoEncerramento       String?   @db.Text
+
+  sessao                Sessao                                @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  cena                  Cena                                  @relation(fields: [cenaId], references: [id], onDelete: Cascade)
+  personagemSessao      PersonagemSessao?                     @relation("DominioSessaoPersonagem", fields: [personagemSessaoId], references: [id], onDelete: Cascade)
+  npcSessao             NpcAmeacaSessao?                      @relation(fields: [npcSessaoId], references: [id], onDelete: Cascade)
+  habilidadeTecnica     HabilidadeTecnica?                    @relation(fields: [habilidadeTecnicaId], references: [id], onDelete: SetNull)
+  sustentacaoHabilidade PersonagemSessaoHabilidadeSustentada? @relation(fields: [sustentacaoHabilidadeId], references: [id], onDelete: SetNull)
+  alvos                 DominioSessaoAlvo[]
+  participacoesDisputa  DisputaDominioParticipante[]
+
+  @@index([sessaoId, cenaId, estado])
+  @@index([personagemSessaoId, estado])
+  @@index([npcSessaoId, estado])
+  @@index([sustentacaoHabilidadeId])
+}
+
+model DominioSessaoAlvo {
+  id                 Int  @id @default(autoincrement())
+  dominioSessaoId    Int
+  personagemSessaoId Int?
+  npcSessaoId        Int?
+
+  dominio          DominioSessao     @relation(fields: [dominioSessaoId], references: [id], onDelete: Cascade)
+  personagemSessao PersonagemSessao? @relation("DominioSessaoAlvoPersonagem", fields: [personagemSessaoId], references: [id], onDelete: Cascade)
+  npcSessao        NpcAmeacaSessao?  @relation(fields: [npcSessaoId], references: [id], onDelete: Cascade)
+
+  @@index([dominioSessaoId])
+  @@index([personagemSessaoId])
+  @@index([npcSessaoId])
+}
+
+model DisputaDominioSessao {
+  id                     Int       @id @default(autoincrement())
+  sessaoId               Int
+  cenaId                 Int
+  estado                 String    @default("ATIVA") @db.VarChar(20)
+  resolucoesConcluidas   Int       @default(0)
+  rodadaProximaResolucao Int
+  criadoPorUsuarioId     Int
+  criadoEm               DateTime  @default(now())
+  encerradaEm            DateTime?
+  motivoEncerramento     String?   @db.Text
+
+  sessao        Sessao                       @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  cena          Cena                         @relation(fields: [cenaId], references: [id], onDelete: Cascade)
+  participantes DisputaDominioParticipante[]
+  alvos         DisputaDominioAlvo[]
+
+  @@index([sessaoId, cenaId, estado])
+}
+
+model DisputaDominioParticipante {
+  id                        Int     @id @default(autoincrement())
+  disputaDominioSessaoId    Int
+  dominioSessaoId           Int
+  dominancia                Int     @default(0)
+  entradaTardia             Boolean @default(false)
+  expansaoReativa           Boolean @default(false)
+  primeiraResolucaoPendente Boolean @default(false)
+  refinado                  Boolean @default(false)
+  forcarNaRodada            Int?
+  pressionarDominioSessaoId Int?
+
+  disputa DisputaDominioSessao @relation(fields: [disputaDominioSessaoId], references: [id], onDelete: Cascade)
+  dominio DominioSessao        @relation(fields: [dominioSessaoId], references: [id], onDelete: Cascade)
+
+  @@unique([disputaDominioSessaoId, dominioSessaoId], map: "disputa_dominio_participante_unico")
+  @@index([dominioSessaoId])
+}
+
+model DisputaDominioAlvo {
+  id                     Int  @id @default(autoincrement())
+  disputaDominioSessaoId Int
+  personagemSessaoId     Int?
+  npcSessaoId            Int?
+
+  disputa          DisputaDominioSessao @relation(fields: [disputaDominioSessaoId], references: [id], onDelete: Cascade)
+  personagemSessao PersonagemSessao?    @relation(fields: [personagemSessaoId], references: [id], onDelete: Cascade)
+  npcSessao        NpcAmeacaSessao?     @relation(fields: [npcSessaoId], references: [id], onDelete: Cascade)
+
+  @@index([disputaDominioSessaoId])
+  @@index([personagemSessaoId])
+  @@index([npcSessaoId])
+}
+
+model DefesaAntiDominioSessao {
+  id                      Int       @id @default(autoincrement())
+  sessaoId                Int
+  cenaId                  Int
+  personagemSessaoId      Int?
+  npcSessaoId             Int?
+  habilidadeTecnicaId     Int?
+  tipo                    String    @db.VarChar(24)
+  integridadeMax          Int?
+  integridadeAtual        Int?
+  pesEnraizados           Boolean   @default(false)
+  variacao                String?   @db.VarChar(80)
+  ativa                   Boolean   @default(true)
+  sustentacaoHabilidadeId Int?
+  criadoPorUsuarioId      Int
+  criadoEm                DateTime  @default(now())
+  encerradaEm             DateTime?
+  motivoEncerramento      String?   @db.Text
+
+  sessao                Sessao                                @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  cena                  Cena                                  @relation(fields: [cenaId], references: [id], onDelete: Cascade)
+  personagemSessao      PersonagemSessao?                     @relation("DefesaAntiDominioPersonagem", fields: [personagemSessaoId], references: [id], onDelete: Cascade)
+  npcSessao             NpcAmeacaSessao?                      @relation(fields: [npcSessaoId], references: [id], onDelete: Cascade)
+  habilidadeTecnica     HabilidadeTecnica?                    @relation(fields: [habilidadeTecnicaId], references: [id], onDelete: SetNull)
+  sustentacaoHabilidade PersonagemSessaoHabilidadeSustentada? @relation(fields: [sustentacaoHabilidadeId], references: [id], onDelete: SetNull)
+
+  @@index([sessaoId, cenaId, ativa])
+  @@index([personagemSessaoId, ativa])
+  @@index([npcSessaoId, ativa])
+  @@index([sustentacaoHabilidadeId])
 }
 
 model PersonagemSessaoHabilidadeSustentada {
@@ -1583,6 +1741,8 @@ model PersonagemSessaoHabilidadeSustentada {
   criadaPor          Usuario                    @relation("SustentacaoSessaoCriadaPor", fields: [criadaPorUsuarioId], references: [id], onDelete: Cascade)
   desativadaPor      Usuario?                   @relation("SustentacaoSessaoDesativadaPor", fields: [desativadaPorUsuarioId], references: [id], onDelete: SetNull)
   condicoesGeradas   CondicaoPersonagemSessao[]
+  dominios           DominioSessao[]
+  defesasAntiDominio DefesaAntiDominioSessao[]
 
   @@index([sessaoId, ativa])
   @@index([personagemSessaoId, ativa])
@@ -2966,6 +3126,8 @@ model HabilidadeTecnica {
   // ✅ Variações (Liberação Superior/Máxima)
   variacoes          VariacaoHabilidade[]
   sustentacoesSessao PersonagemSessaoHabilidadeSustentada[]
+  dominiosSessao     DominioSessao[]
+  defesasAntiDominio DefesaAntiDominioSessao[]
 
   // ✅ Ordem de exibição
   ordem Int @default(0)

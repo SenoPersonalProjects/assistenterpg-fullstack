@@ -95,6 +95,7 @@ import {
 import { SessionSidebarPanel } from '@/components/campanha/sessao/SessionSidebarPanel';
 import { SessionOptionalMechanicsPanel } from '@/components/campanha/sessao/SessionOptionalMechanicsPanel';
 import { SessionNpcsPanel } from '@/components/campanha/sessao/SessionNpcsPanel';
+import { SessionDomainsPanel } from '@/components/campanha/sessao/SessionDomainsPanel';
 import { SessionPlayerSummaryPanel } from '@/components/campanha/sessao/SessionPlayerSummaryPanel';
 import { SessionAccessNotice } from '@/components/campanha/sessao/SessionAccessNotice';
 import { SessionRosterControlPanel } from '@/components/campanha/sessao/SessionRosterControlPanel';
@@ -4049,6 +4050,15 @@ export default function SessaoCampanhaPage() {
                     </AnimatePresence>
                   </SessionPanel>
 
+                  <SessionDomainsPanel
+                    campanhaId={campanhaId}
+                    sessaoId={sessaoId}
+                    dominios={detalhe.dominios ?? []}
+                    sessaoEncerrada={sessaoEncerrada}
+                    ehMestre={podeControlarSessao}
+                    onAtualizar={setDetalhe}
+                  />
+
                   <SessionNpcsPanel
                     npcs={npcs}
                     podeControlarSessao={podeControlarSessao}
@@ -4251,6 +4261,17 @@ export default function SessaoCampanhaPage() {
 
           <section className="space-y-3">
             {podeControlarSessao ? renderCardsSessao() : null}
+
+            {!podeControlarSessao ? (
+              <SessionDomainsPanel
+                campanhaId={campanhaId}
+                sessaoId={sessaoId}
+                dominios={detalhe.dominios ?? []}
+                sessaoEncerrada={sessaoEncerrada}
+                ehMestre={false}
+                onAtualizar={setDetalhe}
+              />
+            ) : null}
 
             {!podeControlarSessao && socialAtivo && npcsAlvosSociais.length > 0 ? (
               <SessionNpcsPanel

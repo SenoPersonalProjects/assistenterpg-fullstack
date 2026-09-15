@@ -1074,6 +1074,25 @@ export type SessaoCampanhaDetalhe = {
   rodadaAtual: number | null;
   indiceTurnoAtual: number | null;
   controleTurnosAtivo: boolean;
+  dominios?: Array<{
+    id: number;
+    nome: string;
+    tipo: 'FECHADO' | 'ABERTO' | string;
+    estado: 'ABRINDO' | 'ATIVO' | string;
+    grauBarreira: number;
+    integridadeMax: number | null;
+    integridadeAtual: number | null;
+    rupturas: number;
+    estadoBarreira: 'SELADA' | 'FISSURA' | 'BRECHA' | 'COLAPSADA' | 'ABERTO' | string;
+    instavel: boolean;
+    exteriorReforcado: boolean;
+    rodadaAbertura: number;
+    participante: { tipo: 'PERSONAGEM' | 'NPC' | string; id: number | null; nome: string };
+    podeControlar: boolean;
+    acertoGarantido: string | null;
+    alvos: Array<{ personagemSessaoId: number | null; npcSessaoId: number | null }>;
+    disputas: Array<{ id: number; estado: string; dominancia: number; resolucoesConcluidas: number; rodadaProximaResolucao: number }>;
+  }>;
   cenaAtual: {
     id: number | null;
     tipo: TipoCenaSessaoCampanha | string;

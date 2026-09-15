@@ -1,4 +1,12 @@
-import { IsBoolean, IsInt, IsOptional, IsUUID, Min } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsUUID,
+  Min,
+} from 'class-validator';
 
 export class UsarHabilidadeSessaoDto {
   @IsOptional()
@@ -32,4 +40,27 @@ export class UsarHabilidadeSessaoDto {
   @IsOptional()
   @IsBoolean()
   ignorarSobrecarga?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  investimentoIntegridade?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  alvosPersonagemSessaoIds?: number[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  alvosNpcSessaoIds?: number[];
+
+  @IsOptional()
+  @IsBoolean()
+  expansaoReativa?: boolean;
 }

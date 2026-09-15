@@ -51,6 +51,14 @@ import { ListarEventosSessaoDto } from './dto/listar-eventos-sessao.dto';
 import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciativa-sessao.dto';
 import { AtualizarValorIniciativaSessaoDto } from './dto/atualizar-valor-iniciativa-sessao.dto';
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
+import {
+  AcaoDominioSessaoDto,
+  CriarDefesaAntiDominioSessaoDto,
+  CriarDisputaDominioSessaoDto,
+  CriarDominioNpcSessaoDto,
+  DormirInterludioSessaoDto,
+  ResolverDisputaDominioSessaoDto,
+} from './dto/dominio-sessao.dto';
 import { UsarHabilidadeClasseSessaoDto } from './dto/usar-habilidade-classe-sessao.dto';
 import { AtualizarRecursosPersonagemSessaoDto } from './dto/atualizar-recursos-personagem-sessao.dto';
 import { AtualizarElencoSessaoDto } from './dto/atualizar-elenco-sessao.dto';
@@ -1769,6 +1777,28 @@ export class SessaoService {
       this.prisma,
       sessaoId,
     );
+    const dominiosAtivos = await this.prisma.dominioSessao.findMany({
+      where: { sessaoId, cenaId: cenaAtualId, estado: { in: ['ABRINDO', 'ATIVO'] } },
+      orderBy: { id: 'asc' },
+      include: {
+        personagemSessao: { include: { personagemCampanha: { select: { nome: true, donoId: true } } } },
+        npcSessao: { select: { nomeExibicao: true, controladorUsuarioId: true } },
+        alvos: { select: { personagemSessaoId: true, npcSessaoId: true } },
+        participacoesDisputa: { include: { disputa: { select: { id: true, estado: true, resolucoesConcluidas: true, rodadaProximaResolucao: true } } } },
+      },
+    });
+    const dominios = dominiosAtivos.map((dominio) => {
+      const podeControlar = acesso.ehMestre || dominio.personagemSessao?.controladorUsuarioId === usuarioId || dominio.personagemSessao?.personagemCampanha.donoId === usuarioId || dominio.npcSessao?.controladorUsuarioId === usuarioId;
+      return {
+        id: dominio.id, nome: dominio.nome, tipo: dominio.tipo, estado: dominio.estado, grauBarreira: dominio.grauBarreira,
+        integridadeMax: dominio.integridadeMax, integridadeAtual: dominio.integridadeAtual, rupturas: dominio.rupturas,
+        estadoBarreira: dominio.tipo === 'ABERTO' ? 'ABERTO' : dominio.integridadeMax !== null && dominio.rupturas >= dominio.integridadeMax ? 'COLAPSADA' : dominio.rupturas >= 2 ? 'BRECHA' : dominio.rupturas === 1 ? 'FISSURA' : 'SELADA',
+        instavel: dominio.instavel, exteriorReforcado: dominio.exteriorReforcado, rodadaAbertura: dominio.rodadaAbertura,
+        participante: dominio.personagemSessao ? { tipo: 'PERSONAGEM', id: dominio.personagemSessaoId, nome: dominio.personagemSessao.personagemCampanha.nome } : { tipo: 'NPC', id: dominio.npcSessaoId, nome: dominio.npcSessao?.nomeExibicao ?? 'NPC' },
+        podeControlar, acertoGarantido: podeControlar || acesso.ehMestre ? dominio.descricaoAcertoGarantido : null,
+        alvos: dominio.alvos, disputas: dominio.participacoesDisputa.map((participacao) => ({ id: participacao.disputa.id, estado: participacao.disputa.estado, dominancia: participacao.dominancia, resolucoesConcluidas: participacao.disputa.resolucoesConcluidas, rodadaProximaResolucao: participacao.disputa.rodadaProximaResolucao })),
+      };
+    });
 
     return {
       id: sessao.id,
@@ -1786,6 +1816,7 @@ export class SessaoService {
         limitesCategoriaAtivo: sessao.limitesCategoriaInventarioAtivo ?? false,
       },
       controleTurnosAtivo,
+      dominios,
       turnoAtual: personagemTurnoAtual
         ? {
             tipoParticipante: personagemTurnoAtual.tipoParticipante,
@@ -8070,6 +8101,9 @@ export class SessaoService {
       variacaoHabilidadeId: dto.variacaoHabilidadeId ?? null,
       acumulos: dto.acumulos ?? null,
       condicaoSessaoId: dto.condicaoSessaoId ?? null,
+      investimentoIntegridade: dto.investimentoIntegridade ?? null,
+      alvosPersonagemSessaoIds: dto.alvosPersonagemSessaoIds ?? [],
+      alvosNpcSessaoIds: dto.alvosNpcSessaoIds ?? [],
     };
 
     const criadoAgora = await this.executarMutacaoIdempotenteSessao(
@@ -8327,6 +8361,14 @@ export class SessaoService {
             ),
           );
           const mecanicaSessao = this.extrairRegistro(custo.mecanicasSessao);
+          const mecanicaDominio = this.extrairRegistro(mecanicaSessao.dominio as Prisma.JsonValue);
+          const ehExpansaoDominio = mecanicaSessao.tipo === 'EXPANSAO_DOMINIO';
+          const investimentoIntegridade = ehExpansaoDominio && mecanicaDominio.tipo === 'FECHADO'
+            ? Math.min(Math.max(0, Math.trunc(dto.investimentoIntegridade ?? 0)), Math.max(0, grausMapEfetivo.get('TECNICA_BARREIRA') ?? 0))
+            : 0;
+          if (ehExpansaoDominio && mecanicaDominio.tipo === 'FECHADO') {
+            custo = { ...custo, custoEA: custo.custoEA + investimentoIntegridade * 2, custoEAOriginal: custo.custoEAOriginal + investimentoIntegridade * 2 };
+          }
           const ehConversaoPeEmEa =
             mecanicaSessao.tipo === 'CONVERTER_PE_EM_EA';
           if (ehConversaoPeEmEa) {
@@ -8386,6 +8428,7 @@ export class SessaoService {
             }
           }
 
+          let sustentacaoCriadaId: number | null = null;
           if (
             recursosAtuais.eaAtual < custo.custoEA ||
             recursosAtuais.peAtual < custo.custoPE
@@ -8504,6 +8547,7 @@ export class SessaoService {
                   criadaPorUsuarioId: usuarioId,
                 },
               });
+            sustentacaoCriadaId = sustentacaoCriada.id;
             await this.criarCondicaoDaSustentacaoTx(tx, {
               sessaoId,
               cenaId: cenaAtual.id,
@@ -8514,6 +8558,29 @@ export class SessaoService {
               rodadaAtual: sessao.rodadaAtual,
               usuarioId,
             });
+          }
+
+          if (ehExpansaoDominio) {
+            const tipoDominio = mecanicaDominio.tipo === 'ABERTO' ? 'ABERTO' : 'FECHADO';
+            const grauBarreira = Math.max(2, grausMapEfetivo.get('TECNICA_BARREIRA') ?? 2);
+            const integridade = tipoDominio === 'FECHADO' ? 4 + Math.max(0, grauBarreira - 2) + investimentoIntegridade : null;
+            const dominio = await tx.dominioSessao.create({ data: {
+              sessaoId, cenaId: cenaAtual.id, personagemSessaoId, habilidadeTecnicaId: habilidade.id,
+              sustentacaoHabilidadeId: sustentacaoCriadaId, nome: habilidade.nome, descricaoAcertoGarantido: habilidade.efeito,
+              tipo: tipoDominio, grauBarreira, integridadeMax: integridade, integridadeAtual: integridade,
+              investimentoIntegridade, rodadaAbertura: sessao.rodadaAtual, criadoPorUsuarioId: usuarioId,
+            }});
+            await this.criarAlvosDominioTx(tx, dominio.id, sessaoId, cenaAtual.id, dto.alvosPersonagemSessaoIds, dto.alvosNpcSessaoIds);
+          }
+          if (mecanicaSessao.tipo === 'DEFESA_ANTI_DOMINIO') {
+            const defesa = this.extrairRegistro(mecanicaSessao.defesa as Prisma.JsonValue);
+            const tipoDefesa = defesa.tipo === 'CESTA_OCA' || defesa.tipo === 'DOMINIO_SIMPLES' || defesa.tipo === 'AMPLIFICACAO' ? defesa.tipo : null;
+            if (tipoDefesa) {
+              const grauAntiBarreira = Math.max(0, grausMapEfetivo.get('TECNICA_ANTI_BARREIRA') ?? 0);
+              const integridade = tipoDefesa === 'AMPLIFICACAO' ? null : (tipoDefesa === 'CESTA_OCA' ? 2 : 3) + Math.ceil(grauAntiBarreira / 2);
+              await tx.defesaAntiDominioSessao.updateMany({ where: { sessaoId, personagemSessaoId, tipo: tipoDefesa, ativa: true }, data: { ativa: false, encerradaEm: new Date(), motivoEncerramento: 'Substituída por nova ativação.' } });
+              await tx.defesaAntiDominioSessao.create({ data: { sessaoId, cenaId: cenaAtual.id, personagemSessaoId, habilidadeTecnicaId: habilidade.id, sustentacaoHabilidadeId: sustentacaoCriadaId, tipo: tipoDefesa, integridadeMax: integridade, integridadeAtual: integridade, criadoPorUsuarioId: usuarioId } });
+            }
           }
 
           await tx.eventoSessao.create({
@@ -14729,6 +14796,170 @@ export class SessaoService {
     };
   }
 
+  async criarDominioNpcSessao(
+    campanhaId: number, sessaoId: number, usuarioId: number, dto: CriarDominioNpcSessaoDto,
+  ) {
+    const { acesso, sessao } = await this.obterSessaoMutavelComAcesso(campanhaId, sessaoId, usuarioId, 'abrir Dominio de NPC');
+    this.assertMestre(acesso, 'abrir Dominio de NPC');
+    const cena = await this.prisma.cena.findFirst({ where: { sessaoId }, orderBy: { id: 'desc' }, select: { id: true } });
+    const npc = await this.prisma.npcAmeacaSessao.findFirst({ where: { id: dto.npcSessaoId, sessaoId, ...(cena ? { cenaId: cena.id } : {}) }, select: { id: true, eaAtual: true, peAtual: true } });
+    if (!npc || !cena) throw new BusinessException('NPC nao esta na cena atual.', 'DOMINIO_PARTICIPANTE_INVALIDO');
+    const investimento = dto.tipo === 'FECHADO' ? Math.min(dto.investimentoIntegridade ?? 0, dto.grauBarreira) : 0;
+    const custoEA = (dto.custoEA ?? 0) + investimento * 2;
+    if ((npc.eaAtual ?? 0) < custoEA || (npc.peAtual ?? 0) < (dto.custoPE ?? 0)) throw new BusinessException('Recursos insuficientes para abrir o Dominio.', 'DOMINIO_RECURSOS_INSUFICIENTES');
+    const dominio = await this.prisma.$transaction(async (tx) => {
+      if (custoEA || dto.custoPE) await tx.npcAmeacaSessao.update({ where: { id: npc.id }, data: { eaAtual: { decrement: custoEA }, peAtual: { decrement: dto.custoPE ?? 0 } } });
+      const criado = await tx.dominioSessao.create({ data: {
+        sessaoId, cenaId: cena.id, npcSessaoId: npc.id, nome: dto.nome, descricaoAcertoGarantido: dto.descricaoAcertoGarantido,
+        tipo: dto.tipo, grauBarreira: dto.grauBarreira, investimentoIntegridade: investimento, rodadaAbertura: sessao.rodadaAtual,
+        integridadeMax: dto.tipo === 'FECHADO' ? 4 + Math.max(0, dto.grauBarreira - 2) + investimento : null,
+        integridadeAtual: dto.tipo === 'FECHADO' ? 4 + Math.max(0, dto.grauBarreira - 2) + investimento : null,
+        criadoPorUsuarioId: usuarioId,
+      }});
+      await this.criarAlvosDominioTx(tx, criado.id, sessaoId, cena.id, dto.alvosPersonagemSessaoIds, dto.alvosNpcSessaoIds, npc.id);
+      await tx.eventoSessao.create({ data: { sessaoId, cenaId: cena.id, tipoEvento: 'DOMINIO_ABRINDO', solicitanteUsuarioId: usuarioId, clientRequestId: dto.clientRequestId, dados: this.jsonParaPersistencia({ dominioId: criado.id, tipo: dto.tipo, npcSessaoId: npc.id, custoEA, custoPE: dto.custoPE ?? 0 }) } });
+      return criado;
+    });
+    return { dominio, detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId) };
+  }
+
+  async executarAcaoDominioSessao(campanhaId: number, sessaoId: number, dominioId: number, usuarioId: number, dto: AcaoDominioSessaoDto) {
+    const { acesso } = await this.obterSessaoMutavelComAcesso(campanhaId, sessaoId, usuarioId, 'operar Dominio');
+    const dominio = await this.prisma.dominioSessao.findFirst({ where: { id: dominioId, sessaoId }, include: { personagemSessao: { include: { personagemCampanha: { select: { donoId: true } } } }, npcSessao: { select: { controladorUsuarioId: true } } } });
+    if (!dominio) throw new BusinessException('Dominio nao encontrado nesta sessao.', 'DOMINIO_NAO_ENCONTRADO');
+    const podeControlar = acesso.ehMestre || dominio.personagemSessao?.controladorUsuarioId === usuarioId || dominio.personagemSessao?.personagemCampanha.donoId === usuarioId || dominio.npcSessao?.controladorUsuarioId === usuarioId;
+    if (!podeControlar) throw new CampanhaAcessoNegadoException(campanhaId, usuarioId);
+    if (['FORMAR', 'INTERROMPER', 'REGISTRAR_RUPTURA'].includes(dto.acao) && !acesso.ehMestre) throw new CampanhaApenasMestreException('confirmar abertura, interrupcao ou ruptura de Dominio');
+    await this.prisma.$transaction(async (tx) => {
+      const atual = await tx.dominioSessao.findUnique({ where: { id: dominioId } });
+      if (!atual) return;
+      if (dto.acao === 'FORMAR') {
+        if (atual.estado !== 'ABRINDO') throw new BusinessException('Somente um Dominio em abertura pode ser formado.', 'DOMINIO_ESTADO_INVALIDO');
+        await tx.dominioSessao.update({ where: { id: dominioId }, data: { estado: 'ATIVO' } });
+      } else if (dto.acao === 'INTERROMPER' || dto.acao === 'DESFAZER') {
+        await this.encerrarDominioTx(tx, atual, usuarioId, dto.acao === 'INTERROMPER' ? 'INTERRUPCAO' : 'ENCERRAMENTO_VOLUNTARIO');
+      } else if (dto.acao === 'REFORCAR') {
+        if (atual.tipo !== 'FECHADO' || atual.estado !== 'ATIVO') throw new BusinessException('Apenas Dominio fechado ativo pode reforcar a barreira.', 'DOMINIO_ACAO_INVALIDA');
+        await this.cobrarEaDominioTx(tx, atual, 1);
+        await tx.dominioSessao.update({ where: { id: dominioId }, data: { rupturas: Math.max(0, atual.rupturas - 1) } });
+      } else if (dto.acao === 'RECONFIGURAR') {
+        await this.cobrarPeDominioTx(tx, atual, 1);
+        await tx.dominioSessao.update({ where: { id: dominioId }, data: { exteriorReforcado: !atual.exteriorReforcado } });
+      } else if (dto.acao === 'ESTABILIZAR') {
+        await tx.dominioSessao.update({ where: { id: dominioId }, data: { instavel: false } });
+      } else if (dto.acao === 'REGISTRAR_RUPTURA') {
+        if (atual.tipo !== 'FECHADO' || atual.integridadeMax === null) throw new BusinessException('Dominio aberto nao possui integridade para romper.', 'DOMINIO_SEM_INTEGRIDADE');
+        const dt = 15 + 3 * atual.grauBarreira;
+        if ((dto.resultadoAtaque ?? 0) < dt) throw new BusinessException('O resultado confirmado nao superou a DT estrutural.', 'DOMINIO_DT_ESTRUTURAL_NAO_SUPERADA', { dt });
+        let ganho = dto.potenciaRuptura === 'EXCEPCIONAL' ? 3 : dto.potenciaRuptura === 'POTENCIALIZADO' ? 2 : 1;
+        if (dto.golpeConcentrado) ganho = Math.min(3, ganho + 1);
+        const rupturas = atual.rupturas + ganho;
+        if (rupturas >= atual.integridadeMax) await this.encerrarDominioTx(tx, atual, usuarioId, 'COLAPSO_POR_RUPTURA');
+        else await tx.dominioSessao.update({ where: { id: dominioId }, data: { rupturas } });
+      } else if (['REFINAR', 'FORCAR', 'PRESSIONAR'].includes(dto.acao)) {
+        const participante = await tx.disputaDominioParticipante.findFirst({ where: { dominioSessaoId: dominioId, disputa: { estado: 'ATIVA' } }, orderBy: { id: 'desc' } });
+        if (!participante) throw new BusinessException('Este Dominio nao participa de uma disputa ativa.', 'DOMINIO_DISPUTA_AUSENTE');
+        if (dto.acao === 'REFINAR') await tx.disputaDominioParticipante.update({ where: { id: participante.id }, data: { refinado: true } });
+        if (dto.acao === 'FORCAR') { await this.cobrarPeDominioTx(tx, atual, 2); await tx.disputaDominioParticipante.update({ where: { id: participante.id }, data: { forcarNaRodada: atual.rodadaAbertura } }); }
+        if (dto.acao === 'PRESSIONAR') {
+          if (!dto.dominioAlvoId || dto.dominioAlvoId === dominioId) throw new BusinessException('Escolha outro Dominio para pressionar.', 'DOMINIO_PRESSAO_ALVO_INVALIDO');
+          await tx.disputaDominioParticipante.update({ where: { id: participante.id }, data: { pressionarDominioSessaoId: dto.dominioAlvoId } });
+        }
+      }
+      await tx.eventoSessao.create({ data: { sessaoId, cenaId: atual.cenaId, tipoEvento: `DOMINIO_${dto.acao}`, solicitanteUsuarioId: usuarioId, clientRequestId: dto.clientRequestId, dados: this.jsonParaPersistencia({ dominioId, ...dto }) } });
+    });
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async criarDisputaDominioSessao(campanhaId: number, sessaoId: number, usuarioId: number, dto: CriarDisputaDominioSessaoDto) {
+    const { acesso, sessao } = await this.obterSessaoMutavelComAcesso(campanhaId, sessaoId, usuarioId, 'criar disputa de Dominios'); this.assertMestre(acesso, 'criar disputa de Dominios');
+    if (new Set(dto.dominioIds).size < 2) throw new BusinessException('Uma disputa exige ao menos dois Dominios distintos.', 'DOMINIO_DISPUTA_PARTICIPANTES_INSUFICIENTES');
+    const cena = await this.obterCenaAtualSessaoTx(this.prisma, sessaoId);
+    const dominios = await this.prisma.dominioSessao.findMany({ where: { id: { in: dto.dominioIds }, sessaoId, cenaId: cena.id, estado: 'ATIVO' }, select: { id: true } });
+    if (dominios.length !== dto.dominioIds.length) throw new BusinessException('Todos os Dominios devem estar ativos na cena atual.', 'DOMINIO_DISPUTA_DOMINIO_INVALIDO');
+    await this.prisma.$transaction(async (tx) => {
+      const disputa = await tx.disputaDominioSessao.create({ data: { sessaoId, cenaId: cena.id, rodadaProximaResolucao: sessao.rodadaAtual + 1, criadoPorUsuarioId: usuarioId } });
+      await tx.disputaDominioParticipante.createMany({ data: dominios.map((dominio) => ({ disputaDominioSessaoId: disputa.id, dominioSessaoId: dominio.id, primeiraResolucaoPendente: true })) });
+      await this.criarAlvosDisputaTx(tx, disputa.id, sessaoId, cena.id, dto.alvosPersonagemSessaoIds, dto.alvosNpcSessaoIds);
+      await tx.eventoSessao.create({ data: { sessaoId, cenaId: cena.id, tipoEvento: 'DOMINIO_DISPUTA_INICIADA', solicitanteUsuarioId: usuarioId, clientRequestId: dto.clientRequestId, dados: this.jsonParaPersistencia({ disputaId: disputa.id, dominioIds: dto.dominioIds }) } });
+    });
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async resolverDisputaDominioSessao(campanhaId: number, sessaoId: number, disputaId: number, usuarioId: number, dto: ResolverDisputaDominioSessaoDto) {
+    const { acesso } = await this.obterSessaoMutavelComAcesso(campanhaId, sessaoId, usuarioId, 'resolver disputa de Dominios'); this.assertMestre(acesso, 'resolver disputa de Dominios');
+    await this.prisma.$transaction(async (tx) => {
+      const disputa = await tx.disputaDominioSessao.findFirst({ where: { id: disputaId, sessaoId, estado: 'ATIVA' }, include: { participantes: { include: { dominio: true } } } });
+      if (!disputa) throw new BusinessException('Disputa de Dominio nao encontrada.', 'DOMINIO_DISPUTA_NAO_ENCONTRADA');
+      const resultados = disputa.participantes.map((p) => ({ p, valor: 10 + (p.refinado ? 5 : 0) + (p.forcarNaRodada ? 2 : 0) - (p.expansaoReativa && p.primeiraResolucaoPendente ? 5 : 0) }));
+      resultados.sort((a,b) => b.valor - a.valor);
+      if (resultados.length < 2 || resultados[0].valor === resultados[1].valor) {
+        if (disputa.resolucoesConcluidas >= 2) { await tx.disputaDominioSessao.update({ where: { id: disputa.id }, data: { estado: 'EMPATE', encerradaEm: new Date(), motivoEncerramento: 'EMPATE_FINAL' } }); for (const item of disputa.participantes) await this.encerrarDominioTx(tx, item.dominio, usuarioId, 'COLAPSO_EMPATE'); }
+      } else {
+        const margem = resultados[0].valor - resultados[1].valor; const ganho = margem >= 11 ? 3 : margem >= 6 ? 2 : 1;
+        const vencedor = resultados[0].p;
+        const dominancia = vencedor.dominancia + ganho;
+        await tx.disputaDominioParticipante.update({ where: { id: vencedor.id }, data: { dominancia, refinado: false, forcarNaRodada: null, pressionarDominioSessaoId: null, primeiraResolucaoPendente: false } });
+        for (const item of disputa.participantes.filter((p) => p.id !== vencedor.id)) await tx.disputaDominioParticipante.update({ where: { id: item.id }, data: { refinado: false, forcarNaRodada: null, pressionarDominioSessaoId: null, primeiraResolucaoPendente: false } });
+        if (dominancia >= 3 || disputa.resolucoesConcluidas >= 2) await tx.disputaDominioSessao.update({ where: { id: disputa.id }, data: { estado: 'ENCERRADA', encerradaEm: new Date(), motivoEncerramento: `VENCEDOR:${vencedor.dominioSessaoId}` } });
+        else await tx.disputaDominioSessao.update({ where: { id: disputa.id }, data: { resolucoesConcluidas: { increment: 1 }, rodadaProximaResolucao: { increment: 1 } } });
+      }
+      await tx.eventoSessao.create({ data: { sessaoId, cenaId: disputa.cenaId, tipoEvento: 'DOMINIO_DISPUTA_RESOLVIDA', solicitanteUsuarioId: usuarioId, clientRequestId: dto.clientRequestId, dados: this.jsonParaPersistencia({ disputaId, resolucao: disputa.resolucoesConcluidas + 1, resultados: resultados.map((x) => ({ dominioId: x.p.dominioSessaoId, refinamento: x.valor })) }) } });
+    });
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async criarDefesaAntiDominioSessao(campanhaId: number, sessaoId: number, usuarioId: number, dto: CriarDefesaAntiDominioSessaoDto) {
+    const { acesso } = await this.obterSessaoMutavelComAcesso(campanhaId, sessaoId, usuarioId, 'ativar defesa anti-Dominio');
+    if (!!dto.personagemSessaoId === !!dto.npcSessaoId) throw new BusinessException('Informe exatamente um participante para a defesa.', 'DOMINIO_DEFESA_PARTICIPANTE_INVALIDO');
+    const cena = await this.obterCenaAtualSessaoTx(this.prisma, sessaoId);
+    const personagem = dto.personagemSessaoId ? await this.prisma.personagemSessao.findFirst({ where: { id: dto.personagemSessaoId, sessaoId }, include: { personagemCampanha: { select: { donoId: true } } } }) : null;
+    const npc = dto.npcSessaoId ? await this.prisma.npcAmeacaSessao.findFirst({ where: { id: dto.npcSessaoId, sessaoId }, select: { controladorUsuarioId: true } }) : null;
+    if (!acesso.ehMestre && personagem?.controladorUsuarioId !== usuarioId && personagem?.personagemCampanha.donoId !== usuarioId && npc?.controladorUsuarioId !== usuarioId) throw new CampanhaAcessoNegadoException(campanhaId, usuarioId);
+    const integridade = dto.tipo === 'AMPLIFICACAO' ? null : (dto.tipo === 'CESTA_OCA' ? 2 : 3) + Math.ceil((dto.grauAntiBarreira ?? 0) / 2) + (dto.pesEnraizados ? 2 : 0);
+    await this.prisma.defesaAntiDominioSessao.create({ data: { sessaoId, cenaId: cena.id, personagemSessaoId: dto.personagemSessaoId, npcSessaoId: dto.npcSessaoId, tipo: dto.tipo, integridadeMax: integridade, integridadeAtual: integridade, pesEnraizados: dto.pesEnraizados ?? false, variacao: dto.variacao, criadoPorUsuarioId: usuarioId } });
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async dormirInterludioSessao(campanhaId: number, sessaoId: number, personagemSessaoId: number, usuarioId: number, dto: DormirInterludioSessaoDto) {
+    const { acesso, sessao } = await this.obterSessaoMutavelComAcesso(campanhaId, sessaoId, usuarioId, 'dormir no interludio');
+    if (sessao.cenaAtualTipo !== 'LIVRE') throw new BusinessException('Dormir em interludio exige uma cena livre.', 'DOMINIO_INTERLUDIO_INDISPONIVEL');
+    const personagem = await this.prisma.personagemSessao.findFirst({ where: { id: personagemSessaoId, sessaoId }, include: { personagemCampanha: { select: { donoId: true } } } });
+    if (!personagem || (!acesso.ehMestre && personagem.controladorUsuarioId !== usuarioId && personagem.personagemCampanha.donoId !== usuarioId)) throw new CampanhaAcessoNegadoException(campanhaId, usuarioId);
+    const codigos = ['ESGOTAMENTO_DOMINIO', 'SOBRECARGA_NEURAL']; const condicoes = await this.prisma.condicao.findMany({ where: { codigo: { in: codigos } }, select: { id: true } });
+    await this.prisma.condicaoPersonagemSessao.updateMany({ where: { sessaoId, personagemSessaoId, ativo: true, condicaoId: { in: condicoes.map((c) => c.id) } }, data: { ativo: false, removidaEm: new Date(), motivoRemocao: 'DORMIR_INTERLUDIO' } });
+    await this.prisma.eventoSessao.create({ data: { sessaoId, tipoEvento: 'DOMINIO_INTERLUDIO_DESCANSO', solicitanteUsuarioId: usuarioId, clientRequestId: dto.clientRequestId, dados: this.jsonParaPersistencia({ personagemSessaoId }) } });
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  private async criarAlvosDominioTx(tx: Prisma.TransactionClient, dominioSessaoId: number, sessaoId: number, cenaId: number, personagens: number[] | undefined, npcs: number[] | undefined, npcDonoId?: number) {
+    const ps = personagens ?? (await tx.personagemSessao.findMany({ where: { sessaoId, cenaId }, select: { id: true } })).map((x) => x.id);
+    const ns = npcs ?? (await tx.npcAmeacaSessao.findMany({ where: { sessaoId, cenaId }, select: { id: true } })).map((x) => x.id);
+    await tx.dominioSessaoAlvo.createMany({ data: [...ps.map((personagemSessaoId) => ({ dominioSessaoId, personagemSessaoId })), ...ns.filter((id) => id !== npcDonoId).map((npcSessaoId) => ({ dominioSessaoId, npcSessaoId }))] });
+  }
+
+  private async criarAlvosDisputaTx(tx: Prisma.TransactionClient, disputaDominioSessaoId: number, sessaoId: number, cenaId: number, personagens?: number[], npcs?: number[]) {
+    const ps = personagens ?? (await tx.personagemSessao.findMany({ where: { sessaoId, cenaId }, select: { id: true } })).map((x) => x.id);
+    const ns = npcs ?? (await tx.npcAmeacaSessao.findMany({ where: { sessaoId, cenaId }, select: { id: true } })).map((x) => x.id);
+    await tx.disputaDominioAlvo.createMany({ data: [...ps.map((personagemSessaoId) => ({ disputaDominioSessaoId, personagemSessaoId })), ...ns.map((npcSessaoId) => ({ disputaDominioSessaoId, npcSessaoId }))] });
+  }
+
+  private async cobrarEaDominioTx(tx: Prisma.TransactionClient, dominio: { personagemSessaoId: number | null; npcSessaoId: number | null }, custo: number) {
+    if (dominio.personagemSessaoId) { const p = await tx.personagemSessao.findUnique({ where: { id: dominio.personagemSessaoId }, include: { personagemCampanha: { select: { eaAtual: true } } } }); if (!p || p.personagemCampanha.eaAtual < custo) throw new BusinessException('EA insuficiente.', 'DOMINIO_EA_INSUFICIENTE'); await tx.personagemCampanha.update({ where: { id: p.personagemCampanhaId }, data: { eaAtual: { decrement: custo } } }); }
+    if (dominio.npcSessaoId) { const n = await tx.npcAmeacaSessao.findUnique({ where: { id: dominio.npcSessaoId }, select: { eaAtual: true } }); if (!n || (n.eaAtual ?? 0) < custo) throw new BusinessException('EA insuficiente.', 'DOMINIO_EA_INSUFICIENTE'); await tx.npcAmeacaSessao.update({ where: { id: dominio.npcSessaoId }, data: { eaAtual: { decrement: custo } } }); }
+  }
+
+  private async cobrarPeDominioTx(tx: Prisma.TransactionClient, dominio: { personagemSessaoId: number | null; npcSessaoId: number | null }, custo: number) {
+    if (dominio.personagemSessaoId) { const p = await tx.personagemSessao.findUnique({ where: { id: dominio.personagemSessaoId }, include: { personagemCampanha: { select: { peAtual: true } } } }); if (!p || p.personagemCampanha.peAtual < custo) throw new BusinessException('PE insuficiente.', 'DOMINIO_PE_INSUFICIENTE'); await tx.personagemCampanha.update({ where: { id: p.personagemCampanhaId }, data: { peAtual: { decrement: custo } } }); }
+    if (dominio.npcSessaoId) { const n = await tx.npcAmeacaSessao.findUnique({ where: { id: dominio.npcSessaoId }, select: { peAtual: true } }); if (!n || (n.peAtual ?? 0) < custo) throw new BusinessException('PE insuficiente.', 'DOMINIO_PE_INSUFICIENTE'); await tx.npcAmeacaSessao.update({ where: { id: dominio.npcSessaoId }, data: { peAtual: { decrement: custo } } }); }
+  }
+
+  private async encerrarDominioTx(tx: Prisma.TransactionClient, dominio: { id: number; estado: string; personagemSessaoId: number | null; sustentacaoHabilidadeId: number | null }, usuarioId: number, motivo: string) {
+    if (dominio.estado === 'ENCERRADO' || dominio.estado === 'COLAPSADO') return;
+    await tx.dominioSessao.update({ where: { id: dominio.id }, data: { estado: motivo.includes('COLAPSO') ? 'COLAPSADO' : 'ENCERRADO', encerradoEm: new Date(), encerradoPorUsuarioId: usuarioId, motivoEncerramento: motivo } });
+    if (dominio.sustentacaoHabilidadeId) await tx.personagemSessaoHabilidadeSustentada.updateMany({ where: { id: dominio.sustentacaoHabilidadeId, ativa: true }, data: { ativa: false, desativadaEm: new Date(), desativadaPorUsuarioId: usuarioId, motivoDesativacao: motivo } });
+  }
+
   private async obterSessaoMutavelComAcesso(
     campanhaId: number,
     sessaoId: number,
@@ -17930,6 +18161,12 @@ export class SessaoService {
 
     if (!participanteTurnoNovo) return;
 
+    await this.registrarAcertosGarantidosNoInicioTurnoTx(tx, {
+      sessaoId,
+      cenaId,
+      participante: participanteTurnoNovo,
+    });
+
     if (participanteTurnoNovo.tipoParticipante === 'PERSONAGEM') {
       const personagemSessaoId = participanteTurnoNovo.personagemSessaoId;
       if (personagemSessaoId) {
@@ -18148,6 +18385,21 @@ export class SessaoService {
           }
         }
       }
+    }
+  }
+
+  private async registrarAcertosGarantidosNoInicioTurnoTx(
+    tx: Prisma.TransactionClient,
+    args: { sessaoId: number; cenaId: number; participante: ParticipanteIniciativa },
+  ): Promise<void> {
+    const personagemSessaoId = args.participante.tipoParticipante === 'PERSONAGEM' ? args.participante.personagemSessaoId : null;
+    const npcSessaoId = args.participante.tipoParticipante === 'NPC' ? args.participante.npcSessaoId : null;
+    if (!personagemSessaoId && !npcSessaoId) return;
+    const defesa = await tx.defesaAntiDominioSessao.findFirst({ where: { sessaoId: args.sessaoId, cenaId: args.cenaId, ativa: true, tipo: { in: ['CESTA_OCA', 'DOMINIO_SIMPLES'] }, AND: [{ OR: [{ personagemSessaoId: personagemSessaoId ?? undefined }, { npcSessaoId: npcSessaoId ?? undefined }] }, { OR: [{ integridadeAtual: null }, { integridadeAtual: { gt: 0 } }] }] }, select: { id: true } });
+    if (defesa) return;
+    const dominios = await tx.dominioSessao.findMany({ where: { sessaoId: args.sessaoId, cenaId: args.cenaId, estado: 'ATIVO', acertoGarantidoAtivo: true, alvos: { some: { OR: [{ personagemSessaoId: personagemSessaoId ?? undefined }, { npcSessaoId: npcSessaoId ?? undefined }] } } }, select: { id: true, nome: true, descricaoAcertoGarantido: true } });
+    for (const dominio of dominios) {
+      await tx.eventoSessao.create({ data: { sessaoId: args.sessaoId, cenaId: args.cenaId, personagemAlvoId: personagemSessaoId, tipoEvento: 'DOMINIO_ACERTO_GARANTIDO', dados: this.jsonParaPersistencia({ dominioId: dominio.id, dominioNome: dominio.nome, npcAlvoId: npcSessaoId, descricaoTecnica: dominio.descricaoAcertoGarantido, aviso: 'Gatilho auditável: resolva o efeito particular pela ficha e rolagem da técnica.' }) } });
     }
   }
 
