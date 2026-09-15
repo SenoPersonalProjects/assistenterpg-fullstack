@@ -14,6 +14,7 @@ import type {
 export type ListarNpcsAmeacasQuery = {
   page?: number;
   limit?: number;
+  grupoId?: number;
   nome?: string;
   fichaTipo?: TipoFichaNpcAmeaca;
   tipo?: TipoNpcAmeaca;

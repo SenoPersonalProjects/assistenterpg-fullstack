@@ -20,6 +20,15 @@ export type Toast = {
   support?: ErrorSupportInfo;
 };
 
+const MAX_TOASTS_VISIVEIS = 4;
+
+function gerarToastId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 type ToastContextType = {
   toasts: Toast[];
   showToast: (
@@ -49,7 +58,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         support?: ErrorSupportInfo;
       },
     ) => {
-      const id = Math.random().toString(36).substring(7);
+      const id = gerarToastId();
       const userFacingError =
         typeof message === 'object' ? message : undefined;
       const newToast: Toast = {
@@ -60,7 +69,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         support: options?.support ?? userFacingError,
       };
 
-      setToasts((prev) => [...prev, newToast]);
+      setToasts((prev) => [...prev.slice(-(MAX_TOASTS_VISIVEIS - 1)), newToast]);
 
       const durationMs = options?.durationMs === undefined ? 5000 : options.durationMs;
       if (durationMs !== null) {

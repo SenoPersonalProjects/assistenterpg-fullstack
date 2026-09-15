@@ -85,7 +85,8 @@ export default function NpcsAmeacasPage() {
   const { isOpen, options, confirm, handleClose, handleConfirm } = useConfirm();
 
   const [lista, setLista] = useState<NpcAmeacaResumo[]>([]);
-  const [todosNpcs, setTodosNpcs] = useState<NpcAmeacaResumo[]>([]);
+  const [npcsParaGrupo, setNpcsParaGrupo] = useState<NpcAmeacaResumo[]>([]);
+  const [carregandoNpcsParaGrupo, setCarregandoNpcsParaGrupo] = useState(false);
   const [grupos, setGrupos] = useState<NpcAmeacaGrupoResumo[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<UserErrorState | null>(null);
@@ -115,13 +116,7 @@ export default function NpcsAmeacasPage() {
   const [grupoNpcIds, setGrupoNpcIds] = useState<number[]>([]);
   const [salvandoGrupo, setSalvandoGrupo] = useState(false);
 
-  const listaExibida = useMemo(() => {
-    if (filtroGrupoId === 'TODOS') return lista;
-    const grupo = grupos.find((item) => item.id === filtroGrupoId);
-    if (!grupo) return lista;
-    const ids = new Set(grupo.npcAmeacaIds);
-    return todosNpcs.filter((npc) => ids.has(npc.id));
-  }, [filtroGrupoId, grupos, lista, todosNpcs]);
+  const listaExibida = lista;
 
   const resumoTipos = useMemo(
     () =>
@@ -196,6 +191,7 @@ export default function NpcsAmeacasPage() {
       const resposta = await apiGetMeusNpcsAmeacas({
         page,
         limit: 12,
+        grupoId: filtroGrupoId === 'TODOS' ? undefined : filtroGrupoId,
         nome: filtroNomeRef.current || undefined,
         tipo: filtroTipo !== 'TODOS' ? filtroTipo : undefined,
         fichaTipo: filtroFicha !== 'TODOS' ? filtroFicha : undefined,
@@ -209,18 +205,13 @@ export default function NpcsAmeacasPage() {
     } finally {
       setLoading(false);
     }
-  }, [filtroFicha, filtroTipo, page]);
+  }, [filtroFicha, filtroGrupoId, filtroTipo, page]);
 
   const carregarComplementos = useCallback(async () => {
     try {
-      const [todos, gruposCarregados] = await Promise.all([
-        carregarTodosNpcsAmeacas(),
-        apiListarGruposNpcAmeaca(),
-      ]);
-      setTodosNpcs(todos);
+      const gruposCarregados = await apiListarGruposNpcAmeaca();
       setGrupos(gruposCarregados);
     } catch {
-      setTodosNpcs([]);
       setGrupos([]);
     }
   }, []);
@@ -236,16 +227,22 @@ export default function NpcsAmeacasPage() {
     }
 
     if (!authLoading && usuario) {
-      void carregar();
       void carregarComplementos();
     }
   }, [authLoading, carregar, carregarComplementos, router, usuario]);
 
   useEffect(() => {
-    if (filtroGrupoId === 'TODOS') {
-      void carregar();
-    }
-  }, [carregar, filtroGrupoId, page]);
+    if (!authLoading && usuario) void carregar();
+  }, [authLoading, carregar, page, usuario]);
+
+  useEffect(() => {
+    if (!modalGrupoAberto) return;
+    setCarregandoNpcsParaGrupo(true);
+    void carregarTodosNpcsAmeacas()
+      .then(setNpcsParaGrupo)
+      .catch(() => setNpcsParaGrupo([]))
+      .finally(() => setCarregandoNpcsParaGrupo(false));
+  }, [modalGrupoAberto]);
 
   function handleDelete(item: NpcAmeacaResumo) {
     confirm({
@@ -259,7 +256,7 @@ export default function NpcsAmeacasPage() {
           setDeletingId(item.id);
           await apiDeleteNpcAmeaca(item.id);
           setLista((prev) => prev.filter((npc) => npc.id !== item.id));
-          setTodosNpcs((prev) => prev.filter((npc) => npc.id !== item.id));
+          setNpcsParaGrupo((prev) => prev.filter((npc) => npc.id !== item.id));
           setGrupos((prev) =>
             prev.map((grupo) => ({
               ...grupo,
@@ -324,9 +321,6 @@ export default function NpcsAmeacasPage() {
 
   function handleAplicarFiltros() {
     setPage(1);
-    if (filtroGrupoId === 'TODOS') {
-      void carregar();
-    }
   }
 
   function handleLimparFiltros() {
@@ -336,7 +330,6 @@ export default function NpcsAmeacasPage() {
     setFiltroFicha('TODOS');
     setFiltroGrupoId('TODOS');
     setPage(1);
-    void carregar();
   }
 
   async function handleExportarNpc(item: NpcAmeacaResumo) {
@@ -648,7 +641,7 @@ export default function NpcsAmeacasPage() {
 
                         <div className="flex flex-wrap gap-1.5">
                           {grupo.npcAmeacaIds.slice(0, 3).map((npcId) => {
-                            const npc = todosNpcs.find((item) => item.id === npcId);
+                            const npc = npcsParaGrupo.find((item) => item.id === npcId);
                             return (
                               <span
                                 key={npcId}
@@ -882,7 +875,9 @@ export default function NpcsAmeacasPage() {
               <p className="text-xs text-app-muted">Selecione quais NPCs/Ameaças entram neste pacote.</p>
             </div>
 
-            {todosNpcs.length === 0 ? (
+            {carregandoNpcsParaGrupo ? (
+              <Loading message="Carregando fichas disponíveis..." />
+            ) : npcsParaGrupo.length === 0 ? (
               <EmptyState
                 variant="plain"
                 icon="curse"
@@ -891,7 +886,7 @@ export default function NpcsAmeacasPage() {
               />
             ) : (
               <div className="max-h-80 space-y-2 overflow-auto rounded-lg border border-app-border p-3">
-                {todosNpcs.map((npc) => (
+                {npcsParaGrupo.map((npc) => (
                   <label
                     key={npc.id}
                     className="flex cursor-pointer items-start justify-between gap-3 rounded-md border border-app-border/60 px-3 py-2 hover:border-app-primary/40"

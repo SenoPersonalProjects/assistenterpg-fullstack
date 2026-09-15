@@ -731,6 +731,15 @@ export class NpcsAmeacasService {
         where.tamanho = filtros.tamanho;
       }
 
+      if (filtros.grupoId) {
+        where.grupos = {
+          some: {
+            grupoId: filtros.grupoId,
+            grupo: { usuarioId },
+          },
+        };
+      }
+
       const [total, items] = await Promise.all([
         this.prisma.npcAmeaca.count({ where }),
         this.prisma.npcAmeaca.findMany({

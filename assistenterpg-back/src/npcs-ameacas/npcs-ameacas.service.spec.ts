@@ -102,6 +102,28 @@ describe('NpcsAmeacasService', () => {
     expect(prisma.npcAmeaca.delete).not.toHaveBeenCalled();
   });
 
+  it('pagina NPCs de um grupo sem consultar o catálogo inteiro', async () => {
+    prisma.npcAmeaca.count.mockResolvedValue(1);
+    prisma.npcAmeaca.findMany.mockResolvedValue([]);
+
+    await service.listarDoUsuario(7, { grupoId: 19, page: 1, limit: 12 });
+
+    expect(prisma.npcAmeaca.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          donoId: 7,
+          grupos: {
+            some: {
+              grupoId: 19,
+              grupo: { usuarioId: 7 },
+            },
+          },
+        },
+        take: 12,
+      }),
+    );
+  });
+
   it('importa 100 NPCs com catalogo e escrita em lote constantes', async () => {
     const itens = Array.from({ length: 100 }, (_, indice) => ({
       nome: `NPC ${indice}`,

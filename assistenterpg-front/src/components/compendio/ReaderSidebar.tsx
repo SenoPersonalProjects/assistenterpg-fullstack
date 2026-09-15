@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import type { CompendioCategoria, CompendioLivro } from '@/lib/utils/compendio';
+import { MobileDrawer } from '@/components/ui/MobileDrawer';
+import { CompendioSearch } from './CompendioSearch';
+import type { CompendioLivro } from '@/lib/utils/compendio';
 import {
   getCompendioArticleHref,
   getCompendioBookHref,
@@ -37,26 +39,6 @@ function iconName(icon: string | null): IconName {
   return allowed.includes(icon as IconName) ? (icon as IconName) : 'book';
 }
 
-function categoriaMatches(categoria: CompendioCategoria, query: string): boolean {
-  if (!query) return true;
-  const q = query.toLowerCase();
-
-  if (categoria.nome.toLowerCase().includes(q)) return true;
-  if (categoria.descricao?.toLowerCase().includes(q)) return true;
-
-  return (categoria.subcategorias ?? []).some((subcategoria) => {
-    if (subcategoria.nome.toLowerCase().includes(q)) return true;
-    if (subcategoria.descricao?.toLowerCase().includes(q)) return true;
-
-    return (subcategoria.artigos ?? []).some((artigo) => {
-      return (
-        artigo.titulo.toLowerCase().includes(q) ||
-        artigo.resumo?.toLowerCase().includes(q)
-      );
-    });
-  });
-}
-
 export function ReaderSidebar({
   livro,
   activeCategoriaCodigo,
@@ -64,17 +46,11 @@ export function ReaderSidebar({
   activeArtigoCodigo,
 }: ReaderSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [query, setQuery] = useState('');
   const [expandedCategorias, setExpandedCategorias] = useState<string[]>(
     activeCategoriaCodigo ? [activeCategoriaCodigo] : [livro.categorias?.[0]?.codigo ?? ''],
   );
 
-  const categorias = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    return (livro.categorias ?? []).filter((categoria) =>
-      categoriaMatches(categoria, normalizedQuery),
-    );
-  }, [livro.categorias, query]);
+  const categorias = livro.categorias ?? [];
   const expandedCategoriaSet = useMemo(() => {
     return new Set(
       [activeCategoriaCodigo, ...expandedCategorias].filter(Boolean) as string[],
@@ -111,24 +87,21 @@ export function ReaderSidebar({
       </div>
 
       <div className="border-b border-app-border p-4">
-        <div className="relative">
-          <Icon
-            name="search"
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-app-muted"
-          />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar neste livro..."
-            className="w-full rounded-lg border border-app-border bg-app-bg py-2 pl-9 pr-3 text-sm text-app-fg placeholder:text-app-muted focus:border-app-primary focus:outline-none"
-          />
-        </div>
+        <CompendioSearch
+          livroCodigo={livro.codigo}
+          showSubmit={false}
+          inputLabel="Buscar no conteúdo deste livro"
+          placeholder="Termos, siglas e regras..."
+        />
+        <p className="mt-2 text-xs text-app-muted">
+          A busca encontra também trechos dentro dos artigos.
+        </p>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-3">
         <div className="space-y-1">
           {categorias.map((categoria) => {
-            const expanded = query.trim() || expandedCategoriaSet.has(categoria.codigo);
+            const expanded = expandedCategoriaSet.has(categoria.codigo);
             const activeCategoria = activeCategoriaCodigo === categoria.codigo;
 
             return (
@@ -251,27 +224,23 @@ export function ReaderSidebar({
         {content}
       </aside>
 
-      {mobileOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
+      <MobileDrawer
+        isOpen={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        ariaLabel="Índice do compêndio"
+      >
+        <aside className="relative h-full w-[min(20rem,86vw)] border-r border-app-border bg-app-surface shadow-xl">
           <button
             type="button"
-            className="absolute inset-0 bg-black/50"
             onClick={() => setMobileOpen(false)}
+            className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg text-app-muted hover:bg-app-bg hover:text-app-fg"
             aria-label="Fechar índice"
-          />
-          <aside className="absolute inset-y-0 left-0 w-[min(20rem,86vw)] border-r border-app-border bg-app-surface shadow-xl">
-            <button
-              type="button"
-              onClick={() => setMobileOpen(false)}
-              className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg text-app-muted hover:bg-app-bg hover:text-app-fg"
-              aria-label="Fechar índice"
-            >
-              <Icon name="close" className="h-4 w-4" />
-            </button>
-            {content}
-          </aside>
-        </div>
-      ) : null}
+          >
+            <Icon name="close" className="h-4 w-4" />
+          </button>
+          {content}
+        </aside>
+      </MobileDrawer>
     </>
   );
 }

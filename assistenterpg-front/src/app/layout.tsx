@@ -87,6 +87,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body>
+        <a
+          href="#conteudo-principal"
+          className="sr-only fixed left-4 top-4 z-[100] rounded-lg bg-app-primary px-4 py-2 font-semibold text-app-on-primary shadow-lg focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-app-fg"
+        >
+          Ir para o conteúdo principal
+        </a>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <ClientRuntimeObserver />
         <ThemeProvider>

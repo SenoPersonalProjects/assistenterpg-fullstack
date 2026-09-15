@@ -1,4 +1,11 @@
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import {
   TamanhoNpcAmeaca,
   TipoFichaNpcAmeaca,
@@ -7,6 +14,11 @@ import {
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 export class ListarNpcsAmeacasDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  grupoId?: number;
+
   @IsOptional()
   @IsString()
   @MaxLength(120)

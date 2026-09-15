@@ -1,10 +1,11 @@
 'use client';
 
-import { type CSSProperties, type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { APP_SIDEBAR_WIDTH, AppSidebar } from './AppSidebar';
 import { AppTopbar } from './AppTopbar';
+import { MobileDrawer } from '@/components/ui/MobileDrawer';
 import {
   getActiveAppShellNavItem,
   getAppShellNavGroups,
@@ -28,6 +29,7 @@ export function AppShell({ children }: AppShellProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
+  const previousPathname = useRef(pathname);
   const { pendingNotifications, setPendingNotifications } = usePendingNotifications();
   const isAdmin = usuario?.role === 'ADMIN';
 
@@ -65,24 +67,10 @@ export function AppShell({ children }: AppShellProps) {
   }, [pathname]);
 
   useEffect(() => {
-    if (!mobileSidebarOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setMobileSidebarOpen(false);
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [mobileSidebarOpen]);
+    if (previousPathname.current === pathname) return;
+    previousPathname.current = pathname;
+    document.getElementById('conteudo-principal')?.focus();
+  }, [pathname]);
 
   return (
     <div
@@ -101,30 +89,19 @@ export function AppShell({ children }: AppShellProps) {
         />
       </div>
 
-      {mobileSidebarOpen && (
-        <div
-          className="fixed inset-0 z-[80] lg:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Menu de navegação"
-        >
-          <button
-            type="button"
-            className="absolute inset-0 h-full w-full bg-black/55 backdrop-blur-sm"
-            aria-label="Fechar navegação"
-            onClick={() => setMobileSidebarOpen(false)}
-          />
-          <div className="relative h-full">
-            <AppSidebar
-              groups={groups}
-              activeHref={activeItem?.href ?? null}
-              mobile
-              onClose={() => setMobileSidebarOpen(false)}
-              onNavigate={() => setMobileSidebarOpen(false)}
-            />
-          </div>
-        </div>
-      )}
+      <MobileDrawer
+        isOpen={mobileSidebarOpen}
+        onClose={() => setMobileSidebarOpen(false)}
+        ariaLabel="Menu de navegação"
+      >
+        <AppSidebar
+          groups={groups}
+          activeHref={activeItem?.href ?? null}
+          mobile
+          onClose={() => setMobileSidebarOpen(false)}
+          onNavigate={() => setMobileSidebarOpen(false)}
+        />
+      </MobileDrawer>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <AppTopbar
@@ -136,7 +113,13 @@ export function AppShell({ children }: AppShellProps) {
           onPendingNotificationsChange={setPendingNotifications}
         />
 
-        <main className="min-h-[calc(100vh-3.5rem)] min-w-0 bg-app-bg">{children}</main>
+        <main
+          id="conteudo-principal"
+          tabIndex={-1}
+          className="min-h-[calc(100vh-3.5rem)] min-w-0 bg-app-bg outline-none"
+        >
+          {children}
+        </main>
       </div>
     </div>
   );
