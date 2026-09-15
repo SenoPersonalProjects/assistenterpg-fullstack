@@ -435,6 +435,22 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Tolerância Neural já foi usada nesta cena.",
   SESSAO_RECURSO_INSUFICIENTE:
     "Recursos insuficientes para usar a habilidade.",
+  DOMINIO_NAO_ENCONTRADO: "Domínio não encontrado nesta sessão.",
+  DOMINIO_PARTICIPANTE_INVALIDO: "O participante não está na cena atual.",
+  DOMINIO_RECURSOS_INSUFICIENTES: "Recursos insuficientes para abrir o Domínio.",
+  DOMINIO_EA_INSUFICIENTE: "EA insuficiente para esta ação de Domínio.",
+  DOMINIO_PE_INSUFICIENTE: "PE insuficiente para esta ação de Domínio.",
+  DOMINIO_ESTADO_INVALIDO: "Esta ação não é permitida no estado atual do Domínio.",
+  DOMINIO_ACAO_INVALIDA: "Esta ação não é permitida para este tipo de Domínio.",
+  DOMINIO_SEM_INTEGRIDADE: "Este Domínio não possui integridade de barreira.",
+  DOMINIO_DT_ESTRUTURAL_NAO_SUPERADA: "O ataque não superou a DT estrutural da barreira.",
+  DOMINIO_DISPUTA_AUSENTE: "Este Domínio não participa de uma disputa ativa.",
+  DOMINIO_DISPUTA_NAO_ENCONTRADA: "Disputa de Domínios não encontrada.",
+  DOMINIO_DISPUTA_PARTICIPANTES_INSUFICIENTES: "Uma disputa exige ao menos dois Domínios distintos.",
+  DOMINIO_DISPUTA_DOMINIO_INVALIDO: "Todos os Domínios devem estar ativos na cena atual.",
+  DOMINIO_PRESSAO_ALVO_INVALIDO: "Escolha outro Domínio válido para pressionar.",
+  DOMINIO_DEFESA_PARTICIPANTE_INVALIDO: "Escolha exatamente um participante para a defesa.",
+  DOMINIO_INTERLUDIO_INDISPONIVEL: "Dormir para recuperar o Domínio exige uma cena livre.",
   SESSAO_RECURSOS_DESATUALIZADOS:
     "Os recursos mudaram em outra tela. Sincronize a sessão e tente novamente.",
   SESSAO_LIMITE_PEEA_EXCEDIDO:
