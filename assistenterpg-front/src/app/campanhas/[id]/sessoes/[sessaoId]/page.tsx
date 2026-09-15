@@ -1,19 +1,16 @@
-'use client';
+"use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/context/ToastContext';
-import { useConfirm } from '@/hooks/useConfirm';
-import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
-import type { SolicitacaoMacroArma, SolicitacaoMacroPersonalizada } from '@/components/campanha/sessao/SessionCharacterMacrosTab';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useParams, useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/hooks/useConfirm";
+import type { AbaDetalheCard } from "@/lib/campanha/sessao-preferencias";
+import type {
+  SolicitacaoMacroArma,
+  SolicitacaoMacroPersonalizada,
+} from "@/components/campanha/sessao/SessionCharacterMacrosTab";
 import {
   apiAdminGetCondicoes,
   apiGetRelatorioSessaoCampanha,
@@ -52,7 +49,7 @@ import {
   apiInvocarEntidadeVinculadaSessaoCampanha,
   apiMarcarParticipanteIniciativaAlternadaSessaoCampanha,
   criarErroUsuario,
-} from '@/lib/api';
+} from "@/lib/api";
 import type {
   CondicaoAtivaSessaoCampanha,
   CondicaoCatalogo,
@@ -72,43 +69,43 @@ import type {
   AtualizacaoIncrementalSessaoCampanha,
   AtualizacaoInspiracaoSessaoCampanha,
   UserErrorState,
-} from '@/lib/types';
-import { ehNpcSessaoCampanhaCompleto } from '@/lib/campanha/sessao-atualizacoes';
-import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
-import { Loading } from '@/components/ui/Loading';
-import { ErrorAlert } from '@/components/ui/ErrorAlert';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { PageHeader } from '@/components/ui/PageHeader';
-import { StatsStrip } from '@/components/ui/StatsStrip';
-import { CampaignCharacterEditorModal } from '@/components/campanha/CampaignCharacterEditorModal';
-import { MestreShieldGuide } from '@/components/campanha/MestreShieldGuide';
-import { SessionCharactersPanel } from '@/components/campanha/sessao/SessionCharactersPanel';
-import { SessionOperationalBar } from '@/components/campanha/sessao/SessionOperationalBar';
-import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
-import { SessionInitiativePanel } from '@/components/campanha/sessao/SessionInitiativePanel';
+} from "@/lib/types";
+import { ehNpcSessaoCampanhaCompleto } from "@/lib/campanha/sessao-atualizacoes";
+import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
+import { Loading } from "@/components/ui/Loading";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { StatsStrip } from "@/components/ui/StatsStrip";
+import { CampaignCharacterEditorModal } from "@/components/campanha/CampaignCharacterEditorModal";
+import { MestreShieldGuide } from "@/components/campanha/MestreShieldGuide";
+import { SessionCharactersPanel } from "@/components/campanha/sessao/SessionCharactersPanel";
+import { SessionOperationalBar } from "@/components/campanha/sessao/SessionOperationalBar";
+import { SessionPanel } from "@/components/campanha/sessao/SessionPanel";
+import { SessionInitiativePanel } from "@/components/campanha/sessao/SessionInitiativePanel";
 import {
   SessionSceneControlPanel,
   SessionTableOperationsPanel,
-} from '@/components/campanha/sessao/SessionMasterControls';
-import { SessionSidebarPanel } from '@/components/campanha/sessao/SessionSidebarPanel';
-import { SessionOptionalMechanicsPanel } from '@/components/campanha/sessao/SessionOptionalMechanicsPanel';
-import { SessionNpcsPanel } from '@/components/campanha/sessao/SessionNpcsPanel';
-import { SessionDomainsPanel } from '@/components/campanha/sessao/SessionDomainsPanel';
-import { SessionPlayerSummaryPanel } from '@/components/campanha/sessao/SessionPlayerSummaryPanel';
-import { SessionAccessNotice } from '@/components/campanha/sessao/SessionAccessNotice';
-import { SessionRosterControlPanel } from '@/components/campanha/sessao/SessionRosterControlPanel';
-import { SessionSceneRosterPanel } from '@/components/campanha/sessao/SessionSceneRosterPanel';
-import { AddNpcModal } from '@/components/campanha/sessao/modals/AddNpcModal';
-import { AddSimpleNpcModal } from '@/components/campanha/sessao/modals/AddSimpleNpcModal';
-import { AddPersonagemModal } from '@/components/campanha/sessao/modals/AddPersonagemModal';
-import { ConfirmEndSessionModal } from '@/components/campanha/sessao/modals/ConfirmEndSessionModal';
-import { ConfirmNpcRemovalModal } from '@/components/campanha/sessao/modals/ConfirmNpcRemovalModal';
-import { CondicoesModal } from '@/components/campanha/sessao/modals/CondicoesModal';
-import { EventoDetalheModal } from '@/components/campanha/sessao/modals/EventoDetalheModal';
-import { InitiativeValueModal } from '@/components/campanha/sessao/modals/InitiativeValueModal';
-import { SessionPericiaRollModal } from '@/components/campanha/sessao/modals/SessionPericiaRollModal';
+} from "@/components/campanha/sessao/SessionMasterControls";
+import { SessionSidebarPanel } from "@/components/campanha/sessao/SessionSidebarPanel";
+import { SessionOptionalMechanicsPanel } from "@/components/campanha/sessao/SessionOptionalMechanicsPanel";
+import { SessionNpcsPanel } from "@/components/campanha/sessao/SessionNpcsPanel";
+import { SessionDomainsPanel } from "@/components/campanha/sessao/SessionDomainsPanel";
+import { SessionPlayerSummaryPanel } from "@/components/campanha/sessao/SessionPlayerSummaryPanel";
+import { SessionAccessNotice } from "@/components/campanha/sessao/SessionAccessNotice";
+import { SessionRosterControlPanel } from "@/components/campanha/sessao/SessionRosterControlPanel";
+import { SessionSceneRosterPanel } from "@/components/campanha/sessao/SessionSceneRosterPanel";
+import { AddNpcModal } from "@/components/campanha/sessao/modals/AddNpcModal";
+import { AddSimpleNpcModal } from "@/components/campanha/sessao/modals/AddSimpleNpcModal";
+import { AddPersonagemModal } from "@/components/campanha/sessao/modals/AddPersonagemModal";
+import { ConfirmEndSessionModal } from "@/components/campanha/sessao/modals/ConfirmEndSessionModal";
+import { ConfirmNpcRemovalModal } from "@/components/campanha/sessao/modals/ConfirmNpcRemovalModal";
+import { CondicoesModal } from "@/components/campanha/sessao/modals/CondicoesModal";
+import { EventoDetalheModal } from "@/components/campanha/sessao/modals/EventoDetalheModal";
+import { InitiativeValueModal } from "@/components/campanha/sessao/modals/InitiativeValueModal";
+import { SessionPericiaRollModal } from "@/components/campanha/sessao/modals/SessionPericiaRollModal";
 import {
   type AlvoCondicoesModal,
   type AjustesRecursosNpc,
@@ -120,52 +117,52 @@ import {
   type RolagemDanoHabilidadeSessaoPayload,
   type RolagemPericiaSessaoPayload,
   type RolagemTesteHabilidadeSessaoPayload,
-} from '@/components/campanha/sessao/types';
+} from "@/components/campanha/sessao/types";
 import {
   descreverDuracaoCondicao,
   labelCena,
   textoSeguro,
-} from '@/lib/campanha/sessao-formatters';
-import { formatarDataHora } from '@/lib/utils/formatters';
+} from "@/lib/campanha/sessao-formatters";
+import { formatarDataHora } from "@/lib/utils/formatters";
 import {
   calcularIndiceProximoTurno,
   COOLDOWN_USO_HABILIDADE_MS,
   OPCOES_DURACAO_CONDICAO,
   parseInteiroComSinal,
-} from '@/lib/campanha/sessao-utils';
+} from "@/lib/campanha/sessao-utils";
 import {
   registrarMetricaSincronizacaoSessao,
   type OrigemSincronizacaoSessao,
-} from '@/lib/campanha/sessao-telemetria';
-import { formatarCustos } from '@/lib/campanha/sessao-habilidades';
+} from "@/lib/campanha/sessao-telemetria";
+import { formatarCustos } from "@/lib/campanha/sessao-habilidades";
 import {
   aplicarAtualizacaoIncrementalSessao,
   chavesOrdenacaoAtualizacaoSessao,
   normalizarDetalheSessao,
-} from '@/lib/campanha/sessao-atualizacoes';
-import type { EventoSessaoAtualizada } from '@/lib/realtime/sessao-socket';
-import { useSessaoLayout } from '@/hooks/useSessaoLayout';
-import { useSessaoRealtime } from '@/hooks/useSessaoRealtime';
-import { useSessaoCena } from '@/hooks/useSessaoCena';
-import { useSessaoTurnos } from '@/hooks/useSessaoTurnos';
-import { useSessaoIniciativa } from '@/hooks/useSessaoIniciativa';
-import { useSessaoCondicoes } from '@/hooks/useSessaoCondicoes';
-import { useSessaoHabilidades } from '@/hooks/useSessaoHabilidades';
-import { useSessaoNpc } from '@/hooks/useSessaoNpc';
+} from "@/lib/campanha/sessao-atualizacoes";
+import type { EventoSessaoAtualizada } from "@/lib/realtime/sessao-socket";
+import { useSessaoLayout } from "@/hooks/useSessaoLayout";
+import { useSessaoRealtime } from "@/hooks/useSessaoRealtime";
+import { useSessaoCena } from "@/hooks/useSessaoCena";
+import { useSessaoTurnos } from "@/hooks/useSessaoTurnos";
+import { useSessaoIniciativa } from "@/hooks/useSessaoIniciativa";
+import { useSessaoCondicoes } from "@/hooks/useSessaoCondicoes";
+import { useSessaoHabilidades } from "@/hooks/useSessaoHabilidades";
+import { useSessaoNpc } from "@/hooks/useSessaoNpc";
 import {
   AJUSTE_RECURSO_PADRAO,
   type AjustesRecursos,
   type CampoAjusteRecurso,
   useSessaoRecursos,
-} from '@/hooks/useSessaoRecursos';
-import { useSessaoChat } from '@/hooks/useSessaoChat';
-import { useSessaoRolagem } from '@/hooks/useSessaoRolagem';
-import { useSessaoEncerramento } from '@/hooks/useSessaoEncerramento';
-import { useSessaoEventos } from '@/hooks/useSessaoEventos';
-import { useSessaoPreferencias } from '@/hooks/useSessaoPreferencias';
-import { useSessaoFiltroSustentadas } from '@/hooks/useSessaoFiltroSustentadas';
-import { useSessionConditionsPanel } from '@/hooks/useSessionConditionsPanel';
-import { STORAGE_ANIMACAO_ROLAGEM_CHAT_KEY } from '@/lib/constants/rolagem';
+} from "@/hooks/useSessaoRecursos";
+import { useSessaoChat } from "@/hooks/useSessaoChat";
+import { useSessaoRolagem } from "@/hooks/useSessaoRolagem";
+import { useSessaoEncerramento } from "@/hooks/useSessaoEncerramento";
+import { useSessaoEventos } from "@/hooks/useSessaoEventos";
+import { useSessaoPreferencias } from "@/hooks/useSessaoPreferencias";
+import { useSessaoFiltroSustentadas } from "@/hooks/useSessaoFiltroSustentadas";
+import { useSessionConditionsPanel } from "@/hooks/useSessionConditionsPanel";
+import { STORAGE_ANIMACAO_ROLAGEM_CHAT_KEY } from "@/lib/constants/rolagem";
 import {
   construirMensagemDice,
   criarClientRequestIdRolagem,
@@ -174,13 +171,13 @@ import {
   formatarExpressaoDice,
   parseDiceExpression,
   type DiceRollPayload,
-} from '@/lib/campanha/sessao-dice';
+} from "@/lib/campanha/sessao-dice";
 import {
   deveUsarRolagemAtaqueAutoritativa,
   deveUsarRolagemPericiaAutoritativa,
   montarIntencaoRolagemAtaquePersonagem,
   montarIntencaoRolagemPericiaPersonagem,
-} from '@/lib/campanha/sessao-rolagem-pericia';
+} from "@/lib/campanha/sessao-rolagem-pericia";
 import {
   deveUsarRolagemAtaqueNpcAutoritativa,
   deveUsarRolagemPericiaNpcAutoritativa,
@@ -188,7 +185,7 @@ import {
   montarIntencaoRolagemAtaqueNpcPericia,
   montarIntencaoRolagemDanoNpcAcao,
   montarIntencaoRolagemPericiaNpc,
-} from '@/lib/campanha/sessao-rolagem-npc';
+} from "@/lib/campanha/sessao-rolagem-npc";
 import {
   deveUsarCriticoHabilidadeAutoritativo,
   deveUsarDanoHabilidadeAutoritativo,
@@ -196,33 +193,33 @@ import {
   montarIntencaoRolagemDanoHabilidade,
   montarIntencaoRolagemTesteHabilidade,
   montarPreviewDanoHabilidade,
-} from '@/lib/campanha/sessao-rolagem-habilidade';
-import { montarIntencaoRolagemMacroArma } from '@/lib/campanha/sessao-rolagem-item';
-import { montarIntencaoRolagemMacroPersonalizada } from '@/lib/campanha/sessao-rolagem-macro';
+} from "@/lib/campanha/sessao-rolagem-habilidade";
+import { montarIntencaoRolagemMacroArma } from "@/lib/campanha/sessao-rolagem-item";
+import { montarIntencaoRolagemMacroPersonalizada } from "@/lib/campanha/sessao-rolagem-macro";
 
 const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
-  { value: 'LIVRE', label: 'Cena livre' },
-  { value: 'INVESTIGACAO', label: 'Investigacao' },
-  { value: 'FURTIVIDADE', label: 'Furtividade' },
-  { value: 'COMBATE', label: 'Combate' },
-  { value: 'SOCIAL', label: 'Encontro social' },
-  { value: 'PERSEGUICAO', label: 'Perseguicao' },
-  { value: 'BASE', label: 'Base' },
-  { value: 'OUTRA', label: 'Outra' },
+  { value: "LIVRE", label: "Cena livre" },
+  { value: "INVESTIGACAO", label: "Investigacao" },
+  { value: "FURTIVIDADE", label: "Furtividade" },
+  { value: "COMBATE", label: "Combate" },
+  { value: "SOCIAL", label: "Encontro social" },
+  { value: "PERSEGUICAO", label: "Perseguicao" },
+  { value: "BASE", label: "Base" },
+  { value: "OUTRA", label: "Outra" },
 ];
 
 const AJUSTE_RECURSO_NPC_PADRAO: AjustesRecursosNpc = {
-  pv: '0',
-  san: '0',
-  ea: '0',
-  pe: '0',
+  pv: "0",
+  san: "0",
+  ea: "0",
+  pe: "0",
 };
 
 type PericiaRollModalState = {
   aberto: boolean;
   titulo: string;
   subtitulo?: string;
-  alvoTipo?: 'PERSONAGEM' | 'NPC';
+  alvoTipo?: "PERSONAGEM" | "NPC";
   alvoNome?: string;
   habilidadeContext?: HabilidadeRollContext | null;
   payload: DiceRollPayload | null;
@@ -236,14 +233,14 @@ type PericiaRollModalState = {
   erro: string | null;
 };
 
-type VisibilidadeRolagemSessao = 'PUBLICA' | 'SECRETA_MESTRE';
+type VisibilidadeRolagemSessao = "PUBLICA" | "SECRETA_MESTRE";
 
 function formatarDadosEventoParaExibicao(dados: unknown): string {
-  if (dados === null || typeof dados === 'undefined') {
-    return 'Sem dados adicionais.';
+  if (dados === null || typeof dados === "undefined") {
+    return "Sem dados adicionais.";
   }
 
-  if (typeof dados === 'string') {
+  if (typeof dados === "string") {
     return dados;
   }
 
@@ -259,19 +256,19 @@ function isTypingElement(target: EventTarget | null): boolean {
   const tagName = target.tagName;
   return (
     target.isContentEditable ||
-    tagName === 'INPUT' ||
-    tagName === 'TEXTAREA' ||
-    tagName === 'SELECT'
+    tagName === "INPUT" ||
+    tagName === "TEXTAREA" ||
+    tagName === "SELECT"
   );
 }
 
 function labelParticipanteIniciativa(
   participante: Pick<
     ParticipanteIniciativaSessaoCampanha,
-    'tipoParticipante' | 'nomePersonagem' | 'nomeJogador'
+    "tipoParticipante" | "nomePersonagem" | "nomeJogador"
   >,
 ): string {
-  if (participante.tipoParticipante === 'NPC') {
+  if (participante.tipoParticipante === "NPC") {
     return `${participante.nomePersonagem} (Aliado/Ameaça)`;
   }
 
@@ -291,54 +288,54 @@ function montarEdicaoNpcBase(npc: NpcSessaoCampanhaCompleto): NpcEditavel {
   return {
     fichaTipo: npc.fichaTipo,
     tipo: npc.tipo,
-    tamanho: npc.tamanho ?? 'MEDIO',
+    tamanho: npc.tamanho ?? "MEDIO",
     defesa: String(npc.defesa),
     pontosVidaMax: String(npc.pontosVidaMax),
-    sanMax: npc.sanMax === null ? '' : String(npc.sanMax),
-    eaMax: npc.eaMax === null ? '' : String(npc.eaMax),
-    machucado: npc.machucado === null ? '' : String(npc.machucado),
+    sanMax: npc.sanMax === null ? "" : String(npc.sanMax),
+    eaMax: npc.eaMax === null ? "" : String(npc.eaMax),
+    machucado: npc.machucado === null ? "" : String(npc.machucado),
     agilidade:
       npc.atributos?.agilidade === undefined || npc.atributos === null
-        ? ''
+        ? ""
         : String(npc.atributos.agilidade),
     forca:
       npc.atributos?.forca === undefined || npc.atributos === null
-        ? ''
+        ? ""
         : String(npc.atributos.forca),
     intelecto:
       npc.atributos?.intelecto === undefined || npc.atributos === null
-        ? ''
+        ? ""
         : String(npc.atributos.intelecto),
     presenca:
       npc.atributos?.presenca === undefined || npc.atributos === null
-        ? ''
+        ? ""
         : String(npc.atributos.presenca),
     vigor:
       npc.atributos?.vigor === undefined || npc.atributos === null
-        ? ''
+        ? ""
         : String(npc.atributos.vigor),
     percepcao: String(
-      pericias.find((pericia) => pericia.codigo === 'PERCEPCAO')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === "PERCEPCAO")?.bonus ?? "",
     ),
     iniciativa: String(
-      pericias.find((pericia) => pericia.codigo === 'INICIATIVA')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === "INICIATIVA")?.bonus ?? "",
     ),
     fortitude: String(
-      pericias.find((pericia) => pericia.codigo === 'FORTITUDE')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === "FORTITUDE")?.bonus ?? "",
     ),
     reflexos: String(
-      pericias.find((pericia) => pericia.codigo === 'REFLEXOS')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === "REFLEXOS")?.bonus ?? "",
     ),
     vontade: String(
-      pericias.find((pericia) => pericia.codigo === 'VONTADE')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === "VONTADE")?.bonus ?? "",
     ),
     luta: String(
-      pericias.find((pericia) => pericia.codigo === 'LUTA')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === "LUTA")?.bonus ?? "",
     ),
     jujutsu: String(
-      pericias.find((pericia) => pericia.codigo === 'JUJUTSU')?.bonus ?? '',
+      pericias.find((pericia) => pericia.codigo === "JUJUTSU")?.bonus ?? "",
     ),
-    notasCena: npc.notasCena ?? '',
+    notasCena: npc.notasCena ?? "",
   };
 }
 
@@ -365,15 +362,20 @@ export default function SessaoCampanhaPage() {
 
   const [detalhe, setDetalhe] = useState<SessaoCampanhaDetalhe | null>(null);
   const [chat, setChat] = useState<MensagemChatSessao[]>([]);
-  const [eventosSessao, setEventosSessao] = useState<EventoSessaoTimeline[]>([]);
-  const [relatorioSessao, setRelatorioSessao] = useState<SessaoCampanhaRelatorio | null>(null);
+  const [eventosSessao, setEventosSessao] = useState<EventoSessaoTimeline[]>(
+    [],
+  );
+  const [relatorioSessao, setRelatorioSessao] =
+    useState<SessaoCampanhaRelatorio | null>(null);
   const [loadingRelatorio, setLoadingRelatorio] = useState(false);
-  const [erroRelatorio, setErroRelatorio] = useState<UserErrorState | null>(null);
-  const [mensagem, setMensagem] = useState('');
-  const [mensagemRolagem, setMensagemRolagem] = useState('');
+  const [erroRelatorio, setErroRelatorio] = useState<UserErrorState | null>(
+    null,
+  );
+  const [mensagem, setMensagem] = useState("");
+  const [mensagemRolagem, setMensagemRolagem] = useState("");
   const [rolagemSecreta, setRolagemSecreta] = useState(false);
-  const [cenaTipo, setCenaTipo] = useState<TipoCenaSessaoCampanha>('LIVRE');
-  const [cenaNome, setCenaNome] = useState('');
+  const [cenaTipo, setCenaTipo] = useState<TipoCenaSessaoCampanha>("LIVRE");
+  const [cenaNome, setCenaNome] = useState("");
   const [limitesCategoriaAtivo, setLimitesCategoriaAtivo] = useState(false);
   const [cenaFormDirty, setCenaFormDirty] = useState(false);
   const cenaFormDirtyRef = useRef(false);
@@ -388,112 +390,132 @@ export default function SessaoCampanhaPage() {
   const [ajustesRecursosNpc, setAjustesRecursosNpc] = useState<
     Record<number, AjustesRecursosNpc>
   >({});
-  const [catalogoCondicoes, setCatalogoCondicoes] = useState<CondicaoCatalogo[]>([]);
+  const [catalogoCondicoes, setCatalogoCondicoes] = useState<
+    CondicaoCatalogo[]
+  >([]);
   const [npcsDisponiveis, setNpcsDisponiveis] = useState<NpcAmeacaResumo[]>([]);
-  const [npcSelecionadoId, setNpcSelecionadoId] = useState('');
-  const [nomeNpcCustomizado, setNomeNpcCustomizado] = useState('');
-  const [npcSanAtual, setNpcSanAtual] = useState('');
-  const [npcSanMax, setNpcSanMax] = useState('');
-  const [npcEaAtual, setNpcEaAtual] = useState('');
-  const [npcEaMax, setNpcEaMax] = useState('');
-  const [npcIniciativaValor, setNpcIniciativaValor] = useState('');
+  const [npcSelecionadoId, setNpcSelecionadoId] = useState("");
+  const [nomeNpcCustomizado, setNomeNpcCustomizado] = useState("");
+  const [npcSanAtual, setNpcSanAtual] = useState("");
+  const [npcSanMax, setNpcSanMax] = useState("");
+  const [npcEaAtual, setNpcEaAtual] = useState("");
+  const [npcEaMax, setNpcEaMax] = useState("");
+  const [npcIniciativaValor, setNpcIniciativaValor] = useState("");
   const [npcOcultoJogadores, setNpcOcultoJogadores] = useState(false);
   const [modalAdicionarNpcAberto, setModalAdicionarNpcAberto] = useState(false);
   const [modalAdicionarNpcSimplesAberto, setModalAdicionarNpcSimplesAberto] =
     useState(false);
-  const [npcSimplesNome, setNpcSimplesNome] = useState('');
-  const [npcSimplesDefesa, setNpcSimplesDefesa] = useState('');
-  const [npcSimplesPvMax, setNpcSimplesPvMax] = useState('');
-  const [npcSimplesIniciativaValor, setNpcSimplesIniciativaValor] = useState('');
-  const [npcSimplesSanAtual, setNpcSimplesSanAtual] = useState('');
-  const [npcSimplesSanMax, setNpcSimplesSanMax] = useState('');
-  const [npcSimplesEaAtual, setNpcSimplesEaAtual] = useState('');
-  const [npcSimplesEaMax, setNpcSimplesEaMax] = useState('');
-  const [npcSimplesFichaTipo, setNpcSimplesFichaTipo] = useState<'NPC' | 'AMEACA'>(
-    'NPC',
-  );
+  const [npcSimplesNome, setNpcSimplesNome] = useState("");
+  const [npcSimplesDefesa, setNpcSimplesDefesa] = useState("");
+  const [npcSimplesPvMax, setNpcSimplesPvMax] = useState("");
+  const [npcSimplesIniciativaValor, setNpcSimplesIniciativaValor] =
+    useState("");
+  const [npcSimplesSanAtual, setNpcSimplesSanAtual] = useState("");
+  const [npcSimplesSanMax, setNpcSimplesSanMax] = useState("");
+  const [npcSimplesEaAtual, setNpcSimplesEaAtual] = useState("");
+  const [npcSimplesEaMax, setNpcSimplesEaMax] = useState("");
+  const [npcSimplesFichaTipo, setNpcSimplesFichaTipo] = useState<
+    "NPC" | "AMEACA"
+  >("NPC");
   const [npcSimplesTipo, setNpcSimplesTipo] = useState<
-    'OUTRO' | 'HUMANO' | 'FEITICEIRO' | 'MALDICAO' | 'ANIMAL' | 'HIBRIDO'
-  >('OUTRO');
-  const [npcSimplesTamanho, setNpcSimplesTamanho] = useState('MEDIO');
-  const [npcSimplesOcultoJogadores, setNpcSimplesOcultoJogadores] = useState(false);
+    "OUTRO" | "HUMANO" | "FEITICEIRO" | "MALDICAO" | "ANIMAL" | "HIBRIDO"
+  >("OUTRO");
+  const [npcSimplesTamanho, setNpcSimplesTamanho] = useState("MEDIO");
+  const [npcSimplesOcultoJogadores, setNpcSimplesOcultoJogadores] =
+    useState(false);
   const [npcSimplesAtributos, setNpcSimplesAtributos] = useState({
-    agilidade: '',
-    forca: '',
-    intelecto: '',
-    presenca: '',
-    vigor: '',
+    agilidade: "",
+    forca: "",
+    intelecto: "",
+    presenca: "",
+    vigor: "",
   });
   const [npcSimplesPericias, setNpcSimplesPericias] = useState({
-    percepcao: '',
-    iniciativa: '',
-    fortitude: '',
-    reflexos: '',
-    vontade: '',
-    luta: '',
-    jujutsu: '',
+    percepcao: "",
+    iniciativa: "",
+    fortitude: "",
+    reflexos: "",
+    vontade: "",
+    luta: "",
+    jujutsu: "",
   });
   const [modalAdicionarPersonagemAberto, setModalAdicionarPersonagemAberto] =
     useState(false);
   const [personagensDisponiveis, setPersonagensDisponiveis] = useState<
     PersonagemCampanhaLista[]
   >([]);
-  const [carregandoPersonagensDisponiveis, setCarregandoPersonagensDisponiveis] =
-    useState(false);
+  const [
+    carregandoPersonagensDisponiveis,
+    setCarregandoPersonagensDisponiveis,
+  ] = useState(false);
   const [adicionandoPersonagem, setAdicionandoPersonagem] = useState(false);
   const [atualizandoElenco, setAtualizandoElenco] = useState(false);
-  const [personagemSelecionadoId, setPersonagemSelecionadoId] = useState('');
-  const [personagemIniciativaValor, setPersonagemIniciativaValor] = useState('');
+  const [personagemSelecionadoId, setPersonagemSelecionadoId] = useState("");
+  const [personagemIniciativaValor, setPersonagemIniciativaValor] =
+    useState("");
   const [removendoPersonagemSessaoId, setRemovendoPersonagemSessaoId] =
     useState<number | null>(null);
   const [modalIniciativaAberto, setModalIniciativaAberto] =
     useState<ParticipanteIniciativaSessaoCampanha | null>(null);
-  const [valorIniciativaEdicao, setValorIniciativaEdicao] = useState('');
+  const [valorIniciativaEdicao, setValorIniciativaEdicao] = useState("");
   const [salvandoIniciativa, setSalvandoIniciativa] = useState(false);
   const [modalCondicoesAberto, setModalCondicoesAberto] =
     useState<AlvoCondicoesModal | null>(null);
-  const [buscaCondicoesModal, setBuscaCondicoesModal] = useState('');
+  const [buscaCondicoesModal, setBuscaCondicoesModal] = useState("");
   const [eventoDetalheModal, setEventoDetalheModal] =
     useState<EventoSessaoTimeline | null>(null);
-  const [motivoDesfazerEventoModal, setMotivoDesfazerEventoModal] = useState('');
+  const [motivoDesfazerEventoModal, setMotivoDesfazerEventoModal] =
+    useState("");
   const [loading, setLoading] = useState(true);
   const [erroGlobal, setErroGlobal] = useState<UserErrorState | null>(null);
   const [erroCena, setErroCena] = useState<UserErrorState | null>(null);
   const [erroTurnos, setErroTurnos] = useState<UserErrorState | null>(null);
-  const [erroIniciativa, setErroIniciativa] = useState<UserErrorState | null>(null);
-  const [erroEncerramento, setErroEncerramento] = useState<UserErrorState | null>(null);
+  const [erroIniciativa, setErroIniciativa] = useState<UserErrorState | null>(
+    null,
+  );
+  const [erroEncerramento, setErroEncerramento] =
+    useState<UserErrorState | null>(null);
   const [erroChat, setErroChat] = useState<UserErrorState | null>(null);
   const [erroRolagens, setErroRolagens] = useState<UserErrorState | null>(null);
   const [erroNpcs, setErroNpcs] = useState<UserErrorState | null>(null);
-  const [erroCondicoes, setErroCondicoes] = useState<UserErrorState | null>(null);
+  const [erroCondicoes, setErroCondicoes] = useState<UserErrorState | null>(
+    null,
+  );
   const [erroEventos, setErroEventos] = useState<UserErrorState | null>(null);
   const [erroCards, setErroCards] = useState<UserErrorState | null>(null);
   const [erroRegrasOpcionais, setErroRegrasOpcionais] =
     useState<UserErrorState | null>(null);
-  const [atualizandoRegraOpcional, setAtualizandoRegraOpcional] =
-    useState<string | null>(null);
-  const [animacaoRolagemChatAtiva, setAnimacaoRolagemChatAtiva] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    const armazenado = window.localStorage.getItem(STORAGE_ANIMACAO_ROLAGEM_CHAT_KEY);
-    return armazenado === 'on';
-  });
-  const [acumulosHabilidade, setAcumulosHabilidade] = useState<Record<string, string>>(
-    {},
+  const [atualizandoRegraOpcional, setAtualizandoRegraOpcional] = useState<
+    string | null
+  >(null);
+  const [animacaoRolagemChatAtiva, setAnimacaoRolagemChatAtiva] = useState(
+    () => {
+      if (typeof window === "undefined") return false;
+      const armazenado = window.localStorage.getItem(
+        STORAGE_ANIMACAO_ROLAGEM_CHAT_KEY,
+      );
+      return armazenado === "on";
+    },
   );
+  const [acumulosHabilidade, setAcumulosHabilidade] = useState<
+    Record<string, string>
+  >({});
   const [confirmarEncerrarSessaoAberto, setConfirmarEncerrarSessaoAberto] =
     useState(false);
   const [npcRemocaoConfirmacao, setNpcRemocaoConfirmacao] =
     useState<NpcSessaoCampanhaCompleto | null>(null);
   const [escudoAberto, setEscudoAberto] = useState(true);
   const [personagemEmEdicao, setPersonagemEmEdicao] = useState<
-    | (Pick<PersonagemCampanhaResumo, 'id' | 'nome' | 'recursos'> &
-        Partial<Pick<PersonagemCampanhaResumo, 'pericias' | 'grausAprimoramento'>>)
+    | (Pick<PersonagemCampanhaResumo, "id" | "nome" | "recursos"> &
+        Partial<
+          Pick<PersonagemCampanhaResumo, "pericias" | "grausAprimoramento">
+        >)
     | null
   >(null);
-  const [periciaRollModal, setPericiaRollModal] = useState<PericiaRollModalState>(
-    {
+  const [periciaRollModal, setPericiaRollModal] =
+    useState<PericiaRollModalState>({
       aberto: false,
-      titulo: '',
+      titulo: "",
       subtitulo: undefined,
       alvoTipo: undefined,
       alvoNome: undefined,
@@ -503,8 +525,7 @@ export default function SessaoCampanhaPage() {
       enviando: false,
       enviado: false,
       erro: null,
-    },
-  );
+    });
 
   const shellRef = useRef<HTMLElement | null>(null);
   const operationalBarRef = useRef<HTMLElement | null>(null);
@@ -514,14 +535,14 @@ export default function SessaoCampanhaPage() {
   const recursosPendentesRef = useRef(new Set<string>());
   const fimChatRef = useRef<HTMLDivElement | null>(null);
   const sincronizandoTempoRealRef = useRef(false);
-  const abaPainelDireitoAtivaRef = useRef('chat');
+  const abaPainelDireitoAtivaRef = useRef("chat");
   const mutacoesLocaisRef = useRef(new Set<string>());
   const ultimoEventoIncrementalRef = useRef(new Map<string, number>());
   const rolagensPericiaEmAndamentoRef = useRef(new Set<string>());
 
   const regrasOpcionais = detalhe?.regrasOpcionais;
   const bonusEscaladaDados =
-    detalhe?.cenaAtual.tipo === 'COMBATE' &&
+    detalhe?.cenaAtual.tipo === "COMBATE" &&
     regrasOpcionais?.ESCALADA_DADOS?.ativo &&
     regrasOpcionais.ESCALADA_DADOS.estado.ativaNesteCombate
       ? regrasOpcionais.ESCALADA_DADOS.estado.bonusAtual
@@ -530,7 +551,7 @@ export default function SessaoCampanhaPage() {
   const pontosInspiracaoPorPersonagem =
     regrasOpcionais?.INSPIRACAO?.estado.pontosPorPersonagem ?? {};
   const socialAtivo =
-    detalhe?.cenaAtual.tipo === 'SOCIAL' &&
+    detalhe?.cenaAtual.tipo === "SOCIAL" &&
     regrasOpcionais?.ENCONTROS_SOCIAIS?.ativo === true;
   const alvosSociais = useMemo(
     () => regrasOpcionais?.ENCONTROS_SOCIAIS?.estado.alvos ?? [],
@@ -551,7 +572,11 @@ export default function SessaoCampanhaPage() {
   );
 
   const atualizarAjusteRecursoCard = useCallback(
-    (personagemCampanhaId: number, campo: CampoAjusteRecurso, valor: string) => {
+    (
+      personagemCampanhaId: number,
+      campo: CampoAjusteRecurso,
+      valor: string,
+    ) => {
       setAjustesRecursosPorCard((estadoAtual) => ({
         ...estadoAtual,
         [personagemCampanhaId]: {
@@ -577,7 +602,11 @@ export default function SessaoCampanhaPage() {
   );
 
   const atualizarCampoEdicaoNpc = useCallback(
-    (npc: NpcSessaoCampanhaCompleto, campo: keyof NpcEditavel, valor: string) => {
+    (
+      npc: NpcSessaoCampanhaCompleto,
+      campo: keyof NpcEditavel,
+      valor: string,
+    ) => {
       setEdicaoNpcs((anterior) => ({
         ...anterior,
         [npc.npcSessaoId]: {
@@ -606,21 +635,21 @@ export default function SessaoCampanhaPage() {
       const rect = bar.getBoundingClientRect();
       const gap = 12;
       const altura = Math.max(0, Math.ceil(rect.height + gap));
-      shell.style.setProperty('--session-panel-sticky-offset', `${altura}px`);
+      shell.style.setProperty("--session-panel-sticky-offset", `${altura}px`);
     };
 
     atualizarOffset();
 
     let resizeObserver: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined') {
+    if (typeof ResizeObserver !== "undefined") {
       resizeObserver = new ResizeObserver(atualizarOffset);
       resizeObserver.observe(bar);
     }
-    window.addEventListener('resize', atualizarOffset);
+    window.addEventListener("resize", atualizarOffset);
 
     return () => {
       resizeObserver?.disconnect();
-      window.removeEventListener('resize', atualizarOffset);
+      window.removeEventListener("resize", atualizarOffset);
     };
   }, []);
 
@@ -650,14 +679,19 @@ export default function SessaoCampanhaPage() {
     sessaoId,
   });
 
-  const aplicarEstadoCena = useCallback((proximoDetalhe: SessaoCampanhaDetalhe) => {
-    setCenaTipo(proximoDetalhe.cenaAtual.tipo as TipoCenaSessaoCampanha);
-    setCenaNome(proximoDetalhe.cenaAtual.nome ?? '');
-    setLimitesCategoriaAtivo(Boolean(proximoDetalhe.cenaAtual.limitesCategoriaAtivo));
-    cenaSnapshotCenaIdRef.current = proximoDetalhe.cenaAtual.id;
-    cenaFormDirtyRef.current = false;
-    setCenaFormDirty(false);
-  }, []);
+  const aplicarEstadoCena = useCallback(
+    (proximoDetalhe: SessaoCampanhaDetalhe) => {
+      setCenaTipo(proximoDetalhe.cenaAtual.tipo as TipoCenaSessaoCampanha);
+      setCenaNome(proximoDetalhe.cenaAtual.nome ?? "");
+      setLimitesCategoriaAtivo(
+        Boolean(proximoDetalhe.cenaAtual.limitesCategoriaAtivo),
+      );
+      cenaSnapshotCenaIdRef.current = proximoDetalhe.cenaAtual.id;
+      cenaFormDirtyRef.current = false;
+      setCenaFormDirty(false);
+    },
+    [],
+  );
 
   const marcarCenaFormDirty = useCallback(() => {
     cenaFormDirtyRef.current = true;
@@ -682,10 +716,11 @@ export default function SessaoCampanhaPage() {
         const proximoEstado = { ...estadoAtual };
         for (const card of proximoDetalhe.cards) {
           if (!card.podeEditar) continue;
-          proximoEstado[card.personagemCampanhaId] =
-            proximoEstado[card.personagemCampanhaId] ?? {
-              ...AJUSTE_RECURSO_PADRAO,
-            };
+          proximoEstado[card.personagemCampanhaId] = proximoEstado[
+            card.personagemCampanhaId
+          ] ?? {
+            ...AJUSTE_RECURSO_PADRAO,
+          };
         }
         return proximoEstado;
       });
@@ -693,17 +728,13 @@ export default function SessaoCampanhaPage() {
       setEdicaoNpcs((estadoAtual) => {
         const proximoEstado = { ...estadoAtual };
         for (const npc of proximoDetalhe.npcs) {
-          if (npc.visibilidade === 'resumida') continue;
+          if (npc.visibilidade === "resumida") continue;
           proximoEstado[npc.npcSessaoId] = montarEdicaoNpcBase(npc);
         }
         return proximoEstado;
       });
     },
-    [
-      aplicarEstadoCena,
-      setAjustesRecursosPorCard,
-      setEdicaoNpcs,
-    ],
+    [aplicarEstadoCena, setAjustesRecursosPorCard, setEdicaoNpcs],
   );
 
   const carregarPersonagensDisponiveis = useCallback(async () => {
@@ -755,15 +786,18 @@ export default function SessaoCampanhaPage() {
     personagensDisponiveis,
   ]);
 
-  const anexarMensagensNoChat = useCallback((mensagensNovas: MensagemChatSessao[]) => {
-    if (mensagensNovas.length === 0) return;
+  const anexarMensagensNoChat = useCallback(
+    (mensagensNovas: MensagemChatSessao[]) => {
+      if (mensagensNovas.length === 0) return;
 
-    setChat((anterior) => {
-      const ids = new Set(anterior.map((item) => item.id));
-      const unicas = mensagensNovas.filter((item) => !ids.has(item.id));
-      return unicas.length > 0 ? [...anterior, ...unicas] : anterior;
-    });
-  }, []);
+      setChat((anterior) => {
+        const ids = new Set(anterior.map((item) => item.id));
+        const unicas = mensagensNovas.filter((item) => !ids.has(item.id));
+        return unicas.length > 0 ? [...anterior, ...unicas] : anterior;
+      });
+    },
+    [],
+  );
 
   const registrarMutacaoLocal = useCallback((mutacaoId: string) => {
     const mutacoes = mutacoesLocaisRef.current;
@@ -795,7 +829,7 @@ export default function SessaoCampanhaPage() {
       }
 
       if (
-        atualizacao.tipo === 'RECURSO_AJUSTADO' &&
+        atualizacao.tipo === "RECURSO_AJUSTADO" &&
         Object.keys(atualizacao.valores).some((campo) =>
           recursosPendentesRef.current.has(
             `personagem:${atualizacao.personagemSessaoId}:${campo}`,
@@ -814,23 +848,16 @@ export default function SessaoCampanhaPage() {
         );
         if (obsoleta) return false;
         for (const chave of chaves) {
-          const anterior =
-            ultimoEventoIncrementalRef.current.get(chave) ?? 0;
+          const anterior = ultimoEventoIncrementalRef.current.get(chave) ?? 0;
           if (atualizacao.eventoId > anterior) {
-            ultimoEventoIncrementalRef.current.set(
-              chave,
-              atualizacao.eventoId,
-            );
+            ultimoEventoIncrementalRef.current.set(chave, atualizacao.eventoId);
           }
         }
       }
 
       setDetalhe((atual) => {
         if (!atual) return atual;
-        const proximo = aplicarAtualizacaoIncrementalSessao(
-          atual,
-          atualizacao,
-        );
+        const proximo = aplicarAtualizacaoIncrementalSessao(atual, atualizacao);
         detalheRef.current = proximo;
         return proximo;
       });
@@ -839,90 +866,93 @@ export default function SessaoCampanhaPage() {
     [campanhaId, sessaoId],
   );
 
-  const sincronizarTempoReal = useCallback(async (
-    evento?: EventoSessaoAtualizada,
-    origem: OrigemSincronizacaoSessao = 'MANUAL',
-  ) => {
-    if (!idsValidos || !usuario || sincronizandoTempoRealRef.current) return;
+  const sincronizarTempoReal = useCallback(
+    async (
+      evento?: EventoSessaoAtualizada,
+      origem: OrigemSincronizacaoSessao = "MANUAL",
+    ) => {
+      if (!idsValidos || !usuario || sincronizandoTempoRealRef.current) return;
 
-    if (evento?.atualizacao) {
-      if (mutacoesLocaisRef.current.has(evento.atualizacao.mutacaoId)) return;
-      aplicarAtualizacaoAutoritativa(evento.atualizacao);
-      if (
-        detalheRef.current?.permissoes.ehMestre &&
-        abaPainelDireitoAtivaRef.current === 'eventos'
-      ) {
-        void apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
-          limit: 80,
-          incluirChat: false,
-        })
-          .then(setEventosSessao)
-          .catch(() => undefined);
-      }
-      return;
-    }
-
-    sincronizandoTempoRealRef.current = true;
-    const inicioSincronizacao = performance.now();
-    const versaoRecursosNoInicio = versaoRecursosLocaisRef.current;
-    try {
-      const afterId = chatRef.current.length
-        ? chatRef.current[chatRef.current.length - 1].id
-        : undefined;
-      const [detalheAtual, mensagensNovas] = await Promise.all([
-        apiGetSessaoCampanha(campanhaId, sessaoId),
-        apiListarChatSessaoCampanha(campanhaId, sessaoId, afterId),
-      ]);
-      const eventos =
-        detalheAtual.permissoes.ehMestre &&
-        abaPainelDireitoAtivaRef.current === 'eventos'
-        ? await apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
+      if (evento?.atualizacao) {
+        if (mutacoesLocaisRef.current.has(evento.atualizacao.mutacaoId)) return;
+        aplicarAtualizacaoAutoritativa(evento.atualizacao);
+        if (
+          detalheRef.current?.permissoes.ehMestre &&
+          abaPainelDireitoAtivaRef.current === "eventos"
+        ) {
+          void apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
             limit: 80,
             incluirChat: false,
           })
-        : null;
+            .then(setEventosSessao)
+            .catch(() => undefined);
+        }
+        return;
+      }
 
-      if (
-        versaoRecursosNoInicio !== versaoRecursosLocaisRef.current ||
-        recursosPendentesRef.current.size > 0
-      ) {
+      sincronizandoTempoRealRef.current = true;
+      const inicioSincronizacao = performance.now();
+      const versaoRecursosNoInicio = versaoRecursosLocaisRef.current;
+      try {
+        const afterId = chatRef.current.length
+          ? chatRef.current[chatRef.current.length - 1].id
+          : undefined;
+        const [detalheAtual, mensagensNovas] = await Promise.all([
+          apiGetSessaoCampanha(campanhaId, sessaoId),
+          apiListarChatSessaoCampanha(campanhaId, sessaoId, afterId),
+        ]);
+        const eventos =
+          detalheAtual.permissoes.ehMestre &&
+          abaPainelDireitoAtivaRef.current === "eventos"
+            ? await apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
+                limit: 80,
+                incluirChat: false,
+              })
+            : null;
+
+        if (
+          versaoRecursosNoInicio !== versaoRecursosLocaisRef.current ||
+          recursosPendentesRef.current.size > 0
+        ) {
+          registrarMetricaSincronizacaoSessao({
+            origem,
+            duracaoMs: performance.now() - inicioSincronizacao,
+            sucesso: true,
+          });
+          return;
+        }
+
+        setDetalhe(detalheAtual);
+        detalheRef.current = detalheAtual;
+        sincronizarEstadosDerivados(detalheAtual);
+        anexarMensagensNoChat(mensagensNovas);
+        if (eventos) setEventosSessao(eventos);
         registrarMetricaSincronizacaoSessao({
           origem,
           duracaoMs: performance.now() - inicioSincronizacao,
           sucesso: true,
         });
-        return;
+      } catch {
+        // sincronizacao silenciosa de fallback/realtime
+        registrarMetricaSincronizacaoSessao({
+          origem,
+          duracaoMs: performance.now() - inicioSincronizacao,
+          sucesso: false,
+        });
+      } finally {
+        sincronizandoTempoRealRef.current = false;
       }
-
-      setDetalhe(detalheAtual);
-      detalheRef.current = detalheAtual;
-      sincronizarEstadosDerivados(detalheAtual);
-      anexarMensagensNoChat(mensagensNovas);
-      if (eventos) setEventosSessao(eventos);
-      registrarMetricaSincronizacaoSessao({
-        origem,
-        duracaoMs: performance.now() - inicioSincronizacao,
-        sucesso: true,
-      });
-    } catch {
-      // sincronizacao silenciosa de fallback/realtime
-      registrarMetricaSincronizacaoSessao({
-        origem,
-        duracaoMs: performance.now() - inicioSincronizacao,
-        sucesso: false,
-      });
-    } finally {
-      sincronizandoTempoRealRef.current = false;
-    }
-  }, [
-    anexarMensagensNoChat,
-    aplicarAtualizacaoAutoritativa,
-    campanhaId,
-    idsValidos,
-    sessaoId,
-    sincronizarEstadosDerivados,
-    usuario,
-  ]);
+    },
+    [
+      anexarMensagensNoChat,
+      aplicarAtualizacaoAutoritativa,
+      campanhaId,
+      idsValidos,
+      sessaoId,
+      sincronizarEstadosDerivados,
+      usuario,
+    ],
+  );
 
   const carregarInicial = useCallback(async () => {
     if (!idsValidos || !usuario) return;
@@ -936,12 +966,12 @@ export default function SessaoCampanhaPage() {
       ]);
       const eventos =
         detalheSessao.permissoes.ehMestre &&
-        abaPainelDireitoAtivaRef.current === 'eventos'
-        ? await apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
-            limit: 80,
-            incluirChat: false,
-          })
-        : [];
+        abaPainelDireitoAtivaRef.current === "eventos"
+          ? await apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
+              limit: 80,
+              incluirChat: false,
+            })
+          : [];
       setDetalhe(detalheSessao);
       detalheRef.current = detalheSessao;
       sincronizarEstadosDerivados(detalheSessao);
@@ -958,17 +988,17 @@ export default function SessaoCampanhaPage() {
     if (!idsValidos || !usuario) return;
     const personagemId = Number(personagemSelecionadoId);
     if (!Number.isInteger(personagemId) || personagemId <= 0) {
-      setErroCards('Selecione um personagem valido.');
+      setErroCards("Selecione um personagem valido.");
       return;
     }
     const iniciativaTexto = personagemIniciativaValor.trim();
     if (!iniciativaTexto) {
-      setErroCards('Informe a iniciativa do personagem.');
+      setErroCards("Informe a iniciativa do personagem.");
       return;
     }
     const iniciativaValor = parseInteiroComSinal(iniciativaTexto);
     if (iniciativaValor === null) {
-      setErroCards('Informe um valor inteiro valido para iniciativa.');
+      setErroCards("Informe um valor inteiro valido para iniciativa.");
       return;
     }
 
@@ -986,9 +1016,9 @@ export default function SessaoCampanhaPage() {
       setDetalhe(atualizado);
       sincronizarEstadosDerivados(atualizado);
       setModalAdicionarPersonagemAberto(false);
-      setPersonagemSelecionadoId('');
-      setPersonagemIniciativaValor('');
-      showToast('Personagem adicionado na cena.', 'success');
+      setPersonagemSelecionadoId("");
+      setPersonagemIniciativaValor("");
+      showToast("Personagem adicionado na cena.", "success");
     } catch (error) {
       setErroCards(criarErroUsuario(error));
     } finally {
@@ -1020,8 +1050,10 @@ export default function SessaoCampanhaPage() {
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
         showToast(
-          ativo ? 'Elenco controlado pelo mestre ativado.' : 'Entrada livre de personagens restaurada.',
-          'success',
+          ativo
+            ? "Elenco controlado pelo mestre ativado."
+            : "Entrada livre de personagens restaurada.",
+          "success",
         );
       } catch (error) {
         setErroCards(criarErroUsuario(error));
@@ -1029,35 +1061,60 @@ export default function SessaoCampanhaPage() {
         setAtualizandoElenco(false);
       }
     },
-    [campanhaId, idsValidos, sessaoId, showToast, sincronizarEstadosDerivados, usuario],
+    [
+      campanhaId,
+      idsValidos,
+      sessaoId,
+      showToast,
+      sincronizarEstadosDerivados,
+      usuario,
+    ],
   );
 
   const handleAtualizarControladorParticipante = useCallback(
     async (
-      alvo: { tipo: 'PERSONAGEM' | 'NPC'; id: number; nome: string },
+      alvo: { tipo: "PERSONAGEM" | "NPC"; id: number; nome: string },
       controladorUsuarioId: number | null,
     ) => {
       if (!idsValidos || !usuario) return;
       setAtualizandoElenco(true);
       setErroCards(null);
       try {
-        const atualizado = alvo.tipo === 'PERSONAGEM'
-          ? await apiAtualizarControladorPersonagemSessaoCampanha(campanhaId, sessaoId, alvo.id, controladorUsuarioId)
-          : await apiAtualizarControladorNpcSessaoCampanha(campanhaId, sessaoId, alvo.id, controladorUsuarioId);
+        const atualizado =
+          alvo.tipo === "PERSONAGEM"
+            ? await apiAtualizarControladorPersonagemSessaoCampanha(
+                campanhaId,
+                sessaoId,
+                alvo.id,
+                controladorUsuarioId,
+              )
+            : await apiAtualizarControladorNpcSessaoCampanha(
+                campanhaId,
+                sessaoId,
+                alvo.id,
+                controladorUsuarioId,
+              );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
-        showToast(`Controle de ${alvo.nome} atualizado.`, 'success');
+        showToast(`Controle de ${alvo.nome} atualizado.`, "success");
       } catch (error) {
         setErroCards(criarErroUsuario(error));
       } finally {
         setAtualizandoElenco(false);
       }
     },
-    [campanhaId, idsValidos, sessaoId, showToast, sincronizarEstadosDerivados, usuario],
+    [
+      campanhaId,
+      idsValidos,
+      sessaoId,
+      showToast,
+      sincronizarEstadosDerivados,
+      usuario,
+    ],
   );
 
   const handleRemoverPersonagemDaCena = useCallback(
-    async (card: SessaoCampanhaDetalhe['cards'][number]) => {
+    async (card: SessaoCampanhaDetalhe["cards"][number]) => {
       if (!idsValidos || !usuario) return;
       setRemovendoPersonagemSessaoId(card.personagemSessaoId);
       setErroCards(null);
@@ -1069,7 +1126,7 @@ export default function SessaoCampanhaPage() {
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
-        showToast('Personagem removido da cena.', 'warning');
+        showToast("Personagem removido da cena.", "warning");
       } catch (error) {
         setErroCards(criarErroUsuario(error));
       } finally {
@@ -1088,13 +1145,13 @@ export default function SessaoCampanhaPage() {
   );
 
   const solicitarRemoverPersonagem = useCallback(
-    (card: SessaoCampanhaDetalhe['cards'][number]) => {
+    (card: SessaoCampanhaDetalhe["cards"][number]) => {
       confirm({
-        title: 'Remover personagem da cena?',
+        title: "Remover personagem da cena?",
         description: `Remover ${textoSeguro(card.nomePersonagem)} da cena atual?`,
-        confirmLabel: 'Remover',
-        cancelLabel: 'Manter',
-        variant: 'warning',
+        confirmLabel: "Remover",
+        cancelLabel: "Manter",
+        variant: "warning",
         onConfirm: () => handleRemoverPersonagemDaCena(card),
       });
     },
@@ -1104,7 +1161,7 @@ export default function SessaoCampanhaPage() {
   const abrirEdicaoIniciativa = useCallback(
     (participante: ParticipanteIniciativaSessaoCampanha) => {
       setModalIniciativaAberto(participante);
-      setValorIniciativaEdicao(String(participante.valorIniciativa ?? ''));
+      setValorIniciativaEdicao(String(participante.valorIniciativa ?? ""));
     },
     [],
   );
@@ -1113,22 +1170,22 @@ export default function SessaoCampanhaPage() {
     if (!modalIniciativaAberto) return;
     const valorTexto = valorIniciativaEdicao.trim();
     if (!valorTexto) {
-      setErroIniciativa('Informe um valor inteiro de iniciativa.');
+      setErroIniciativa("Informe um valor inteiro de iniciativa.");
       return;
     }
     const valor = parseInteiroComSinal(valorTexto);
     if (valor === null) {
-      setErroIniciativa('Informe um valor inteiro valido para iniciativa.');
+      setErroIniciativa("Informe um valor inteiro valido para iniciativa.");
       return;
     }
 
     const idParticipante =
-      modalIniciativaAberto.tipoParticipante === 'NPC'
+      modalIniciativaAberto.tipoParticipante === "NPC"
         ? modalIniciativaAberto.npcSessaoId
         : modalIniciativaAberto.personagemSessaoId;
 
     if (!idParticipante) {
-      setErroIniciativa('Participante inválido.');
+      setErroIniciativa("Participante inválido.");
       return;
     }
 
@@ -1163,9 +1220,9 @@ export default function SessaoCampanhaPage() {
   ]);
 
   const podeControlarSessao = Boolean(detalhe?.permissoes.ehMestre);
-  const sessaoEncerrada = detalhe?.status === 'ENCERRADA';
+  const sessaoEncerrada = detalhe?.status === "ENCERRADA";
   const visibilidadeRolagemAtual: VisibilidadeRolagemSessao =
-    rolagemSecreta && podeControlarSessao ? 'SECRETA_MESTRE' : 'PUBLICA';
+    rolagemSecreta && podeControlarSessao ? "SECRETA_MESTRE" : "PUBLICA";
 
   const {
     colunaEsquerdaRecolhida,
@@ -1189,7 +1246,7 @@ export default function SessaoCampanhaPage() {
     if (
       !idsValidos ||
       !podeControlarSessao ||
-      abaPainelDireitoAtiva !== 'eventos'
+      abaPainelDireitoAtiva !== "eventos"
     ) {
       return;
     }
@@ -1208,8 +1265,8 @@ export default function SessaoCampanhaPage() {
   ]);
 
   useEffect(() => {
-    if (!podeControlarSessao && abaPainelDireitoAtiva === 'eventos') {
-      setAbaPainelDireitoAtiva('chat');
+    if (!podeControlarSessao && abaPainelDireitoAtiva === "eventos") {
+      setAbaPainelDireitoAtiva("chat");
     }
   }, [abaPainelDireitoAtiva, podeControlarSessao, setAbaPainelDireitoAtiva]);
 
@@ -1218,8 +1275,8 @@ export default function SessaoCampanhaPage() {
       setRelatorioSessao(null);
       setErroRelatorio(null);
       setLoadingRelatorio(false);
-      if (abaPainelDireitoAtiva === 'relatorio') {
-        setAbaPainelDireitoAtiva('chat');
+      if (abaPainelDireitoAtiva === "relatorio") {
+        setAbaPainelDireitoAtiva("chat");
       }
       return;
     }
@@ -1255,13 +1312,14 @@ export default function SessaoCampanhaPage() {
     setAbaPainelDireitoAtiva,
   ]);
 
-  const { socketConectado, realtimeStatus, onlineUsuarioIds } = useSessaoRealtime({
-    idsValidos,
-    usuarioId: usuario?.id,
-    campanhaId,
-    sessaoId,
-    sincronizarTempoReal,
-  });
+  const { socketConectado, realtimeStatus, onlineUsuarioIds } =
+    useSessaoRealtime({
+      idsValidos,
+      usuarioId: usuario?.id,
+      campanhaId,
+      sessaoId,
+      sincronizarTempoReal,
+    });
 
   const { atualizandoCena, handleAtualizarCena } = useSessaoCena({
     campanhaId,
@@ -1277,7 +1335,7 @@ export default function SessaoCampanhaPage() {
     (tipo: TipoCenaSessaoCampanha) => {
       marcarCenaFormDirty();
       setCenaTipo(tipo);
-      if (tipo === 'BASE') {
+      if (tipo === "BASE") {
         setLimitesCategoriaAtivo(true);
       }
     },
@@ -1361,62 +1419,61 @@ export default function SessaoCampanhaPage() {
     handleUsarHabilidadeClasse,
     handleEncerrarSustentacao,
   } = useSessaoHabilidades({
-      campanhaId,
-      sessaoId,
-      sessaoEncerrada,
-      setDetalhe: (atualizado) => setDetalhe(atualizado),
-      sincronizarEstadosDerivados,
-      setErro: setErroCards,
-      cooldownMs: COOLDOWN_USO_HABILIDADE_MS,
-    });
+    campanhaId,
+    sessaoId,
+    sessaoEncerrada,
+    setDetalhe: (atualizado) => setDetalhe(atualizado),
+    sincronizarEstadosDerivados,
+    setErro: setErroCards,
+    cooldownMs: COOLDOWN_USO_HABILIDADE_MS,
+  });
 
   const {
     camposRecursosPendentes,
     handleAplicarDeltaRecursoCard,
     handleAplicarAjustePersonalizadoRecursoCard,
-  } =
-    useSessaoRecursos({
-      campanhaId,
-      sessaoId,
-      sessaoEncerrada,
-      setDetalhe,
-      setErro: setErroCards,
-      obterAjustesRecursosCard,
-      registrarMutacaoLocal,
-      iniciarMutacaoRecurso,
-      finalizarMutacaoRecurso,
-      aplicarAtualizacaoAutoritativa,
-      sincronizarCompleto: sincronizarTempoReal,
-    });
+  } = useSessaoRecursos({
+    campanhaId,
+    sessaoId,
+    sessaoEncerrada,
+    setDetalhe,
+    setErro: setErroCards,
+    obterAjustesRecursosCard,
+    registrarMutacaoLocal,
+    iniciarMutacaoRecurso,
+    finalizarMutacaoRecurso,
+    aplicarAtualizacaoAutoritativa,
+    sincronizarCompleto: sincronizarTempoReal,
+  });
 
   const resetarFormularioNpcSimples = useCallback(() => {
-    setNpcSimplesNome('');
-    setNpcSimplesDefesa('');
-    setNpcSimplesPvMax('');
-    setNpcSimplesIniciativaValor('');
-    setNpcSimplesSanAtual('');
-    setNpcSimplesSanMax('');
-    setNpcSimplesEaAtual('');
-    setNpcSimplesEaMax('');
-    setNpcSimplesFichaTipo('NPC');
-    setNpcSimplesTipo('OUTRO');
-    setNpcSimplesTamanho('MEDIO');
+    setNpcSimplesNome("");
+    setNpcSimplesDefesa("");
+    setNpcSimplesPvMax("");
+    setNpcSimplesIniciativaValor("");
+    setNpcSimplesSanAtual("");
+    setNpcSimplesSanMax("");
+    setNpcSimplesEaAtual("");
+    setNpcSimplesEaMax("");
+    setNpcSimplesFichaTipo("NPC");
+    setNpcSimplesTipo("OUTRO");
+    setNpcSimplesTamanho("MEDIO");
     setNpcSimplesOcultoJogadores(false);
     setNpcSimplesAtributos({
-      agilidade: '',
-      forca: '',
-      intelecto: '',
-      presenca: '',
-      vigor: '',
+      agilidade: "",
+      forca: "",
+      intelecto: "",
+      presenca: "",
+      vigor: "",
     });
     setNpcSimplesPericias({
-      percepcao: '',
-      iniciativa: '',
-      fortitude: '',
-      reflexos: '',
-      vontade: '',
-      luta: '',
-      jujutsu: '',
+      percepcao: "",
+      iniciativa: "",
+      fortitude: "",
+      reflexos: "",
+      vontade: "",
+      luta: "",
+      jujutsu: "",
     });
   }, []);
 
@@ -1446,12 +1503,12 @@ export default function SessaoCampanhaPage() {
     setErro: setErroNpcs,
     showToast,
     onNpcAdicionado: () => {
-      setNomeNpcCustomizado('');
-      setNpcSanAtual('');
-      setNpcSanMax('');
-      setNpcEaAtual('');
-      setNpcEaMax('');
-      setNpcIniciativaValor('');
+      setNomeNpcCustomizado("");
+      setNpcSanAtual("");
+      setNpcSanMax("");
+      setNpcEaAtual("");
+      setNpcEaMax("");
+      setNpcIniciativaValor("");
       setNpcOcultoJogadores(false);
       setModalAdicionarNpcAberto(false);
       setModalAdicionarNpcSimplesAberto(false);
@@ -1464,17 +1521,17 @@ export default function SessaoCampanhaPage() {
   const handleConfirmarAdicionarNpc = useCallback(() => {
     const npcId = Number(npcSelecionadoId);
     if (!Number.isInteger(npcId) || npcId <= 0) {
-      setErroNpcs('Selecione um NPC valido.');
+      setErroNpcs("Selecione um NPC valido.");
       return;
     }
     const iniciativaTexto = npcIniciativaValor.trim();
     if (!iniciativaTexto) {
-      setErroNpcs('Informe a iniciativa do NPC.');
+      setErroNpcs("Informe a iniciativa do NPC.");
       return;
     }
     const iniciativaValor = parseInteiroComSinal(iniciativaTexto);
     if (iniciativaValor === null) {
-      setErroNpcs('Informe um valor inteiro valido para iniciativa.');
+      setErroNpcs("Informe um valor inteiro valido para iniciativa.");
       return;
     }
 
@@ -1502,16 +1559,16 @@ export default function SessaoCampanhaPage() {
   const handleConfirmarAdicionarNpcSimples = useCallback(() => {
     const defesa = parseInteiroComSinal(npcSimplesDefesa.trim());
     if (!npcSimplesNome.trim()) {
-      setErroNpcs('Informe o nome do NPC simples.');
+      setErroNpcs("Informe o nome do NPC simples.");
       return;
     }
     if (defesa === null) {
-      setErroNpcs('Informe uma defesa valida para o NPC simples.');
+      setErroNpcs("Informe uma defesa valida para o NPC simples.");
       return;
     }
     const pontosVidaMax = parseInteiroComSinal(npcSimplesPvMax.trim());
     if (pontosVidaMax === null || pontosVidaMax <= 0) {
-      setErroNpcs('Informe um PV máximo válido para o NPC simples.');
+      setErroNpcs("Informe um PV máximo válido para o NPC simples.");
       return;
     }
 
@@ -1520,7 +1577,7 @@ export default function SessaoCampanhaPage() {
       ? parseInteiroComSinal(iniciativaValorTexto)
       : null;
     if (iniciativaValorTexto && iniciativaValor === null) {
-      setErroNpcs('Informe um valor inteiro valido para iniciativa.');
+      setErroNpcs("Informe um valor inteiro valido para iniciativa.");
       return;
     }
 
@@ -1570,10 +1627,10 @@ export default function SessaoCampanhaPage() {
 
   const handleToggleAnimacaoRolagemChat = useCallback((ativo: boolean) => {
     setAnimacaoRolagemChatAtiva(ativo);
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     window.localStorage.setItem(
       STORAGE_ANIMACAO_ROLAGEM_CHAT_KEY,
-      ativo ? 'on' : 'off',
+      ativo ? "on" : "off",
     );
   }, []);
 
@@ -1586,8 +1643,8 @@ export default function SessaoCampanhaPage() {
       const primeiroPayload = payloads[0] ?? null;
       setPericiaRollModal({
         aberto: true,
-        titulo: primeiroPayload?.label ?? 'Rolagem livre',
-        subtitulo: 'Chat de rolagens',
+        titulo: primeiroPayload?.label ?? "Rolagem livre",
+        subtitulo: "Chat de rolagens",
         alvoTipo: undefined,
         alvoNome: undefined,
         habilidadeContext: null,
@@ -1645,7 +1702,7 @@ export default function SessaoCampanhaPage() {
         const atualizado = await apiGetSessaoCampanha(campanhaId, sessaoId);
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
-        showToast('Mecânica opcional atualizada.', 'success');
+        showToast("Mecânica opcional atualizada.", "success");
       } catch (error) {
         setErroRegrasOpcionais(criarErroUsuario(error));
       } finally {
@@ -1662,7 +1719,7 @@ export default function SessaoCampanhaPage() {
           .pontosPorPersonagem[String(personagemCampanhaId)] ?? 0;
       const mutacaoId = criarClientRequestIdRolagem();
       const otimista: AtualizacaoInspiracaoSessaoCampanha = {
-        tipo: 'INSPIRACAO_AJUSTADA',
+        tipo: "INSPIRACAO_AJUSTADA",
         mutacaoId,
         eventoId: null,
         campanhaId,
@@ -1716,14 +1773,14 @@ export default function SessaoCampanhaPage() {
   const handleGastarInspiracao = useCallback(
     async (
       personagemCampanhaId: number,
-      gasto: { custo: 1 | 2 | 3; efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO' },
+      gasto: { custo: 1 | 2 | 3; efeito: "BONUS_5" | "MAXIMIZAR" | "CRITICO" },
     ) => {
       const anterior =
         detalheRef.current?.regrasOpcionais?.INSPIRACAO.estado
           .pontosPorPersonagem[String(personagemCampanhaId)] ?? 0;
       const mutacaoId = criarClientRequestIdRolagem();
       const otimista: AtualizacaoInspiracaoSessaoCampanha = {
-        tipo: 'INSPIRACAO_GASTA',
+        tipo: "INSPIRACAO_GASTA",
         mutacaoId,
         eventoId: null,
         campanhaId,
@@ -1749,7 +1806,7 @@ export default function SessaoCampanhaPage() {
           { ...gasto, clientRequestId: mutacaoId },
         );
         aplicarAtualizacaoAutoritativa(atualizacao);
-        showToast('Ponto de inspiração gasto.', 'success');
+        showToast("Ponto de inspiração gasto.", "success");
       } catch (error) {
         setDetalhe((atual) => {
           if (!atual) return atual;
@@ -1787,7 +1844,7 @@ export default function SessaoCampanhaPage() {
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
-        showToast('Vinculado inserido na cena.', 'success');
+        showToast("Vinculado inserido na cena.", "success");
       } catch (error) {
         setErroCards(criarErroUsuario(error));
       }
@@ -1797,7 +1854,7 @@ export default function SessaoCampanhaPage() {
 
   const handleAtualizarSocial = useCallback(
     async (alvos: AlvoEncontroSocialSessao[]) => {
-      setAtualizandoRegraOpcional('ENCONTROS_SOCIAIS');
+      setAtualizandoRegraOpcional("ENCONTROS_SOCIAIS");
       setErroRegrasOpcionais(null);
       try {
         const atualizado = await apiAtualizarEncontroSocialSessaoCampanha(
@@ -1816,7 +1873,7 @@ export default function SessaoCampanhaPage() {
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
-        showToast('Encontro social atualizado.', 'success');
+        showToast("Encontro social atualizado.", "success");
       } catch (error) {
         setErroRegrasOpcionais(criarErroUsuario(error));
       } finally {
@@ -1827,10 +1884,13 @@ export default function SessaoCampanhaPage() {
   );
 
   const handleAtualizarAlvoSocial = useCallback(
-    (alvoAtualizado: AlvoEncontroSocialSessao, patch: Partial<AlvoEncontroSocialSessao>) => {
+    (
+      alvoAtualizado: AlvoEncontroSocialSessao,
+      patch: Partial<AlvoEncontroSocialSessao>,
+    ) => {
       const alvosAtualizados = alvosSociais.map((alvo) => {
         const mesmoNpc =
-          typeof alvoAtualizado.npcSessaoId === 'number' &&
+          typeof alvoAtualizado.npcSessaoId === "number" &&
           alvo.npcSessaoId === alvoAtualizado.npcSessaoId;
         const mesmoId =
           Boolean(alvoAtualizado.id) &&
@@ -1880,8 +1940,12 @@ export default function SessaoCampanhaPage() {
   );
 
   const handleAtualizarEscalada = useCallback(
-    async (ativaNesteCombate: boolean, rodadaInicio?: number, bonusAtual?: number) => {
-      setAtualizandoRegraOpcional('ESCALADA_DADOS');
+    async (
+      ativaNesteCombate: boolean,
+      rodadaInicio?: number,
+      bonusAtual?: number,
+    ) => {
+      setAtualizandoRegraOpcional("ESCALADA_DADOS");
       setErroRegrasOpcionais(null);
       try {
         const atualizado = await apiAtualizarEscaladaDadosSessaoCampanha(
@@ -1891,7 +1955,7 @@ export default function SessaoCampanhaPage() {
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
-        showToast('Escalada de Dados atualizada.', 'success');
+        showToast("Escalada de Dados atualizada.", "success");
       } catch (error) {
         setErroRegrasOpcionais(criarErroUsuario(error));
       } finally {
@@ -1941,8 +2005,10 @@ export default function SessaoCampanhaPage() {
   );
 
   const handleAtualizarIniciativaAlternada = useCallback(
-    async (lados: NonNullable<SessaoCampanhaDetalhe['iniciativaAlternada']>['lados']) => {
-      setAtualizandoRegraOpcional('INICIATIVA_ALTERNADA');
+    async (
+      lados: NonNullable<SessaoCampanhaDetalhe["iniciativaAlternada"]>["lados"],
+    ) => {
+      setAtualizandoRegraOpcional("INICIATIVA_ALTERNADA");
       setErroRegrasOpcionais(null);
       try {
         const atualizado = await apiAtualizarIniciativaAlternadaSessaoCampanha(
@@ -1965,7 +2031,7 @@ export default function SessaoCampanhaPage() {
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
-        showToast('Iniciativa alternada atualizada.', 'success');
+        showToast("Iniciativa alternada atualizada.", "success");
       } catch (error) {
         setErroRegrasOpcionais(criarErroUsuario(error));
       } finally {
@@ -1984,8 +2050,8 @@ export default function SessaoCampanhaPage() {
   const handleConsumirItemSessao = useCallback(
     async (payload: {
       itemInventarioCampanhaId: number;
-      modo: 'NORMAL' | 'COM_CALMA' | 'MANUAL';
-      alvoTipo?: 'PERSONAGEM' | 'NPC';
+      modo: "NORMAL" | "COM_CALMA" | "MANUAL";
+      alvoTipo?: "PERSONAGEM" | "NPC";
       alvoId?: number;
       observacao?: string;
     }) => {
@@ -2006,23 +2072,28 @@ export default function SessaoCampanhaPage() {
       );
       anexarMensagensNoChat(mensagensNovas);
       showToast(
-        payload.modo === 'MANUAL'
-          ? 'Consumo registrado para resolução manual.'
-          : 'Consumível aplicado.',
-        'success',
+        payload.modo === "MANUAL"
+          ? "Consumo registrado para resolução manual."
+          : "Consumível aplicado.",
+        "success",
       );
     },
-    [anexarMensagensNoChat, campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
+    [
+      anexarMensagensNoChat,
+      campanhaId,
+      sessaoId,
+      showToast,
+      sincronizarEstadosDerivados,
+    ],
   );
 
   const handleRolarPericia = useCallback(
     async (payload: RolagemPericiaSessaoPayload) => {
       if (sessaoEncerrada) {
-        showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
+        showToast("Sessão encerrada. Rolagens bloqueadas.", "warning");
         return;
       }
-      const usarAtaqueAutoritativo =
-        deveUsarRolagemAtaqueAutoritativa(payload);
+      const usarAtaqueAutoritativo = deveUsarRolagemAtaqueAutoritativa(payload);
       const usarPericiaNpcAutoritativa =
         deveUsarRolagemPericiaNpcAutoritativa(payload);
       const usarAtaqueNpcAutoritativo =
@@ -2065,11 +2136,11 @@ export default function SessaoCampanhaPage() {
         } catch (error) {
           const userError = criarErroUsuario(error);
           setErroRolagens(userError);
-          showToast(userError.message, 'warning');
+          showToast(userError.message, "warning");
           return;
         }
         const alvoId =
-          'personagemSessaoId' in intencao
+          "personagemSessaoId" in intencao
             ? intencao.personagemSessaoId
             : intencao.npcSessaoId;
         const chaveRolagem = `${intencao.tipo}:${alvoId}:${intencao.periciaCodigo}`;
@@ -2077,7 +2148,8 @@ export default function SessaoCampanhaPage() {
         rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
 
         const labelBase = `${payload.alvoNome} · ${payload.periciaNome}`.trim();
-        const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
+        const label =
+          labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
         const expression = formatarExpressaoDice({
           quantidade: payload.dados,
           faces: 20,
@@ -2088,9 +2160,10 @@ export default function SessaoCampanhaPage() {
         });
         setPericiaRollModal({
           aberto: true,
-          titulo: usarAtaqueAutoritativo || usarAtaqueNpcAutoritativo
-            ? `Ataque · ${payload.periciaNome}`
-            : payload.periciaNome,
+          titulo:
+            usarAtaqueAutoritativo || usarAtaqueNpcAutoritativo
+              ? `Ataque · ${payload.periciaNome}`
+              : payload.periciaNome,
           subtitulo: payload.atributoBase
             ? `${payload.alvoNome} · ${payload.atributoBase}`
             : payload.alvoNome,
@@ -2109,19 +2182,19 @@ export default function SessaoCampanhaPage() {
         });
         try {
           const enviada =
-            intencao.tipo === 'ATAQUE_NPC'
+            intencao.tipo === "ATAQUE_NPC"
               ? await apiCriarRolagemAtaqueNpcSessaoCampanha(
                   campanhaId,
                   sessaoId,
                   intencao,
                 )
-              : intencao.tipo === 'PERICIA_NPC'
+              : intencao.tipo === "PERICIA_NPC"
                 ? await apiCriarRolagemPericiaNpcSessaoCampanha(
                     campanhaId,
                     sessaoId,
                     intencao,
                   )
-                : intencao.tipo === 'ATAQUE_PERSONAGEM'
+                : intencao.tipo === "ATAQUE_PERSONAGEM"
                   ? await apiCriarRolagemAtaquePersonagemSessaoCampanha(
                       campanhaId,
                       sessaoId,
@@ -2142,8 +2215,8 @@ export default function SessaoCampanhaPage() {
           ) {
             throw new Error(
               usarAtaqueAutoritativo || usarAtaqueNpcAutoritativo
-                ? 'Resposta autoritativa de ataque inválida.'
-                : 'Resposta autoritativa de perícia inválida.',
+                ? "Resposta autoritativa de ataque inválida."
+                : "Resposta autoritativa de perícia inválida.",
             );
           }
           setChat((anterior) =>
@@ -2155,9 +2228,9 @@ export default function SessaoCampanhaPage() {
             ? enviada.ajustesAplicados.some(
                 (ajuste) =>
                   ajuste &&
-                  typeof ajuste === 'object' &&
+                  typeof ajuste === "object" &&
                   !Array.isArray(ajuste) &&
-                  (ajuste as Record<string, unknown>).tipo === 'PERITO',
+                  (ajuste as Record<string, unknown>).tipo === "PERITO",
               )
             : false;
           if (consumiuPerito) void sincronizarTempoReal();
@@ -2220,16 +2293,20 @@ export default function SessaoCampanhaPage() {
         erro: null,
       });
       try {
-        const enviada = await apiCriarRolagemFormulaSessaoCampanha(campanhaId, sessaoId, {
-          tipo: 'FORMULA',
-          expressao: expression,
-          visibilidade: visibilidadeRolagemAtual,
-          contexto: { tipo: 'OUTRO' },
-          clientRequestId: criarClientRequestIdRolagem(),
-        });
+        const enviada = await apiCriarRolagemFormulaSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          {
+            tipo: "FORMULA",
+            expressao: expression,
+            visibilidade: visibilidadeRolagemAtual,
+            contexto: { tipo: "OUTRO" },
+            clientRequestId: criarClientRequestIdRolagem(),
+          },
+        );
         const dadosServidor = extrairDadosRolagemServidor(enviada.dadosRolagem);
         if (!dadosServidor || !dadosServidor.payloads[0]) {
-          throw new Error('Resposta autoritativa de rolagem inválida.');
+          throw new Error("Resposta autoritativa de rolagem inválida.");
         }
         const expressionsServidor = dadosServidor.payloads.map(
           (item) => construirMensagemDice(item).expression,
@@ -2277,12 +2354,12 @@ export default function SessaoCampanhaPage() {
   const handleRolarAtaqueNpcAcao = useCallback(
     async (payload: RolagemAtaqueNpcAcaoSessaoPayload) => {
       if (sessaoEncerrada) {
-        showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
+        showToast("Sessão encerrada. Rolagens bloqueadas.", "warning");
         return;
       }
       const preview = parseDiceExpression(payload.expressaoPreview);
       if (preview.erro || !preview.expression) {
-        showToast(preview.erro ?? 'Teste da ação inválido.', 'warning');
+        showToast(preview.erro ?? "Teste da ação inválido.", "warning");
         return;
       }
 
@@ -2296,7 +2373,7 @@ export default function SessaoCampanhaPage() {
       } catch (error) {
         const userError = criarErroUsuario(error);
         setErroRolagens(userError);
-        showToast(userError.message, 'warning');
+        showToast(userError.message, "warning");
         return;
       }
 
@@ -2307,7 +2384,7 @@ export default function SessaoCampanhaPage() {
         aberto: true,
         titulo: `${payload.acaoNome} · Teste`,
         subtitulo: payload.alvoNome,
-        alvoTipo: 'NPC',
+        alvoTipo: "NPC",
         alvoNome: payload.alvoNome,
         habilidadeContext: null,
         payload: null,
@@ -2327,16 +2404,14 @@ export default function SessaoCampanhaPage() {
           sessaoId,
           intencao,
         );
-        const dadosServidor = extrairDadosRolagemServidor(
-          enviada.dadosRolagem,
-        );
+        const dadosServidor = extrairDadosRolagemServidor(enviada.dadosRolagem);
         if (
           !dadosServidor ||
-          dadosServidor.tipo !== 'ATAQUE_NPC' ||
-          dadosServidor.origemAtaque !== 'ACAO' ||
+          dadosServidor.tipo !== "ATAQUE_NPC" ||
+          dadosServidor.origemAtaque !== "ACAO" ||
           !dadosServidor.payloads[0]
         ) {
-          throw new Error('Resposta autoritativa da ação do NPC inválida.');
+          throw new Error("Resposta autoritativa da ação do NPC inválida.");
         }
         setChat((anterior) =>
           anterior.some((mensagem) => mensagem.id === enviada.id)
@@ -2380,12 +2455,12 @@ export default function SessaoCampanhaPage() {
   const handleRolarDanoNpcAcao = useCallback(
     async (payload: RolagemDanoNpcAcaoSessaoPayload) => {
       if (sessaoEncerrada) {
-        showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
+        showToast("Sessão encerrada. Rolagens bloqueadas.", "warning");
         return;
       }
       const preview = parseDiceExpression(payload.expressaoPreview);
       if (preview.erro || !preview.expression) {
-        showToast(preview.erro ?? 'Dano da ação inválido.', 'warning');
+        showToast(preview.erro ?? "Dano da ação inválido.", "warning");
         return;
       }
 
@@ -2399,7 +2474,7 @@ export default function SessaoCampanhaPage() {
       } catch (error) {
         const userError = criarErroUsuario(error);
         setErroRolagens(userError);
-        showToast(userError.message, 'warning');
+        showToast(userError.message, "warning");
         return;
       }
 
@@ -2410,7 +2485,7 @@ export default function SessaoCampanhaPage() {
         aberto: true,
         titulo: `${payload.acaoNome} · Dano`,
         subtitulo: payload.alvoNome,
-        alvoTipo: 'NPC',
+        alvoTipo: "NPC",
         alvoNome: payload.alvoNome,
         habilidadeContext: null,
         payload: null,
@@ -2430,16 +2505,14 @@ export default function SessaoCampanhaPage() {
           sessaoId,
           intencao,
         );
-        const dadosServidor = extrairDadosRolagemServidor(
-          enviada.dadosRolagem,
-        );
+        const dadosServidor = extrairDadosRolagemServidor(enviada.dadosRolagem);
         if (
           !dadosServidor ||
-          dadosServidor.tipo !== 'DANO_NPC' ||
-          dadosServidor.origemDano !== 'ACAO' ||
+          dadosServidor.tipo !== "DANO_NPC" ||
+          dadosServidor.origemDano !== "ACAO" ||
           !dadosServidor.payloads[0]
         ) {
-          throw new Error('Resposta autoritativa do dano do NPC inválida.');
+          throw new Error("Resposta autoritativa do dano do NPC inválida.");
         }
         setChat((anterior) =>
           anterior.some((mensagem) => mensagem.id === enviada.id)
@@ -2483,7 +2556,7 @@ export default function SessaoCampanhaPage() {
   const handleRolarTesteHabilidade = useCallback(
     async (payload: RolagemTesteHabilidadeSessaoPayload) => {
       if (sessaoEncerrada) {
-        showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
+        showToast("Sessão encerrada. Rolagens bloqueadas.", "warning");
         return;
       }
       let intencao: ReturnType<typeof montarIntencaoRolagemTesteHabilidade>;
@@ -2496,7 +2569,7 @@ export default function SessaoCampanhaPage() {
       } catch (error) {
         const userError = criarErroUsuario(error);
         setErroRolagens(userError);
-        showToast(userError.message, 'warning');
+        showToast(userError.message, "warning");
         return;
       }
       const chaveRolagem = `${intencao.tipo}:${intencao.personagemSessaoId}:${intencao.habilidadeTecnicaId}`;
@@ -2540,15 +2613,15 @@ export default function SessaoCampanhaPage() {
             sessaoId,
             intencao,
           );
-        const dadosServidor = extrairDadosRolagemServidor(
-          enviada.dadosRolagem,
-        );
+        const dadosServidor = extrairDadosRolagemServidor(enviada.dadosRolagem);
         if (
           !dadosServidor ||
-          dadosServidor.tipo !== 'TESTE_HABILIDADE_PERSONAGEM' ||
+          dadosServidor.tipo !== "TESTE_HABILIDADE_PERSONAGEM" ||
           !dadosServidor.payloads[0]
         ) {
-          throw new Error('Resposta autoritativa do teste da habilidade inválida.');
+          throw new Error(
+            "Resposta autoritativa do teste da habilidade inválida.",
+          );
         }
         setChat((anterior) =>
           anterior.some((mensagem) => mensagem.id === enviada.id)
@@ -2592,13 +2665,13 @@ export default function SessaoCampanhaPage() {
   const handleRolarDanoHabilidade = useCallback(
     async (payload: RolagemDanoHabilidadeSessaoPayload) => {
       if (sessaoEncerrada) {
-        showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
+        showToast("Sessão encerrada. Rolagens bloqueadas.", "warning");
         return;
       }
 
       const dano = payload.habilidade.dano;
       if (!dano) {
-        showToast('Habilidade sem dano configurado.', 'warning');
+        showToast("Habilidade sem dano configurado.", "warning");
         return;
       }
 
@@ -2622,7 +2695,10 @@ export default function SessaoCampanhaPage() {
           usarCriticoAutoritativo ? criticoMultiplicador : 1,
         );
         if (preview.expressions.length === 0) {
-          showToast('Não foi possível montar a prévia da rolagem de dano.', 'warning');
+          showToast(
+            "Não foi possível montar a prévia da rolagem de dano.",
+            "warning",
+          );
           return;
         }
         let intencao:
@@ -2644,10 +2720,10 @@ export default function SessaoCampanhaPage() {
         } catch (error) {
           const userError = criarErroUsuario(error);
           setErroRolagens(userError);
-          showToast(userError.message, 'warning');
+          showToast(userError.message, "warning");
           return;
         }
-        const chaveRolagem = `${intencao.tipo}:${intencao.personagemSessaoId}:${intencao.habilidadeTecnicaId}:${intencao.variacaoHabilidadeId ?? 'base'}:${intencao.acumulos ?? 1}`;
+        const chaveRolagem = `${intencao.tipo}:${intencao.personagemSessaoId}:${intencao.habilidadeTecnicaId}:${intencao.variacaoHabilidadeId ?? "base"}:${intencao.acumulos ?? 1}`;
         if (rolagensPericiaEmAndamentoRef.current.has(chaveRolagem)) return;
         rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
         const habilidadeLabel = payload.habilidade.variacaoNome
@@ -2655,7 +2731,7 @@ export default function SessaoCampanhaPage() {
           : payload.habilidade.habilidadeNome;
         setPericiaRollModal({
           aberto: true,
-          titulo: usarCriticoAutoritativo ? 'Dano crítico' : 'Dano/efeito',
+          titulo: usarCriticoAutoritativo ? "Dano crítico" : "Dano/efeito",
           subtitulo: `${payload.alvoNome} · ${habilidadeLabel}`,
           alvoTipo: payload.alvoTipo,
           alvoNome: payload.alvoNome,
@@ -2672,7 +2748,7 @@ export default function SessaoCampanhaPage() {
         });
         try {
           const enviada =
-            intencao.tipo === 'CRITICO_PERSONAGEM'
+            intencao.tipo === "CRITICO_PERSONAGEM"
               ? await apiCriarRolagemCriticoHabilidadePersonagemSessaoCampanha(
                   campanhaId,
                   sessaoId,
@@ -2689,14 +2765,14 @@ export default function SessaoCampanhaPage() {
           if (
             !dadosServidor ||
             dadosServidor.tipo !== intencao.tipo ||
-            (dadosServidor.tipo === 'DANO_PERSONAGEM' &&
-              dadosServidor.origemDano !== 'HABILIDADE_TECNICA') ||
-            (dadosServidor.tipo === 'CRITICO_PERSONAGEM' &&
-              dadosServidor.origemCritico !== 'HABILIDADE_TECNICA') ||
+            (dadosServidor.tipo === "DANO_PERSONAGEM" &&
+              dadosServidor.origemDano !== "HABILIDADE_TECNICA") ||
+            (dadosServidor.tipo === "CRITICO_PERSONAGEM" &&
+              dadosServidor.origemCritico !== "HABILIDADE_TECNICA") ||
             !dadosServidor.payloads[0]
           ) {
             throw new Error(
-              'Resposta autoritativa do dano da habilidade inválida.',
+              "Resposta autoritativa do dano da habilidade inválida.",
             );
           }
           setChat((anterior) =>
@@ -2730,8 +2806,13 @@ export default function SessaoCampanhaPage() {
         return;
       }
 
-      const criticoMultiplicador = Number.isFinite(payload.habilidade.criticoMultiplicador)
-        ? Math.max(2, Math.trunc(payload.habilidade.criticoMultiplicador as number))
+      const criticoMultiplicador = Number.isFinite(
+        payload.habilidade.criticoMultiplicador,
+      )
+        ? Math.max(
+            2,
+            Math.trunc(payload.habilidade.criticoMultiplicador as number),
+          )
         : 2;
 
       const parseFaces = (dado: string): number | null => {
@@ -2746,11 +2827,15 @@ export default function SessaoCampanhaPage() {
         string,
         { quantidade: number; faces: number; tipo: string }
       >();
-      const adicionarDado = (quantidade: number, dado: string, tipo: string) => {
+      const adicionarDado = (
+        quantidade: number,
+        dado: string,
+        tipo: string,
+      ) => {
         if (!Number.isFinite(quantidade) || quantidade <= 0) return;
         const faces = parseFaces(dado);
         if (!faces) return;
-        const key = `${tipo ?? ''}::${faces}`;
+        const key = `${tipo ?? ""}::${faces}`;
         const atual = mapaDados.get(key);
         if (atual) {
           atual.quantidade += quantidade;
@@ -2762,15 +2847,15 @@ export default function SessaoCampanhaPage() {
       const dadosBase = Array.isArray(dano.dadosDano) ? dano.dadosDano : [];
       for (const entrada of dadosBase) {
         const quantidade = Number(entrada?.quantidade ?? 0);
-        const dado = String(entrada?.dado ?? '');
-        const tipo = String(entrada?.tipo ?? '');
+        const dado = String(entrada?.dado ?? "");
+        const tipo = String(entrada?.tipo ?? "");
         adicionarDado(quantidade, dado, tipo);
       }
 
       if (dano.escalonamentoDano && acumulos > 1) {
         const quantidade = Number(dano.escalonamentoDano.quantidade ?? 0);
-        const dado = String(dano.escalonamentoDano.dado ?? '');
-        const tipo = String(dano.escalonamentoDano.tipo ?? '');
+        const dado = String(dano.escalonamentoDano.dado ?? "");
+        const tipo = String(dano.escalonamentoDano.tipo ?? "");
         const total = quantidade * (acumulos - 1);
         adicionarDado(total, dado, tipo);
       }
@@ -2785,11 +2870,12 @@ export default function SessaoCampanhaPage() {
 
       const componentes = listaDados.map((item) => {
         const tipoBase =
-          item.tipo?.trim() || String(dano.danoFlatTipo ?? '').trim() || 'Dano';
+          item.tipo?.trim() || String(dano.danoFlatTipo ?? "").trim() || "Dano";
         const labelBase = aplicarCritico
           ? `${tipoBase} (Critico x${criticoMultiplicador})`
           : tipoBase;
-        const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
+        const label =
+          labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
         return {
           quantidade: item.quantidade,
           faces: item.faces,
@@ -2811,11 +2897,12 @@ export default function SessaoCampanhaPage() {
             modificador: (primeiro.modificador ?? 0) + danoFlat,
           };
         } else {
-          const tipoBase = String(dano.danoFlatTipo ?? '').trim() || 'Dano';
+          const tipoBase = String(dano.danoFlatTipo ?? "").trim() || "Dano";
           const labelBase = aplicarCritico
             ? `${tipoBase} (Critico x${criticoMultiplicador})`
             : tipoBase;
-          const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
+          const label =
+            labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
           componentes.push({
             quantidade: 1,
             faces: 1,
@@ -2827,7 +2914,7 @@ export default function SessaoCampanhaPage() {
       }
 
       if (componentes.length === 0) {
-        showToast('Não foi possível montar a rolagem de dano.', 'warning');
+        showToast("Não foi possível montar a rolagem de dano.", "warning");
         return;
       }
 
@@ -2835,15 +2922,17 @@ export default function SessaoCampanhaPage() {
         ? `${payload.habilidade.habilidadeNome} · ${payload.habilidade.variacaoNome}`
         : payload.habilidade.habilidadeNome;
       const expressions = componentes.map((item) =>
-        item.label ? `${item.label}: ${formatarExpressaoDice(item)}` : formatarExpressaoDice(item),
+        item.label
+          ? `${item.label}: ${formatarExpressaoDice(item)}`
+          : formatarExpressaoDice(item),
       );
-      const expressaoEnvio = expressions.join('; ');
+      const expressaoEnvio = expressions.join("; ");
       const chaveRolagem = `FORMULA:DANO:${payload.alvoTipo}:${payload.alvoNome}:${expressaoEnvio}`;
       if (rolagensPericiaEmAndamentoRef.current.has(chaveRolagem)) return;
       rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
       setPericiaRollModal({
         aberto: true,
-        titulo: 'Dano/efeito',
+        titulo: "Dano/efeito",
         subtitulo: `${payload.alvoNome} · ${habilidadeLabel}`,
         alvoTipo: payload.alvoTipo,
         alvoNome: payload.alvoNome,
@@ -2860,16 +2949,20 @@ export default function SessaoCampanhaPage() {
       });
 
       try {
-        const enviada = await apiCriarRolagemFormulaSessaoCampanha(campanhaId, sessaoId, {
-          tipo: 'FORMULA',
-          expressao: expressaoEnvio,
-          visibilidade: visibilidadeRolagemAtual,
-          contexto: { tipo: 'OUTRO' },
-          clientRequestId: criarClientRequestIdRolagem(),
-        });
+        const enviada = await apiCriarRolagemFormulaSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          {
+            tipo: "FORMULA",
+            expressao: expressaoEnvio,
+            visibilidade: visibilidadeRolagemAtual,
+            contexto: { tipo: "OUTRO" },
+            clientRequestId: criarClientRequestIdRolagem(),
+          },
+        );
         const dadosServidor = extrairDadosRolagemServidor(enviada.dadosRolagem);
         if (!dadosServidor || dadosServidor.payloads.length === 0) {
-          throw new Error('Resposta autoritativa de rolagem inválida.');
+          throw new Error("Resposta autoritativa de rolagem inválida.");
         }
         const expressionsServidor = dadosServidor.payloads.map(
           (item) => construirMensagemDice(item).expression,
@@ -2934,7 +3027,7 @@ export default function SessaoCampanhaPage() {
     setEventosSessao,
     setErro: setErroEventos,
     onEventoDesfeito: () => {
-      setMotivoDesfazerEventoModal('');
+      setMotivoDesfazerEventoModal("");
       setEventoDetalheModal(null);
     },
   });
@@ -2943,19 +3036,19 @@ export default function SessaoCampanhaPage() {
     (
       evento: EventoSessaoTimeline,
       motivo?: string,
-      origem: 'lista' | 'detalhe' = 'lista',
+      origem: "lista" | "detalhe" = "lista",
     ) => {
-      if (origem === 'detalhe') {
+      if (origem === "detalhe") {
         void handleDesfazerEvento(evento.id, motivo);
         return;
       }
 
       confirm({
-        title: 'Desfazer evento?',
+        title: "Desfazer evento?",
         description: `Você está prestes a desfazer: ${textoSeguro(evento.descricao)}.`,
-        confirmLabel: 'Desfazer evento',
-        cancelLabel: 'Manter',
-        variant: 'warning',
+        confirmLabel: "Desfazer evento",
+        cancelLabel: "Manter",
+        variant: "warning",
         onConfirm: () => handleDesfazerEvento(evento.id, motivo),
       });
     },
@@ -2964,14 +3057,14 @@ export default function SessaoCampanhaPage() {
 
   const solicitarRemocaoCondicao = useCallback(
     (
-      alvoTipo: 'PERSONAGEM' | 'NPC',
+      alvoTipo: "PERSONAGEM" | "NPC",
       alvoId: number,
       condicao: CondicaoAtivaSessaoCampanha,
-      origem: 'inline' | 'accordion' | 'modal' = 'inline',
+      origem: "inline" | "accordion" | "modal" = "inline",
     ) => {
       const requerConfirmacao =
-        origem !== 'modal' &&
-        (condicao.automatica || condicao.duracaoModo === 'ATE_REMOVER');
+        origem !== "modal" &&
+        (condicao.automatica || condicao.duracaoModo === "ATE_REMOVER");
 
       if (!requerConfirmacao) {
         void handleRemoverCondicao(alvoTipo, alvoId, condicao.id);
@@ -2979,15 +3072,15 @@ export default function SessaoCampanhaPage() {
       }
 
       confirm({
-        title: 'Remover condição?',
+        title: "Remover condição?",
         description: `Remover "${textoSeguro(condicao.nome)}". ${descreverDuracaoCondicao(
           condicao.duracaoModo,
           condicao.duracaoValor,
           condicao.restanteDuracao,
         )}`,
-        confirmLabel: 'Remover condição',
-        cancelLabel: 'Manter',
-        variant: 'warning',
+        confirmLabel: "Remover condição",
+        cancelLabel: "Manter",
+        variant: "warning",
         onConfirm: () => handleRemoverCondicao(alvoTipo, alvoId, condicao.id),
       });
     },
@@ -2997,7 +3090,7 @@ export default function SessaoCampanhaPage() {
   const handleRolarMacroArma = useCallback(
     async (solicitacao: SolicitacaoMacroArma) => {
       if (sessaoEncerrada) {
-        showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
+        showToast("Sessão encerrada. Rolagens bloqueadas.", "warning");
         return;
       }
       let intencao: ReturnType<typeof montarIntencaoRolagemMacroArma>;
@@ -3010,32 +3103,32 @@ export default function SessaoCampanhaPage() {
       } catch (error) {
         const userError = criarErroUsuario(error);
         setErroRolagens(userError);
-        showToast(userError.message, 'warning');
+        showToast(userError.message, "warning");
         return;
       }
       const chaveRolagem = `${intencao.tipo}:${intencao.personagemSessaoId}:${intencao.itemInventarioCampanhaId}`;
       if (rolagensPericiaEmAndamentoRef.current.has(chaveRolagem)) return;
       rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
       const titulo =
-        solicitacao.acao === 'ATAQUE'
+        solicitacao.acao === "ATAQUE"
           ? `Ataque · ${solicitacao.nomeArma}`
-          : solicitacao.acao === 'CRITICO'
+          : solicitacao.acao === "CRITICO"
             ? `Crítico · ${solicitacao.nomeArma}`
             : `Dano · ${solicitacao.nomeArma}`;
       setPericiaRollModal({
         aberto: true,
         titulo,
         subtitulo: `${solicitacao.periciaNome} · ${solicitacao.nomeArma}`,
-        alvoTipo: 'PERSONAGEM',
+        alvoTipo: "PERSONAGEM",
         alvoNome: solicitacao.nomeArma,
         habilidadeContext: null,
         payload: null,
         payloads: [],
-        expression: solicitacao.expressionsPreview[0] ?? 'Rolagem de arma',
+        expression: solicitacao.expressionsPreview[0] ?? "Rolagem de arma",
         expressions:
           solicitacao.expressionsPreview.length > 0
             ? solicitacao.expressionsPreview
-            : ['Rolagem de arma'],
+            : ["Rolagem de arma"],
         facesPendentes: solicitacao.facesPreview,
         origemServidor: true,
         enviando: true,
@@ -3044,7 +3137,7 @@ export default function SessaoCampanhaPage() {
       });
       try {
         const enviada =
-          intencao.tipo === 'ATAQUE_ITEM_PERSONAGEM'
+          intencao.tipo === "ATAQUE_ITEM_PERSONAGEM"
             ? await apiCriarRolagemAtaqueItemPersonagemSessaoCampanha(
                 campanhaId,
                 sessaoId,
@@ -3061,7 +3154,7 @@ export default function SessaoCampanhaPage() {
           dadosServidor.tipo !== intencao.tipo ||
           !dadosServidor.payloads[0]
         ) {
-          throw new Error('Resposta autoritativa da macro inválida.');
+          throw new Error("Resposta autoritativa da macro inválida.");
         }
         setChat((anterior) =>
           anterior.some((mensagem) => mensagem.id === enviada.id)
@@ -3072,7 +3165,9 @@ export default function SessaoCampanhaPage() {
           ...estado,
           payload: dadosServidor.payloads[0] ?? null,
           payloads: dadosServidor.payloads,
-          expression: dadosServidor.formulasResolvidas[0] ?? dadosServidor.formulaResolvida,
+          expression:
+            dadosServidor.formulasResolvidas[0] ??
+            dadosServidor.formulaResolvida,
           expressions: dadosServidor.formulasResolvidas,
           facesPendentes: undefined,
           enviando: false,
@@ -3104,7 +3199,7 @@ export default function SessaoCampanhaPage() {
   const handleRolarMacroPersonalizada = useCallback(
     async (solicitacao: SolicitacaoMacroPersonalizada) => {
       if (sessaoEncerrada) {
-        showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
+        showToast("Sessão encerrada. Rolagens bloqueadas.", "warning");
         return;
       }
       let intencao: ReturnType<typeof montarIntencaoRolagemMacroPersonalizada>;
@@ -3117,7 +3212,7 @@ export default function SessaoCampanhaPage() {
       } catch (error) {
         const userError = criarErroUsuario(error);
         setErroRolagens(userError);
-        showToast(userError.message, 'warning');
+        showToast(userError.message, "warning");
         return;
       }
       const chaveRolagem = `${intencao.tipo}:${intencao.personagemSessaoId}:${intencao.macroId}`;
@@ -3125,14 +3220,14 @@ export default function SessaoCampanhaPage() {
       rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
       setPericiaRollModal({
         aberto: true,
-        titulo: `${solicitacao.acao === 'CRITICO' ? 'Crítico' : solicitacao.acao === 'DANO' ? 'Dano' : solicitacao.acao === 'ATAQUE' ? 'Ataque' : 'Fórmula'} · ${solicitacao.nomeMacro}`,
+        titulo: `${solicitacao.acao === "CRITICO" ? "Crítico" : solicitacao.acao === "DANO" ? "Dano" : solicitacao.acao === "ATAQUE" ? "Ataque" : "Fórmula"} · ${solicitacao.nomeMacro}`,
         subtitulo: solicitacao.subtitulo,
-        alvoTipo: 'PERSONAGEM',
+        alvoTipo: "PERSONAGEM",
         alvoNome: solicitacao.nomeMacro,
         habilidadeContext: null,
         payload: null,
         payloads: [],
-        expression: solicitacao.expressionsPreview[0] ?? 'Rolagem de macro',
+        expression: solicitacao.expressionsPreview[0] ?? "Rolagem de macro",
         expressions: solicitacao.expressionsPreview,
         facesPendentes: solicitacao.facesPreview,
         origemServidor: true,
@@ -3141,17 +3236,33 @@ export default function SessaoCampanhaPage() {
         erro: null,
       });
       try {
-        const enviada = await apiCriarRolagemMacroPersonagemSessaoCampanha(campanhaId, sessaoId, intencao);
+        const enviada = await apiCriarRolagemMacroPersonagemSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          intencao,
+        );
         const dadosServidor = extrairDadosRolagemServidor(enviada.dadosRolagem);
-        if (!dadosServidor || dadosServidor.tipo !== intencao.tipo || !dadosServidor.payloads[0]) {
-          throw new Error('Resposta autoritativa da macro personalizada inválida.');
+        if (
+          !dadosServidor ||
+          dadosServidor.tipo !== intencao.tipo ||
+          !dadosServidor.payloads[0]
+        ) {
+          throw new Error(
+            "Resposta autoritativa da macro personalizada inválida.",
+          );
         }
-        setChat((anterior) => anterior.some((mensagem) => mensagem.id === enviada.id) ? anterior : [...anterior, enviada]);
+        setChat((anterior) =>
+          anterior.some((mensagem) => mensagem.id === enviada.id)
+            ? anterior
+            : [...anterior, enviada],
+        );
         setPericiaRollModal((estado) => ({
           ...estado,
           payload: dadosServidor.payloads[0] ?? null,
           payloads: dadosServidor.payloads,
-          expression: dadosServidor.formulasResolvidas[0] ?? dadosServidor.formulaResolvida,
+          expression:
+            dadosServidor.formulasResolvidas[0] ??
+            dadosServidor.formulaResolvida,
           expressions: dadosServidor.formulasResolvidas,
           facesPendentes: undefined,
           enviando: false,
@@ -3161,7 +3272,12 @@ export default function SessaoCampanhaPage() {
       } catch (error) {
         const userError = criarErroUsuario(error);
         setErroRolagens(userError);
-        setPericiaRollModal((estado) => ({ ...estado, enviando: false, enviado: false, erro: userError.message }));
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: false,
+          erro: userError.message,
+        }));
       } finally {
         rolagensPericiaEmAndamentoRef.current.delete(chaveRolagem);
       }
@@ -3258,7 +3374,7 @@ export default function SessaoCampanhaPage() {
   const handleSacrificarNucleo = useCallback(
     async (
       personagemCampanhaId: number,
-      payload: { modo: 'ATUAL' | 'OUTRO'; nucleo?: NucleoAmaldicoadoCodigo },
+      payload: { modo: "ATUAL" | "OUTRO"; nucleo?: NucleoAmaldicoadoCodigo },
     ) => {
       if (sessaoEncerrada) return;
       setErroCards(null);
@@ -3283,12 +3399,12 @@ export default function SessaoCampanhaPage() {
 
   useEffect(() => {
     if (!authLoading && !usuario) {
-      router.push('/auth/login');
+      router.push("/auth/login");
       return;
     }
 
     if (!authLoading && usuario && !idsValidos) {
-      setErroGlobal('IDs de campanha/sessão inválidos.');
+      setErroGlobal("IDs de campanha/sessão inválidos.");
       setLoading(false);
       return;
     }
@@ -3370,11 +3486,10 @@ export default function SessaoCampanhaPage() {
     const idsAlvos = new Set(
       alvosSociais
         .map((alvo) => alvo.npcSessaoId)
-        .filter((id): id is number => typeof id === 'number'),
+        .filter((id): id is number => typeof id === "number"),
     );
     return npcs.filter(
-      (npc) =>
-        npc.visibilidade !== 'resumida' && idsAlvos.has(npc.npcSessaoId),
+      (npc) => npc.visibilidade !== "resumida" && idsAlvos.has(npc.npcSessaoId),
     );
   }, [alvosSociais, npcs]);
   const rolagens = useMemo(
@@ -3382,7 +3497,7 @@ export default function SessaoCampanhaPage() {
       chat.filter(
         (mensagemChat) =>
           mensagemChat.ocultaParaUsuario ||
-          mensagemChat.visibilidade === 'SECRETA_MESTRE' ||
+          mensagemChat.visibilidade === "SECRETA_MESTRE" ||
           Boolean(mensagemChat.dadosRolagem) ||
           ehMensagemDice(mensagemChat.mensagem),
       ),
@@ -3393,7 +3508,7 @@ export default function SessaoCampanhaPage() {
       chat.filter(
         (mensagemChat) =>
           !mensagemChat.ocultaParaUsuario &&
-          mensagemChat.visibilidade !== 'SECRETA_MESTRE' &&
+          mensagemChat.visibilidade !== "SECRETA_MESTRE" &&
           !mensagemChat.dadosRolagem &&
           !ehMensagemDice(mensagemChat.mensagem),
       ),
@@ -3413,13 +3528,14 @@ export default function SessaoCampanhaPage() {
   const iniciativaIndiceAtual = detalhe?.iniciativa.indiceAtual ?? null;
   const turnoAtualLabel = detalhe?.turnoAtual
     ? `${labelParticipanteIniciativa(detalhe.turnoAtual)}${
-        typeof detalhe.turnoAtual.valorIniciativa === 'number'
+        typeof detalhe.turnoAtual.valorIniciativa === "number"
           ? ` | INI ${detalhe.turnoAtual.valorIniciativa}`
-          : ''
+          : ""
       }`
     : null;
   const proximoTurnoLabel = useMemo(() => {
-    if (!detalhe?.controleTurnosAtivo || iniciativaOrdem.length === 0) return null;
+    if (!detalhe?.controleTurnosAtivo || iniciativaOrdem.length === 0)
+      return null;
     const indiceProximo = calcularIndiceProximoTurno(
       detalhe.iniciativa.indiceAtual,
       iniciativaOrdem.length,
@@ -3428,22 +3544,32 @@ export default function SessaoCampanhaPage() {
     const proximo = iniciativaOrdem[indiceProximo];
     if (!proximo) return null;
     return `${labelParticipanteIniciativa(proximo)} | INI ${proximo.valorIniciativa}`;
-  }, [detalhe?.controleTurnosAtivo, detalhe?.iniciativa.indiceAtual, iniciativaOrdem]);
-  const onlineSet = useMemo(() => new Set(onlineUsuarioIds), [onlineUsuarioIds]);
+  }, [
+    detalhe?.controleTurnosAtivo,
+    detalhe?.iniciativa.indiceAtual,
+    iniciativaOrdem,
+  ]);
+  const onlineSet = useMemo(
+    () => new Set(onlineUsuarioIds),
+    [onlineUsuarioIds],
+  );
 
   const tituloSessao = useMemo(() => {
-    if (!detalhe) return 'Sessão da campanha';
+    if (!detalhe) return "Sessão da campanha";
     return detalhe.titulo;
   }, [detalhe]);
   const totalParticipantesOnline = useMemo(
-    () => participantes.filter((participante) => onlineSet.has(participante.usuarioId)).length,
+    () =>
+      participantes.filter((participante) =>
+        onlineSet.has(participante.usuarioId),
+      ).length,
     [onlineSet, participantes],
   );
   const iniciativaPorPersonagemSessao = useMemo(() => {
     const mapa = new Map<number, number>();
     for (const participante of iniciativaOrdem) {
-      if (participante.tipoParticipante !== 'PERSONAGEM') continue;
-      if (typeof participante.personagemSessaoId !== 'number') continue;
+      if (participante.tipoParticipante !== "PERSONAGEM") continue;
+      if (typeof participante.personagemSessaoId !== "number") continue;
       mapa.set(participante.personagemSessaoId, participante.valorIniciativa);
     }
     return mapa;
@@ -3451,36 +3577,49 @@ export default function SessaoCampanhaPage() {
   const iniciativaPorNpcSessao = useMemo(() => {
     const mapa = new Map<number, number>();
     for (const participante of iniciativaOrdem) {
-      if (participante.tipoParticipante !== 'NPC') continue;
-      if (typeof participante.npcSessaoId !== 'number') continue;
+      if (participante.tipoParticipante !== "NPC") continue;
+      if (typeof participante.npcSessaoId !== "number") continue;
       mapa.set(participante.npcSessaoId, participante.valorIniciativa);
     }
     return mapa;
   }, [iniciativaOrdem]);
   const meuCard = useMemo(
-    () => cards.find((card) => card.donoId === usuario?.id || card.controladorUsuarioId === usuario?.id) ?? null,
+    () =>
+      cards.find(
+        (card) =>
+          card.donoId === usuario?.id ||
+          card.controladorUsuarioId === usuario?.id,
+      ) ?? null,
     [cards, usuario?.id],
   );
   const iniciativaMeuCard = meuCard
-    ? iniciativaPorPersonagemSessao.get(meuCard.personagemSessaoId) ?? null
+    ? (iniciativaPorPersonagemSessao.get(meuCard.personagemSessaoId) ?? null)
     : null;
   const npcsSobMeuControle = useMemo(
-    () => npcs.filter((npc) => npc.visibilidade !== 'resumida' && npc.podeControlar),
+    () =>
+      npcs.filter(
+        (npc) => npc.visibilidade !== "resumida" && npc.podeControlar,
+      ),
     [npcs],
   );
   const participanteAtual = useMemo(
-    () => participantes.find((participante) => participante.usuarioId === usuario?.id),
+    () =>
+      participantes.find(
+        (participante) => participante.usuarioId === usuario?.id,
+      ),
     [participantes, usuario?.id],
   );
   const personagemDelegado = Boolean(
-    meuCard && meuCard.donoId !== usuario?.id && meuCard.controladorUsuarioId === usuario?.id,
+    meuCard &&
+    meuCard.donoId !== usuario?.id &&
+    meuCard.controladorUsuarioId === usuario?.id,
   );
   const ajustesMeuCard = meuCard
     ? obterAjustesRecursosCard(meuCard.personagemCampanhaId)
     : AJUSTE_RECURSO_PADRAO;
   const camposRecursosPendentesMeuCard = new Set<CampoAjusteRecurso>(
     meuCard
-      ? (['pv', 'pe', 'ea', 'san'] as CampoAjusteRecurso[]).filter((campo) =>
+      ? (["pv", "pe", "ea", "san"] as CampoAjusteRecurso[]).filter((campo) =>
           camposRecursosPendentes.has(
             `${meuCard.personagemCampanhaId}:${campo}`,
           ),
@@ -3491,33 +3630,35 @@ export default function SessaoCampanhaPage() {
     ? Boolean(cardsRecursosExpandidos[meuCard.personagemSessaoId])
     : false;
   const abaDetalheMeuCard = meuCard
-    ? abasDetalheCard[meuCard.personagemSessaoId] ?? 'RESUMO'
-    : 'RESUMO';
+    ? (abasDetalheCard[meuCard.personagemSessaoId] ?? "RESUMO")
+    : "RESUMO";
   const totalTecnicasMeuCard = meuCard
     ? (meuCard.tecnicaInata ? 1 : 0) + meuCard.tecnicasNaoInatas.length
     : 0;
   const totalCondicoesMeuCard = meuCard ? meuCard.condicoesAtivas.length : 0;
-  const totalSustentacoesMeuCard = meuCard ? meuCard.sustentacoesAtivas.length : 0;
+  const totalSustentacoesMeuCard = meuCard
+    ? meuCard.sustentacoesAtivas.length
+    : 0;
   const mostrarSomenteSustentadasMeuCard = meuCard
     ? Boolean(mostrarSomenteSustentadas[meuCard.personagemSessaoId])
     : false;
   const tecnicaInataAbertaMeuCard = meuCard
-    ? tecnicasInatasAbertas[meuCard.personagemSessaoId] ?? true
+    ? (tecnicasInatasAbertas[meuCard.personagemSessaoId] ?? true)
     : true;
   const tecnicasNaoInatasAbertasMeuCard = meuCard
     ? Boolean(tecnicasNaoInatasAbertas[meuCard.personagemSessaoId])
     : false;
   const gridSessaoClassName = useMemo(() => {
     if (colunaEsquerdaRecolhida && colunaDireitaRecolhida) {
-      return 'grid gap-4 xl:grid-cols-1';
+      return "grid gap-4 xl:grid-cols-1";
     }
     if (colunaEsquerdaRecolhida) {
-      return 'grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(400px,0.9fr)]';
+      return "grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(400px,0.9fr)]";
     }
     if (colunaDireitaRecolhida) {
-      return 'grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1.05fr)]';
+      return "grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1.05fr)]";
     }
-    return 'grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1.05fr)_minmax(400px,0.9fr)]';
+    return "grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1.05fr)_minmax(400px,0.9fr)]";
   }, [colunaDireitaRecolhida, colunaEsquerdaRecolhida]);
   const condicoesFiltradasModal = useMemo(() => {
     if (!buscaCondicoesModal.trim()) return catalogoCondicoes;
@@ -3535,11 +3676,11 @@ export default function SessaoCampanhaPage() {
       )
     : formCondicaoPadrao;
   const campoDuracaoCondicaoModalDesabilitado =
-    formCondicaoModal.duracaoModo === 'ATE_REMOVER';
+    formCondicaoModal.duracaoModo === "ATE_REMOVER";
   const condicoesAtivasModal = useMemo(() => {
     if (!modalCondicoesAberto) return [];
 
-    if (modalCondicoesAberto.alvoTipo === 'PERSONAGEM') {
+    if (modalCondicoesAberto.alvoTipo === "PERSONAGEM") {
       return (
         detalhe?.cards.find(
           (card) => card.personagemSessaoId === modalCondicoesAberto.alvoId,
@@ -3548,8 +3689,9 @@ export default function SessaoCampanhaPage() {
     }
 
     return (
-      detalhe?.npcs.find((npc) => npc.npcSessaoId === modalCondicoesAberto.alvoId)
-        ?.condicoesAtivas ?? modalCondicoesAberto.condicoesAtivas
+      detalhe?.npcs.find(
+        (npc) => npc.npcSessaoId === modalCondicoesAberto.alvoId,
+      )?.condicoesAtivas ?? modalCondicoesAberto.condicoesAtivas
     );
   }, [detalhe, modalCondicoesAberto]);
   const dadosEventoDetalheModal = useMemo(
@@ -3576,24 +3718,24 @@ export default function SessaoCampanhaPage() {
       }
       if (Boolean(acaoTurnoPendente)) return;
 
-      if (event.key === '.') {
+      if (event.key === ".") {
         event.preventDefault();
-        void handleControleTurno('AVANCAR');
+        void handleControleTurno("AVANCAR");
       }
 
-      if (event.key === ',' && event.shiftKey) {
+      if (event.key === "," && event.shiftKey) {
         event.preventDefault();
-        void handleControleTurno('VOLTAR');
+        void handleControleTurno("VOLTAR");
       }
 
-      if (event.key === '/' && event.shiftKey) {
+      if (event.key === "/" && event.shiftKey) {
         event.preventDefault();
-        void handleControleTurno('PULAR');
+        void handleControleTurno("PULAR");
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     acaoTurnoPendente,
@@ -3638,12 +3780,15 @@ export default function SessaoCampanhaPage() {
     [setTecnicasNaoInatasAbertas],
   );
 
-  const atualizarAcumuloHabilidade = useCallback((chave: string, valor: string) => {
-    setAcumulosHabilidade((estadoAtual) => ({
-      ...estadoAtual,
-      [chave]: valor,
-    }));
-  }, []);
+  const atualizarAcumuloHabilidade = useCallback(
+    (chave: string, valor: string) => {
+      setAcumulosHabilidade((estadoAtual) => ({
+        ...estadoAtual,
+        [chave]: valor,
+      }));
+    },
+    [],
+  );
 
   const alternarCardExpandido = useCallback((personagemSessaoId: number) => {
     setCardsRecursosExpandidos((estadoAtual) => ({
@@ -3703,7 +3848,15 @@ export default function SessaoCampanhaPage() {
       onToggleTecnicasNaoInatas={atualizarTecnicasNaoInatasAbertas}
       acumulosHabilidade={acumulosHabilidade}
       onAtualizarAcumulosHabilidade={atualizarAcumuloHabilidade}
-      onUsarHabilidade={(personagemSessaoId, habilidadeTecnicaId, variacaoId, acumulos, gastoPE, condicaoSessaoId, ignorarSobrecarga) =>
+      onUsarHabilidade={(
+        personagemSessaoId,
+        habilidadeTecnicaId,
+        variacaoId,
+        acumulos,
+        gastoPE,
+        condicaoSessaoId,
+        ignorarSobrecarga,
+      ) =>
         void handleUsarHabilidade(
           personagemSessaoId,
           habilidadeTecnicaId,
@@ -3730,7 +3883,9 @@ export default function SessaoCampanhaPage() {
       onSacrificarNucleo={handleSacrificarNucleo}
       onAbrirEdicaoPersonagem={handleAbrirEdicaoPersonagem}
       onAbrirFichaCompleta={handleAbrirFichaCompleta}
-      onInvocarVinculado={(vinculadoId) => void handleInvocarVinculado(vinculadoId)}
+      onInvocarVinculado={(vinculadoId) =>
+        void handleInvocarVinculado(vinculadoId)
+      }
       onRolarPericia={handleRolarPericia}
       onRolarTesteHabilidade={handleRolarTesteHabilidade}
       onRolarDanoHabilidade={handleRolarDanoHabilidade}
@@ -3742,7 +3897,9 @@ export default function SessaoCampanhaPage() {
       onRolarMacroPersonalizada={handleRolarMacroPersonalizada}
       renderPainelCondicoes={renderPainelCondicoes}
       limitesCategoriaAtivo={limitesCategoriaAtivo}
-      consumirComCalmaAtivo={regrasOpcionais?.CONSUMIR_COM_CALMA?.ativo === true}
+      consumirComCalmaAtivo={
+        regrasOpcionais?.CONSUMIR_COM_CALMA?.ativo === true
+      }
       recursosCompactosObrigatorios={socialAtivo}
       inspiracaoAtiva={inspiracaoAtiva}
       pontosInspiracaoPorPersonagem={pontosInspiracaoPorPersonagem}
@@ -3768,15 +3925,19 @@ export default function SessaoCampanhaPage() {
     />
   );
 
-  function handleAbrirFichaCompleta(card: SessaoCampanhaDetalhe['cards'][number]) {
+  function handleAbrirFichaCompleta(
+    card: SessaoCampanhaDetalhe["cards"][number],
+  ) {
     window.open(
       `/personagens-base/${card.personagemBaseId}`,
-      '_blank',
-      'noopener,noreferrer',
+      "_blank",
+      "noopener,noreferrer",
     );
   }
 
-  function handleAbrirEdicaoPersonagem(card: SessaoCampanhaDetalhe['cards'][number]) {
+  function handleAbrirEdicaoPersonagem(
+    card: SessaoCampanhaDetalhe["cards"][number],
+  ) {
     if (!card.recursos) return;
 
     setPersonagemEmEdicao({
@@ -3786,7 +3947,8 @@ export default function SessaoCampanhaPage() {
       pericias: card.pericias.map((pericia) => ({
         ...pericia,
         grauTreinamento:
-          pericia.grauTreinamento ?? Math.max(0, Math.trunc(pericia.bonusTreinamento / 5)),
+          pericia.grauTreinamento ??
+          Math.max(0, Math.trunc(pericia.bonusTreinamento / 5)),
       })),
       grausAprimoramento: card.ficha?.grausAprimoramento ?? [],
     });
@@ -3814,7 +3976,10 @@ export default function SessaoCampanhaPage() {
               description="Verifique o link da sessão ou volte para a campanha."
             />
           ) : null}
-          <Button variant="ghost" onClick={() => router.push(`/campanhas/${campanhaId}`)}>
+          <Button
+            variant="ghost"
+            onClick={() => router.push(`/campanhas/${campanhaId}`)}
+          >
             <Icon name="back" className="w-4 h-4 mr-2" />
             Voltar para campanha
           </Button>
@@ -3825,7 +3990,9 @@ export default function SessaoCampanhaPage() {
 
   const painelMecanicasOpcionais = (
     <div className="space-y-3">
-      {erroRegrasOpcionais ? <ErrorAlert message={erroRegrasOpcionais} /> : null}
+      {erroRegrasOpcionais ? (
+        <ErrorAlert message={erroRegrasOpcionais} />
+      ) : null}
       <SessionOptionalMechanicsPanel
         regras={regrasOpcionais}
         podeControlarSessao={podeControlarSessao}
@@ -3868,9 +4035,7 @@ export default function SessaoCampanhaPage() {
       erroTurnos={erroTurnos}
       erroEncerramento={erroEncerramento}
       onControleTurno={(acao) => void handleControleTurno(acao)}
-      onReprocessarEfeitosTurno={() =>
-        void handleReprocessarEfeitosTurno()
-      }
+      onReprocessarEfeitosTurno={() => void handleReprocessarEfeitosTurno()}
       onSolicitarEncerrarSessao={() => setConfirmarEncerrarSessaoAberto(true)}
       iniciativaAlternada={detalhe.iniciativaAlternada}
       optionalMechanicsPanel={painelMecanicasOpcionais}
@@ -3878,39 +4043,48 @@ export default function SessaoCampanhaPage() {
   );
   const sessionStats = [
     {
-      id: 'participantes',
-      label: 'Participantes',
+      id: "participantes",
+      label: "Participantes",
       value: `${totalParticipantesOnline}/${participantes.length}`,
-      icon: 'user' as const,
-      helper: 'online',
-      tone: totalParticipantesOnline > 0 ? ('success' as const) : ('default' as const),
+      icon: "user" as const,
+      helper: "online",
+      tone:
+        totalParticipantesOnline > 0
+          ? ("success" as const)
+          : ("default" as const),
     },
     {
-      id: 'personagens',
-      label: 'Personagens',
+      id: "personagens",
+      label: "Personagens",
       value: cards.length,
-      icon: 'character-gojo' as const,
+      icon: "character-gojo" as const,
     },
     {
-      id: 'npcs',
-      label: 'NPCs e ameaças',
+      id: "npcs",
+      label: "NPCs e ameaças",
       value: npcs.length,
-      icon: 'curse' as const,
+      icon: "curse" as const,
     },
     {
-      id: 'cena',
-      label: 'Cena',
+      id: "cena",
+      label: "Cena",
       value: labelCena(detalhe.cenaAtual.tipo as TipoCenaSessaoCampanha),
-      icon: 'status' as const,
+      icon: "status" as const,
       helper: detalhe.controleTurnosAtivo
         ? `Rodada ${detalhe.rodadaAtual ?? 1}`
-        : 'Modo livre',
-      tone: detalhe.cenaAtual.tipo === 'COMBATE' ? ('danger' as const) : ('primary' as const),
+        : "Modo livre",
+      tone:
+        detalhe.cenaAtual.tipo === "COMBATE"
+          ? ("danger" as const)
+          : ("primary" as const),
     },
   ];
 
   return (
-    <main ref={shellRef} className="session-page-shell min-h-screen bg-app-bg px-4 py-6 md:px-6 lg:px-8">
+    <main
+      ref={shellRef}
+      className="session-page-shell min-h-screen bg-app-bg px-4 py-6 md:px-6 lg:px-8"
+    >
       <div className="mx-auto max-w-[1600px] space-y-6">
         <div className="space-y-4">
           <PageHeader
@@ -3918,7 +4092,7 @@ export default function SessaoCampanhaPage() {
             title={tituloSessao}
             eyebrow="Sessão ao vivo"
             description={`Iniciada ${formatarDataHora(detalhe.iniciadoEm)}${
-              sessaoEncerrada ? ' · Encerrada' : ''
+              sessaoEncerrada ? " · Encerrada" : ""
             }`}
             backHref={`/campanhas/${campanhaId}`}
             backLabel="Painel da campanha"
@@ -3929,7 +4103,9 @@ export default function SessaoCampanhaPage() {
 
         <SessionOperationalBar
           ref={operationalBarRef}
-          cenaLabel={labelCena(detalhe.cenaAtual.tipo as TipoCenaSessaoCampanha)}
+          cenaLabel={labelCena(
+            detalhe.cenaAtual.tipo as TipoCenaSessaoCampanha,
+          )}
           cenaTipo={detalhe.cenaAtual.tipo as TipoCenaSessaoCampanha}
           cenaNome={detalhe.cenaAtual.nome}
           rodadaAtual={detalhe.rodadaAtual}
@@ -3939,20 +4115,20 @@ export default function SessaoCampanhaPage() {
           realtimeAtivo={socketConectado}
           realtimeStatus={realtimeStatus}
           controleTurnosAtivo={detalhe.controleTurnosAtivo}
-          combateAtivo={detalhe.cenaAtual.tipo === 'COMBATE'}
+          combateAtivo={detalhe.cenaAtual.tipo === "COMBATE"}
           podeControlarSessao={podeControlarSessao}
           totalParticipantesOnline={totalParticipantesOnline}
           totalParticipantes={participantes.length}
           erro={erroTurnos}
           acaoTurnoPendente={acaoTurnoPendente}
           efeitosTurnoPendentes={Boolean(detalhe.efeitosTurnoPendentes)}
-          onAvancarTurno={() => void handleControleTurno('AVANCAR')}
-          onPularTurno={() => void handleControleTurno('PULAR')}
-          onVoltarTurno={() => void handleControleTurno('VOLTAR')}
+          onAvancarTurno={() => void handleControleTurno("AVANCAR")}
+          onPularTurno={() => void handleControleTurno("PULAR")}
+          onVoltarTurno={() => void handleControleTurno("VOLTAR")}
           iniciativaAlternada={detalhe.iniciativaAlternada}
           escaladaAtiva={escaladaRegraAtiva}
           bonusEscaladaDados={bonusEscaladaDados}
-          atualizandoEscalada={atualizandoRegraOpcional === 'ESCALADA_DADOS'}
+          atualizandoEscalada={atualizandoRegraOpcional === "ESCALADA_DADOS"}
           onAtualizarEscaladaBonus={handleAtualizarBonusEscalada}
         />
 
@@ -3994,7 +4170,9 @@ export default function SessaoCampanhaPage() {
           {!colunaEsquerdaRecolhida ? (
             <section className="session-column space-y-4">
               <div className="flex items-center justify-between px-1">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-app-muted">Painel da sessão</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-app-muted">
+                  Painel da sessão
+                </span>
                 <button
                   type="button"
                   className="rounded-lg p-1 text-app-muted hover:bg-app-surface hover:text-app-fg"
@@ -4008,13 +4186,17 @@ export default function SessaoCampanhaPage() {
               {podeControlarSessao ? (
                 <>
                   <SessionRosterControlPanel
-                    elencoControladoPeloMestre={Boolean(detalhe.elencoControladoPeloMestre)}
+                    elencoControladoPeloMestre={Boolean(
+                      detalhe.elencoControladoPeloMestre,
+                    )}
                     participantes={detalhe.participantes}
                     personagens={cards}
                     npcs={npcsCompletos}
                     atualizando={atualizandoElenco}
                     onAtualizarElenco={handleAtualizarElencoControlado}
-                    onAtualizarControlador={handleAtualizarControladorParticipante}
+                    onAtualizarControlador={
+                      handleAtualizarControladorParticipante
+                    }
                   />
                   <SessionPanel
                     title="Escudo do Mestre"
@@ -4025,11 +4207,21 @@ export default function SessaoCampanhaPage() {
                         size="xs"
                         variant="ghost"
                         onClick={() => setEscudoAberto((aberto) => !aberto)}
-                        title={escudoAberto ? 'Recolher Escudo do Mestre' : 'Expandir Escudo do Mestre'}
-                        aria-label={escudoAberto ? 'Recolher Escudo do Mestre' : 'Expandir Escudo do Mestre'}
+                        title={
+                          escudoAberto
+                            ? "Recolher Escudo do Mestre"
+                            : "Expandir Escudo do Mestre"
+                        }
+                        aria-label={
+                          escudoAberto
+                            ? "Recolher Escudo do Mestre"
+                            : "Expandir Escudo do Mestre"
+                        }
                         aria-expanded={escudoAberto}
                         className={`session-master-shield-toggle${
-                          escudoAberto ? ' session-master-shield-toggle--open' : ''
+                          escudoAberto
+                            ? " session-master-shield-toggle--open"
+                            : ""
                         }`}
                       >
                         <Icon name="chevron-down" className="h-4 w-4" />
@@ -4040,7 +4232,7 @@ export default function SessaoCampanhaPage() {
                       {escudoAberto && (
                         <motion.div
                           initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
+                          animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
                           className="overflow-hidden"
                         >
@@ -4070,7 +4262,9 @@ export default function SessaoCampanhaPage() {
                     salvandoNpcId={salvandoNpcId}
                     campoRecursoPendente={campoRecursoNpcPendente}
                     removendoNpcId={removendoNpcId}
-                    erro={erroNpcs ?? (socialAtivo ? erroRegrasOpcionais : null)}
+                    erro={
+                      erroNpcs ?? (socialAtivo ? erroRegrasOpcionais : null)
+                    }
                     onAbrirAdicionar={() => setModalAdicionarNpcAberto(true)}
                     onAbrirAdicionarNpcSimples={() =>
                       setModalAdicionarNpcSimplesAberto(true)
@@ -4083,10 +4277,15 @@ export default function SessaoCampanhaPage() {
                       void handleAplicarDeltaRecursoNpc(npc, campo, delta)
                     }
                     onAplicarAjustePersonalizado={(npc, campo) =>
-                      void handleAplicarAjustePersonalizadoRecursoNpc(npc, campo)
+                      void handleAplicarAjustePersonalizadoRecursoNpc(
+                        npc,
+                        campo,
+                      )
                     }
                     onSalvarNpc={(npc) => void handleSalvarNpc(npc)}
-                    onSolicitarRemoverNpc={(npc) => setNpcRemocaoConfirmacao(npc)}
+                    onSolicitarRemoverNpc={(npc) =>
+                      setNpcRemocaoConfirmacao(npc)
+                    }
                     onAlternarVisibilidadeNpc={(npc) =>
                       void handleAlternarVisibilidadeNpc(npc)
                     }
@@ -4097,7 +4296,7 @@ export default function SessaoCampanhaPage() {
                     socialAtivo={socialAtivo}
                     alvosSociais={alvosSociais}
                     atualizandoAlvoSocial={
-                      atualizandoRegraOpcional === 'ENCONTROS_SOCIAIS'
+                      atualizandoRegraOpcional === "ENCONTROS_SOCIAIS"
                     }
                     onAdicionarAlvoSocial={handleAdicionarAlvoSocial}
                     onRemoverAlvoSocial={handleRemoverAlvoSocial}
@@ -4109,63 +4308,78 @@ export default function SessaoCampanhaPage() {
                   <SessionAccessNotice
                     papel={participanteAtual?.papel}
                     sessaoEncerrada={sessaoEncerrada}
-                    elencoControladoPeloMestre={Boolean(detalhe.elencoControladoPeloMestre)}
+                    elencoControladoPeloMestre={Boolean(
+                      detalhe.elencoControladoPeloMestre,
+                    )}
                     personagem={
                       meuCard
-                        ? { nome: meuCard.nomePersonagem, delegado: personagemDelegado }
+                        ? {
+                            nome: meuCard.nomePersonagem,
+                            delegado: personagemDelegado,
+                          }
                         : null
                     }
                     npcsControlados={npcsSobMeuControle.map((npc) => npc.nome)}
                   />
                   <SessionPlayerSummaryPanel
-                  campanhaId={campanhaId}
-                  sessaoId={sessaoId}
-                  card={meuCard}
-                  iniciativaValor={iniciativaMeuCard}
-                  cardRecursosExpandido={cardRecursosExpandidoMeuCard}
-                  abaDetalheCard={abaDetalheMeuCard}
-                  totalCondicoesAtivasCard={totalCondicoesMeuCard}
-                  totalTecnicasCard={totalTecnicasMeuCard}
-                  totalSustentacoesAtivasCard={totalSustentacoesMeuCard}
-                  mostrarSomenteSustentadasAtivas={mostrarSomenteSustentadasMeuCard}
-                  tecnicaInataAberta={tecnicaInataAbertaMeuCard}
-                  tecnicasNaoInatasAbertas={tecnicasNaoInatasAbertasMeuCard}
-                  sessaoEncerrada={sessaoEncerrada}
-                  ajustesRecursos={ajustesMeuCard}
-                  camposRecursosPendentesCard={camposRecursosPendentesMeuCard}
-                  podeAdicionar={
-                    !sessaoEncerrada &&
-                    (!detalhe.elencoControladoPeloMestre || podeControlarSessao)
-                  }
-                  onAbrirAdicionar={() => setModalAdicionarPersonagemAberto(true)}
-                  onAlternarExpandido={() => {
-                    if (!meuCard) return;
-                    alternarCardExpandido(meuCard.personagemSessaoId);
-                  }}
-                  onAtualizarAbaDetalheCard={(aba) => {
-                    if (!meuCard) return;
-                    atualizarAbaDetalheCard(meuCard.personagemSessaoId, aba);
-                  }}
-                  onToggleMostrarSomenteSustentadas={(checked) => {
-                    if (!meuCard) return;
-                    atualizarFiltroSustentadas(meuCard.personagemSessaoId, checked);
-                  }}
-                  onToggleTecnicaInata={(aberto) => {
-                    if (!meuCard) return;
-                    atualizarTecnicasInatasAbertas(meuCard.personagemSessaoId, aberto);
-                  }}
-                  onToggleTecnicasNaoInatas={(aberto) => {
-                    if (!meuCard) return;
-                    atualizarTecnicasNaoInatasAbertas(
-                      meuCard.personagemSessaoId,
-                      aberto,
-                    );
-                  }}
-                  acaoHabilidadePendente={acaoHabilidadePendente}
-                  acumulosHabilidade={acumulosHabilidade}
-                  onAtualizarAcumulosHabilidade={atualizarAcumuloHabilidade}
-                  onUsarHabilidade={(personagemSessaoId, habilidadeTecnicaId, variacaoId, acumulos, gastoPE, condicaoSessaoId, ignorarSobrecarga) =>
-                    void handleUsarHabilidade(
+                    campanhaId={campanhaId}
+                    sessaoId={sessaoId}
+                    card={meuCard}
+                    iniciativaValor={iniciativaMeuCard}
+                    cardRecursosExpandido={cardRecursosExpandidoMeuCard}
+                    abaDetalheCard={abaDetalheMeuCard}
+                    totalCondicoesAtivasCard={totalCondicoesMeuCard}
+                    totalTecnicasCard={totalTecnicasMeuCard}
+                    totalSustentacoesAtivasCard={totalSustentacoesMeuCard}
+                    mostrarSomenteSustentadasAtivas={
+                      mostrarSomenteSustentadasMeuCard
+                    }
+                    tecnicaInataAberta={tecnicaInataAbertaMeuCard}
+                    tecnicasNaoInatasAbertas={tecnicasNaoInatasAbertasMeuCard}
+                    sessaoEncerrada={sessaoEncerrada}
+                    ajustesRecursos={ajustesMeuCard}
+                    camposRecursosPendentesCard={camposRecursosPendentesMeuCard}
+                    podeAdicionar={
+                      !sessaoEncerrada &&
+                      (!detalhe.elencoControladoPeloMestre ||
+                        podeControlarSessao)
+                    }
+                    onAbrirAdicionar={() =>
+                      setModalAdicionarPersonagemAberto(true)
+                    }
+                    onAlternarExpandido={() => {
+                      if (!meuCard) return;
+                      alternarCardExpandido(meuCard.personagemSessaoId);
+                    }}
+                    onAtualizarAbaDetalheCard={(aba) => {
+                      if (!meuCard) return;
+                      atualizarAbaDetalheCard(meuCard.personagemSessaoId, aba);
+                    }}
+                    onToggleMostrarSomenteSustentadas={(checked) => {
+                      if (!meuCard) return;
+                      atualizarFiltroSustentadas(
+                        meuCard.personagemSessaoId,
+                        checked,
+                      );
+                    }}
+                    onToggleTecnicaInata={(aberto) => {
+                      if (!meuCard) return;
+                      atualizarTecnicasInatasAbertas(
+                        meuCard.personagemSessaoId,
+                        aberto,
+                      );
+                    }}
+                    onToggleTecnicasNaoInatas={(aberto) => {
+                      if (!meuCard) return;
+                      atualizarTecnicasNaoInatasAbertas(
+                        meuCard.personagemSessaoId,
+                        aberto,
+                      );
+                    }}
+                    acaoHabilidadePendente={acaoHabilidadePendente}
+                    acumulosHabilidade={acumulosHabilidade}
+                    onAtualizarAcumulosHabilidade={atualizarAcumuloHabilidade}
+                    onUsarHabilidade={(
                       personagemSessaoId,
                       habilidadeTecnicaId,
                       variacaoId,
@@ -4173,75 +4387,98 @@ export default function SessaoCampanhaPage() {
                       gastoPE,
                       condicaoSessaoId,
                       ignorarSobrecarga,
-                    )
-                  }
-                  onUsarHabilidadeClasse={(personagemSessaoId, payload) =>
-                    void handleUsarHabilidadeClasse(personagemSessaoId, payload)
-                  }
-                  onEncerrarSustentacao={(personagemSessaoId, sustentacaoId) =>
-                    void handleEncerrarSustentacao(personagemSessaoId, sustentacaoId)
-                  }
-                  formatarCustos={formatarCustos}
-                  limitesCategoriaAtivo={limitesCategoriaAtivo}
-                  consumirComCalmaAtivo={
-                    regrasOpcionais?.CONSUMIR_COM_CALMA?.ativo === true
-                  }
-                  recursosCompactosObrigatorios={socialAtivo}
-                  inspiracaoAtiva={inspiracaoAtiva}
-                  pontosInspiracao={
-                    meuCard
-                      ? pontosInspiracaoPorPersonagem[String(meuCard.personagemCampanhaId)] ?? 0
-                      : 0
-                  }
-                  podeControlarInspiracao={podeControlarSessao}
-                  atualizandoInspiracao={
-                    meuCard
-                      ? atualizandoRegraOpcional ===
-                        `INSPIRACAO:${meuCard.personagemCampanhaId}`
-                      : false
-                  }
-                  onAjustarInspiracao={(personagemCampanhaId, delta) =>
-                    void handleAjustarInspiracao(personagemCampanhaId, delta)
-                  }
-                  onGastarInspiracao={(personagemCampanhaId, gasto) =>
-                    void handleGastarInspiracao(personagemCampanhaId, gasto)
-                  }
-                  alvosPersonagens={cards.map((card) => ({
-                    personagemSessaoId: card.personagemSessaoId,
-                    personagemCampanhaId: card.personagemCampanhaId,
-                    nomePersonagem: card.nomePersonagem,
-                  }))}
-                  alvosNpcs={npcs.map((npc) => ({
-                    npcSessaoId: npc.npcSessaoId,
-                    nome: npc.nome,
-                  }))}
-                  onConsumirItem={handleConsumirItemSessao}
-                  renderPainelCondicoes={renderPainelCondicoes}
-                  onAbrirFichaCompleta={() => {
-                    if (!meuCard) return;
-                    handleAbrirFichaCompleta(meuCard);
-                  }}
-                  onSolicitarRemover={() => {
-                    if (!meuCard) return;
-                    solicitarRemoverPersonagem(meuCard);
-                  }}
-                  onAtualizarAjusteRecurso={(campo, valor) => {
-                    if (!meuCard) return;
-                    atualizarAjusteRecursoCard(
-                      meuCard.personagemCampanhaId,
-                      campo,
-                      valor,
-                    );
-                  }}
-                  onAplicarDeltaRecurso={(campo, delta) => {
-                    if (!meuCard) return;
-                    void handleAplicarDeltaRecursoCard(meuCard, campo, delta);
-                  }}
-                  onAplicarAjustePersonalizado={(campo) => {
-                    if (!meuCard) return;
-                    void handleAplicarAjustePersonalizadoRecursoCard(meuCard, campo);
-                  }}
-                  onSelecionarNucleo={handleSelecionarNucleo}
+                    ) =>
+                      void handleUsarHabilidade(
+                        personagemSessaoId,
+                        habilidadeTecnicaId,
+                        variacaoId,
+                        acumulos,
+                        gastoPE,
+                        condicaoSessaoId,
+                        ignorarSobrecarga,
+                      )
+                    }
+                    onUsarHabilidadeClasse={(personagemSessaoId, payload) =>
+                      void handleUsarHabilidadeClasse(
+                        personagemSessaoId,
+                        payload,
+                      )
+                    }
+                    onEncerrarSustentacao={(
+                      personagemSessaoId,
+                      sustentacaoId,
+                    ) =>
+                      void handleEncerrarSustentacao(
+                        personagemSessaoId,
+                        sustentacaoId,
+                      )
+                    }
+                    formatarCustos={formatarCustos}
+                    limitesCategoriaAtivo={limitesCategoriaAtivo}
+                    consumirComCalmaAtivo={
+                      regrasOpcionais?.CONSUMIR_COM_CALMA?.ativo === true
+                    }
+                    recursosCompactosObrigatorios={socialAtivo}
+                    inspiracaoAtiva={inspiracaoAtiva}
+                    pontosInspiracao={
+                      meuCard
+                        ? (pontosInspiracaoPorPersonagem[
+                            String(meuCard.personagemCampanhaId)
+                          ] ?? 0)
+                        : 0
+                    }
+                    podeControlarInspiracao={podeControlarSessao}
+                    atualizandoInspiracao={
+                      meuCard
+                        ? atualizandoRegraOpcional ===
+                          `INSPIRACAO:${meuCard.personagemCampanhaId}`
+                        : false
+                    }
+                    onAjustarInspiracao={(personagemCampanhaId, delta) =>
+                      void handleAjustarInspiracao(personagemCampanhaId, delta)
+                    }
+                    onGastarInspiracao={(personagemCampanhaId, gasto) =>
+                      void handleGastarInspiracao(personagemCampanhaId, gasto)
+                    }
+                    alvosPersonagens={cards.map((card) => ({
+                      personagemSessaoId: card.personagemSessaoId,
+                      personagemCampanhaId: card.personagemCampanhaId,
+                      nomePersonagem: card.nomePersonagem,
+                    }))}
+                    alvosNpcs={npcs.map((npc) => ({
+                      npcSessaoId: npc.npcSessaoId,
+                      nome: npc.nome,
+                    }))}
+                    onConsumirItem={handleConsumirItemSessao}
+                    renderPainelCondicoes={renderPainelCondicoes}
+                    onAbrirFichaCompleta={() => {
+                      if (!meuCard) return;
+                      handleAbrirFichaCompleta(meuCard);
+                    }}
+                    onSolicitarRemover={() => {
+                      if (!meuCard) return;
+                      solicitarRemoverPersonagem(meuCard);
+                    }}
+                    onAtualizarAjusteRecurso={(campo, valor) => {
+                      if (!meuCard) return;
+                      atualizarAjusteRecursoCard(
+                        meuCard.personagemCampanhaId,
+                        campo,
+                        valor,
+                      );
+                    }}
+                    onAplicarDeltaRecurso={(campo, delta) => {
+                      if (!meuCard) return;
+                      void handleAplicarDeltaRecursoCard(meuCard, campo, delta);
+                    }}
+                    onAplicarAjustePersonalizado={(campo) => {
+                      if (!meuCard) return;
+                      void handleAplicarAjustePersonalizadoRecursoCard(
+                        meuCard,
+                        campo,
+                      );
+                    }}
+                    onSelecionarNucleo={handleSelecionarNucleo}
                     onSacrificarNucleo={handleSacrificarNucleo}
                     onRolarPericia={handleRolarPericia}
                     onRolarTesteHabilidade={handleRolarTesteHabilidade}
@@ -4250,10 +4487,12 @@ export default function SessaoCampanhaPage() {
                     onAtualizarPreferenciasMacrosArmas={setMacrosArmas}
                     onRolarMacroArma={handleRolarMacroArma}
                     preferenciasMacrosPersonalizadas={macrosPersonalizadas}
-                    onAtualizarPreferenciasMacrosPersonalizadas={setMacrosPersonalizadas}
-                  onRolarMacroPersonalizada={handleRolarMacroPersonalizada}
-                  controladoPorDelegacao={personagemDelegado}
-                />
+                    onAtualizarPreferenciasMacrosPersonalizadas={
+                      setMacrosPersonalizadas
+                    }
+                    onRolarMacroPersonalizada={handleRolarMacroPersonalizada}
+                    controladoPorDelegacao={personagemDelegado}
+                  />
                 </>
               )}
             </section>
@@ -4273,7 +4512,9 @@ export default function SessaoCampanhaPage() {
               />
             ) : null}
 
-            {!podeControlarSessao && socialAtivo && npcsAlvosSociais.length > 0 ? (
+            {!podeControlarSessao &&
+            socialAtivo &&
+            npcsAlvosSociais.length > 0 ? (
               <SessionNpcsPanel
                 npcs={npcsAlvosSociais}
                 podeControlarSessao={false}
@@ -4307,7 +4548,7 @@ export default function SessaoCampanhaPage() {
                 socialAtivo={socialAtivo}
                 alvosSociais={alvosSociais}
                 atualizandoAlvoSocial={
-                  atualizandoRegraOpcional === 'ENCONTROS_SOCIAIS'
+                  atualizandoRegraOpcional === "ENCONTROS_SOCIAIS"
                 }
                 onAdicionarAlvoSocial={handleAdicionarAlvoSocial}
                 onRemoverAlvoSocial={handleRemoverAlvoSocial}
@@ -4362,8 +4603,8 @@ export default function SessaoCampanhaPage() {
               indiceIniciativaArrastado={indiceIniciativaArrastado}
               indiceIniciativaHover={indiceIniciativaHover}
               erro={erroIniciativa}
-              onAvancarTurno={() => void handleControleTurno('AVANCAR')}
-              onVoltarTurno={() => void handleControleTurno('VOLTAR')}
+              onAvancarTurno={() => void handleControleTurno("AVANCAR")}
+              onVoltarTurno={() => void handleControleTurno("VOLTAR")}
               onSetIndiceIniciativaArrastado={setIndiceIniciativaArrastado}
               onSetIndiceIniciativaHover={setIndiceIniciativaHover}
               onDropIniciativa={(indiceDestino) =>
@@ -4378,7 +4619,9 @@ export default function SessaoCampanhaPage() {
               iniciativaAlternada={detalhe.iniciativaAlternada}
               escaladaAtiva={escaladaRegraAtiva}
               bonusEscaladaDados={bonusEscaladaDados}
-              atualizandoEscalada={atualizandoRegraOpcional === 'ESCALADA_DADOS'}
+              atualizandoEscalada={
+                atualizandoRegraOpcional === "ESCALADA_DADOS"
+              }
               onAtualizarEscaladaBonus={handleAtualizarBonusEscalada}
               onMarcarIniciativaAlternada={(participanteToken, jaAgiu) =>
                 void handleMarcarIniciativaAlternada(participanteToken, jaAgiu)
@@ -4453,10 +4696,10 @@ export default function SessaoCampanhaPage() {
                 onToggleRolagemSecreta={setRolagemSecreta}
                 onAbrirDetalhes={(evento) => {
                   setEventoDetalheModal(evento);
-                  setMotivoDesfazerEventoModal('');
+                  setMotivoDesfazerEventoModal("");
                 }}
                 onDesfazerEvento={(evento) =>
-                  solicitarDesfazerEvento(evento, undefined, 'lista')
+                  solicitarDesfazerEvento(evento, undefined, "lista")
                 }
                 realtimeStatus={realtimeStatus}
               />
@@ -4559,7 +4802,7 @@ export default function SessaoCampanhaPage() {
           nomeParticipante={
             modalIniciativaAberto
               ? labelParticipanteIniciativa(modalIniciativaAberto)
-              : 'Participante'
+              : "Participante"
           }
           valor={valorIniciativaEdicao}
           onValorChange={setValorIniciativaEdicao}
@@ -4600,14 +4843,14 @@ export default function SessaoCampanhaPage() {
           erro={erroCondicoes}
           onClose={() => {
             setModalCondicoesAberto(null);
-            setBuscaCondicoesModal('');
+            setBuscaCondicoesModal("");
           }}
           onSelecionarCondicao={(condicaoId) => {
             if (!modalCondicoesAberto) return;
             atualizarCampoFormCondicao(
               modalCondicoesAberto.alvoTipo,
               modalCondicoesAberto.alvoId,
-              'condicaoId',
+              "condicaoId",
               condicaoId,
             );
           }}
@@ -4633,7 +4876,7 @@ export default function SessaoCampanhaPage() {
               modalCondicoesAberto.alvoTipo,
               modalCondicoesAberto.alvoId,
               condicao,
-              'modal',
+              "modal",
             );
           }}
           opcoesDuracao={OPCOES_DURACAO_CONDICAO}
@@ -4652,10 +4895,10 @@ export default function SessaoCampanhaPage() {
           evento={eventoDetalheModal}
           onClose={() => {
             setEventoDetalheModal(null);
-            setMotivoDesfazerEventoModal('');
+            setMotivoDesfazerEventoModal("");
           }}
           onDesfazerEvento={(evento, motivo) =>
-            solicitarDesfazerEvento(evento, motivo, 'detalhe')
+            solicitarDesfazerEvento(evento, motivo, "detalhe")
           }
           sessaoEncerrada={sessaoEncerrada}
           podeControlarSessao={podeControlarSessao}
@@ -4703,8 +4946,8 @@ export default function SessaoCampanhaPage() {
           isOpen={confirmacaoAberta}
           onClose={fecharConfirmacao}
           onConfirm={confirmarAcao}
-          title={confirmacaoOptions?.title ?? ''}
-          description={confirmacaoOptions?.description ?? ''}
+          title={confirmacaoOptions?.title ?? ""}
+          description={confirmacaoOptions?.description ?? ""}
           confirmLabel={confirmacaoOptions?.confirmLabel}
           cancelLabel={confirmacaoOptions?.cancelLabel}
           variant={confirmacaoOptions?.variant}

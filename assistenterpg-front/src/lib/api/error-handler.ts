@@ -1,8 +1,5 @@
 // src/lib/api/error-handler.ts
-import {
-  extractRetryAfterSeconds,
-  formatRateLimitMessage,
-} from "./rate-limit";
+import { extractRetryAfterSeconds, formatRateLimitMessage } from "./rate-limit";
 import type {
   ApiErrorBody,
   ErrorSupportInfo,
@@ -31,8 +28,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   AUTH_INVALIDA: "Autenticação inválida. Entre novamente na sessão.",
   USUARIO_TOKEN_NAO_ENCONTRADO:
     "Sua conta não foi encontrada. Faça login novamente.",
-  USUARIO_NAO_AUTENTICADO:
-    "Você precisa fazer login para acessar esta página",
+  USUARIO_NAO_AUTENTICADO: "Você precisa fazer login para acessar esta página",
   ACESSO_NEGADO: "Você não tem permissão para acessar este recurso",
 
   // GOOGLE
@@ -63,8 +59,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Esta conta Google já está vinculada a outro usuário.",
   GOOGLE_EMAIL_BELONGS_TO_ANOTHER_USER:
     "O email da conta Google pertence a outro usuário.",
-  GOOGLE_ACCOUNT_INACTIVE:
-    "A conta vinculada ao Google está inativa.",
+  GOOGLE_ACCOUNT_INACTIVE: "A conta vinculada ao Google está inativa.",
   GOOGLE_OAUTH_DISABLED:
     "A autenticação com Google está desabilitada no momento.",
 
@@ -82,14 +77,12 @@ export const ERROR_MESSAGES: Record<string, string> = {
   PERSONAGEM_BASE_NOT_FOUND: "Personagem não encontrado",
   UPDATE_PERSONAGEM_FAILED: "Falha ao atualizar personagem",
   ATTRIBUTE_NOT_INTEGER: "Valor de atributo inválido (deve ser inteiro)",
-  ATTRIBUTE_OUT_OF_RANGE:
-    "Valor de atributo inválido (deve estar entre 0 e 7)",
+  ATTRIBUTE_OUT_OF_RANGE: "Valor de atributo inválido (deve estar entre 0 e 7)",
   INVALID_ATTRIBUTE_SUM: "Soma de atributos inválida para este nível",
   INVALID_EA_KEY_ATTRIBUTE:
     "Atributo-chave de Energia Amaldiçoada deve ser INT ou PRE",
 
-  TOO_MANY_PASSIVES:
-    "Você pode selecionar no máximo 2 atributos para passivas",
+  TOO_MANY_PASSIVES: "Você pode selecionar no máximo 2 atributos para passivas",
   INELIGIBLE_PASSIVES: "Um ou mais atributos selecionados não são elegíveis",
   PASSIVES_CHOICE_REQUIRED:
     "Você deve escolher exatamente 2 atributos dentre os elegíveis",
@@ -117,8 +110,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   GRADE_OUT_OF_RANGE: "Valor de grau de aprimoramento inválido (0-5)",
   GRADE_EXCEEDS_MAX_WITH_BONUS:
     "Grau excede o máximo com os bônus de habilidades",
-  GRADE_EXCEEDS_MAX_WITH_POWERS:
-    "Grau excede o máximo com os bônus de poderes",
+  GRADE_EXCEEDS_MAX_WITH_POWERS: "Grau excede o máximo com os bônus de poderes",
   TRAINING_LEVEL_INVALID: "Nível inválido para melhoria de treinamento",
   TRAINING_EXCEEDS_IMPROVEMENTS:
     "Quantidade de melhorias de treinamento excede o permitido",
@@ -142,10 +134,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
 
   SKILL_NOT_FOUND: "Perícia não encontrada",
   PERICIA_NOT_FOUND: "Perícia não encontrada",
-  ORIGIN_SKILL_MISSING_GROUP:
-    "Grupo de escolha de perícia da origem inválido",
-  ORIGIN_SKILL_GROUP_INVALID:
-    "Escolha de grupo de perícia da origem inválida",
+  ORIGIN_SKILL_MISSING_GROUP: "Grupo de escolha de perícia da origem inválido",
+  ORIGIN_SKILL_GROUP_INVALID: "Escolha de grupo de perícia da origem inválida",
   ORIGIN_SKILL_CHOICE_INVALID: "Perícia escolhida não pertence à origem",
   CLASS_SKILL_MISSING_GROUP: "Grupo de escolha de perícia da classe inválido",
   CLASS_SKILL_GROUP_INVALID: "Escolha de grupo de perícia da classe inválida",
@@ -168,8 +158,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   POWER_POWER_REQUIREMENT:
     "Este poder exige outro poder previamente selecionado",
   POWER_SKILL_MAX_REACHED: "Perícia já está no limite máximo",
-  POWER_SKILL_LEVEL_LIMIT:
-    "Nível atual não permite elevar mais essa perícia",
+  POWER_SKILL_LEVEL_LIMIT: "Nível atual não permite elevar mais essa perícia",
   PROFICIENCY_NOT_FOUND: "Proficiência não encontrada",
 
   PATH_NOT_FOUND: "Trilha não encontrada",
@@ -189,8 +178,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Técnicas hereditárias precisam de pelo menos um clã",
   TECNICA_NAO_INATA_HEREDITARIA:
     "Apenas técnicas INATAS podem ser hereditárias",
-  TECNICA_SUPLEMENTO_NOT_FOUND:
-    "Suplemento informado para técnica não existe",
+  TECNICA_SUPLEMENTO_NOT_FOUND: "Suplemento informado para técnica não existe",
   TECNICA_CLA_NOT_FOUND: "Clã informado para técnica não existe",
   HABILIDADE_TECNICA_NOT_FOUND: "Habilidade de técnica não encontrada",
   HABILIDADE_CODIGO_DUPLICADO:
@@ -199,17 +187,17 @@ export const ERROR_MESSAGES: Record<string, string> = {
   ENTIDADE_PV_INVALIDO:
     "PV atual não pode ser maior que o PV máximo do vinculado.",
   ENTIDADE_TECNICA_COMPATIVEL_OBRIGATORIA:
-    'O personagem não possui uma técnica compatível com este vinculado.',
+    "O personagem não possui uma técnica compatível com este vinculado.",
   ENTIDADE_TECNICA_ORIGEM_INVALIDA:
-    'A técnica selecionada não habilita este tipo de vinculado.',
+    "A técnica selecionada não habilita este tipo de vinculado.",
   ENTIDADE_CRIACAO_MANUAL_BLOQUEADA:
-    'Esta técnica permite associar apenas vinculados predefinidos.',
+    "Esta técnica permite associar apenas vinculados predefinidos.",
   ENTIDADE_DISTRIBUICAO_INVALIDA:
-    'A distribuição excede os pools ou tetos permitidos pela técnica.',
+    "A distribuição excede os pools ou tetos permitidos pela técnica.",
   ENTIDADE_TEMPLATE_JA_ASSOCIADO:
-    'Este vinculado predefinido já está associado ao personagem.',
+    "Este vinculado predefinido já está associado ao personagem.",
   ENTIDADE_OVERRIDE_NEGADO:
-    'Apenas o mestre pode ignorar limites de vinculados.',
+    "Apenas o mestre pode ignorar limites de vinculados.",
   ENTIDADE_ACESSO_NEGADO:
     "Você não tem permissão para acessar esta entidade vinculada.",
   ENTIDADE_APENAS_MESTRE:
@@ -239,8 +227,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "O limite de Shikigamis ativos foi atingido.",
   ENTIDADE_TEMPLATE_NAO_ENCONTRADO:
     "O template de entidade vinculada não foi encontrado.",
-  ENTIDADE_VINCULADA_NAO_ENCONTRADA:
-    "A entidade vinculada não foi encontrada.",
+  ENTIDADE_VINCULADA_NAO_ENCONTRADA: "A entidade vinculada não foi encontrada.",
 
   // EQUIPAMENTOS/INVENTÁRIO
   EQUIPAMENTO_NOT_FOUND: "Equipamento não encontrado",
@@ -250,8 +237,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   INVENTARIO_PERSONAGEM_NOT_FOUND: "Personagem do inventário não encontrado",
   INVENTARIO_SEM_PERMISSAO: "Você não tem permissão para este inventário",
   INVENTARIO_ITEM_NOT_FOUND: "Item do inventário não encontrado",
-  INVENTARIO_EQUIPAMENTO_NOT_FOUND:
-    "Equipamento não encontrado no inventário",
+  INVENTARIO_EQUIPAMENTO_NOT_FOUND: "Equipamento não encontrado no inventário",
   INVENTARIO_CAPACIDADE_EXCEDIDA:
     "Limite máximo de capacidade do inventário excedido",
   INVENTARIO_ESPACOS_INSUFICIENTES: "Espaço insuficiente no inventário",
@@ -275,8 +261,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // ALIASES LEGADOS (mantidos por compatibilidade)
   ITEM_INVENTARIO_NOT_FOUND: "Item do inventário não encontrado",
   ESPACOS_INSUFICIENTES: "Espaço insuficiente no inventário",
-  GRAU_XAMA_LIMITE_EXCEDIDO:
-    "Limite do Grau Xamã excedido para esta categoria",
+  GRAU_XAMA_LIMITE_EXCEDIDO: "Limite do Grau Xamã excedido para esta categoria",
 
   // CAMPANHAS
   CAMPANHA_NOT_FOUND: "Campanha não encontrada",
@@ -311,8 +296,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   SESSAO_CAMPANHA_NOT_FOUND: "Sessão da campanha não encontrada.",
   CENA_SESSAO_NOT_FOUND: "Cena da sessão não encontrada.",
   NPC_SESSAO_NOT_FOUND: "NPC/Ameaça da sessão não encontrado.",
-  SESSAO_TURNO_INDISPONIVEL:
-    "Cena livre não possui contagem de rodada/turno.",
+  SESSAO_TURNO_INDISPONIVEL: "Cena livre não possui contagem de rodada/turno.",
   SESSAO_ENCERRADA: "Sessão encerrada. Não é possível executar esta ação.",
   SESSAO_INVALIDA:
     "A sessão informada é inválida. Atualize a página e tente novamente.",
@@ -343,18 +327,27 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Esta solicitação de recursos já foi usada com dados diferentes. Atualize e tente novamente.",
   SESSAO_INSPIRACAO_IDEMPOTENCIA_INCONSISTENTE:
     "Esta solicitação de inspiração já foi usada com dados diferentes. Atualize e tente novamente.",
-  MACRO_PERSONAGEM_CONFIG_INVALIDA: "A configuração da macro personalizada é inválida.",
-  MACRO_PERSONAGEM_LIMITE_EXCEDIDO: "O personagem atingiu o limite de macros personalizadas.",
+  MACRO_PERSONAGEM_CONFIG_INVALIDA:
+    "A configuração da macro personalizada é inválida.",
+  MACRO_PERSONAGEM_LIMITE_EXCEDIDO:
+    "O personagem atingiu o limite de macros personalizadas.",
   MACRO_PERSONAGEM_NAO_ENCONTRADA: "Macro personalizada não encontrada.",
-  MACRO_PERSONAGEM_PERICIA_INVALIDA: "A perícia configurada na macro não existe.",
-  MACRO_PERSONAGEM_REVISAO_CONFLITO: "A macro foi alterada em outro lugar. Atualize e tente novamente.",
-  MACRO_PERSONAGEM_VISIBILIDADE_NEGADA: "Apenas o mestre pode usar macros secretas.",
-  CAMPAIGN_ROULETTE_FORBIDDEN: "Você não tem permissão para realizar esta ação na roleta.",
+  MACRO_PERSONAGEM_PERICIA_INVALIDA:
+    "A perícia configurada na macro não existe.",
+  MACRO_PERSONAGEM_REVISAO_CONFLITO:
+    "A macro foi alterada em outro lugar. Atualize e tente novamente.",
+  MACRO_PERSONAGEM_VISIBILIDADE_NEGADA:
+    "Apenas o mestre pode usar macros secretas.",
+  CAMPAIGN_ROULETTE_FORBIDDEN:
+    "Você não tem permissão para realizar esta ação na roleta.",
   CAMPAIGN_ROULETTE_INVALID_CONFIG: "A configuração da roleta é inválida.",
-  CAMPAIGN_ROULETTE_INVALID_DRAW: "Esta ação não é válida no estado atual do sorteio.",
+  CAMPAIGN_ROULETTE_INVALID_DRAW:
+    "Esta ação não é válida no estado atual do sorteio.",
   CAMPAIGN_ROULETTE_DRAW_NOT_FOUND: "Sorteio da roleta não encontrado.",
-  CAMPAIGN_ROULETTE_CONFLICT: "A roleta mudou em outro dispositivo. Atualize e tente novamente.",
-  CAMPAIGN_ROULETTE_IDEMPOTENCY_CONFLICT: "Esta solicitação já foi usada com outra intenção.",
+  CAMPAIGN_ROULETTE_CONFLICT:
+    "A roleta mudou em outro dispositivo. Atualize e tente novamente.",
+  CAMPAIGN_ROULETTE_IDEMPOTENCY_CONFLICT:
+    "Esta solicitação já foi usada com outra intenção.",
   CAMPAIGN_ROULETTE_INVALID_PERMISSION: "A permissão da roleta é inválida.",
   OPERACAO_CONCORRENTE_REPETIR:
     "O estado foi alterado por outra operação. Atualize e tente novamente.",
@@ -404,10 +397,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Habilidade não está disponível para este personagem.",
   SESSAO_VARIACAO_HABILIDADE_NOT_FOUND:
     "Variação da habilidade não encontrada.",
-  SESSAO_HABILIDADE_SEM_ESCALONAMENTO:
-    "Essa habilidade não permite acúmulos.",
-  SESSAO_ACUMULO_EXCEDE_GRAU:
-    "Quantidade de acúmulos excede o grau permitido.",
+  SESSAO_HABILIDADE_SEM_ESCALONAMENTO: "Essa habilidade não permite acúmulos.",
+  SESSAO_ACUMULO_EXCEDE_GRAU: "Quantidade de acúmulos excede o grau permitido.",
   SESSAO_APRIMORADO_DISTRIBUICAO_OBRIGATORIA:
     "Distribua os graus temporários do Aprimorado antes de continuar.",
   SESSAO_APRIMORADO_GRAU_INVALIDO:
@@ -433,28 +424,34 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Apenas quem possui Tolerância Neural pode ignorar Sobrecarga.",
   SESSAO_RECUPERACAO_NEURAL_TOLERANCIA_JA_USADA:
     "Tolerância Neural já foi usada nesta cena.",
-  SESSAO_RECURSO_INSUFICIENTE:
-    "Recursos insuficientes para usar a habilidade.",
+  SESSAO_RECURSO_INSUFICIENTE: "Recursos insuficientes para usar a habilidade.",
   DOMINIO_NAO_ENCONTRADO: "Domínio não encontrado nesta sessão.",
   DOMINIO_PARTICIPANTE_INVALIDO: "O participante não está na cena atual.",
-  DOMINIO_RECURSOS_INSUFICIENTES: "Recursos insuficientes para abrir o Domínio.",
+  DOMINIO_RECURSOS_INSUFICIENTES:
+    "Recursos insuficientes para abrir o Domínio.",
   DOMINIO_EA_INSUFICIENTE: "EA insuficiente para esta ação de Domínio.",
   DOMINIO_PE_INSUFICIENTE: "PE insuficiente para esta ação de Domínio.",
-  DOMINIO_ESTADO_INVALIDO: "Esta ação não é permitida no estado atual do Domínio.",
+  DOMINIO_ESTADO_INVALIDO:
+    "Esta ação não é permitida no estado atual do Domínio.",
   DOMINIO_ACAO_INVALIDA: "Esta ação não é permitida para este tipo de Domínio.",
   DOMINIO_SEM_INTEGRIDADE: "Este Domínio não possui integridade de barreira.",
-  DOMINIO_DT_ESTRUTURAL_NAO_SUPERADA: "O ataque não superou a DT estrutural da barreira.",
+  DOMINIO_DT_ESTRUTURAL_NAO_SUPERADA:
+    "O ataque não superou a DT estrutural da barreira.",
   DOMINIO_DISPUTA_AUSENTE: "Este Domínio não participa de uma disputa ativa.",
   DOMINIO_DISPUTA_NAO_ENCONTRADA: "Disputa de Domínios não encontrada.",
-  DOMINIO_DISPUTA_PARTICIPANTES_INSUFICIENTES: "Uma disputa exige ao menos dois Domínios distintos.",
-  DOMINIO_DISPUTA_DOMINIO_INVALIDO: "Todos os Domínios devem estar ativos na cena atual.",
-  DOMINIO_PRESSAO_ALVO_INVALIDO: "Escolha outro Domínio válido para pressionar.",
-  DOMINIO_DEFESA_PARTICIPANTE_INVALIDO: "Escolha exatamente um participante para a defesa.",
-  DOMINIO_INTERLUDIO_INDISPONIVEL: "Dormir para recuperar o Domínio exige uma cena livre.",
+  DOMINIO_DISPUTA_PARTICIPANTES_INSUFICIENTES:
+    "Uma disputa exige ao menos dois Domínios distintos.",
+  DOMINIO_DISPUTA_DOMINIO_INVALIDO:
+    "Todos os Domínios devem estar ativos na cena atual.",
+  DOMINIO_PRESSAO_ALVO_INVALIDO:
+    "Escolha outro Domínio válido para pressionar.",
+  DOMINIO_DEFESA_PARTICIPANTE_INVALIDO:
+    "Escolha exatamente um participante para a defesa.",
+  DOMINIO_INTERLUDIO_INDISPONIVEL:
+    "Dormir para recuperar o Domínio exige uma cena livre.",
   SESSAO_RECURSOS_DESATUALIZADOS:
     "Os recursos mudaram em outra tela. Sincronize a sessão e tente novamente.",
-  SESSAO_LIMITE_PEEA_EXCEDIDO:
-    "Limite de PE/EA por turno excedido.",
+  SESSAO_LIMITE_PEEA_EXCEDIDO: "Limite de PE/EA por turno excedido.",
   SESSAO_RECURSO_CLASSE_NAO_DISPONIVEL:
     "Recurso de classe não disponível para este personagem.",
   SESSAO_RECURSO_CLASSE_VERSAO_INDISPONIVEL:
@@ -463,8 +460,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "O relatório fica disponível somente após o encerramento da sessão.",
   SESSAO_SOCIAL_INATIVO:
     "Encontros sociais alternativos não estão ativos nesta sessão.",
-  SESSAO_ESCALADA_INATIVA:
-    "A Escalada de Dados não está ativa nesta sessão.",
+  SESSAO_ESCALADA_INATIVA: "A Escalada de Dados não está ativa nesta sessão.",
   SESSAO_INICIATIVA_ALTERNADA_LADOS_INVALIDOS:
     "A iniciativa alternada precisa ter exatamente dois lados.",
   SESSAO_INICIATIVA_ALTERNADA_NAO_CONFIGURADA:
@@ -503,8 +499,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
   CONVITE_INVALIDO: "Convite inválido ou já utilizado",
   JOIN_INVALIDO: "Não foi possível entrar nesta sessão.",
   CONVITE_NAO_PERTENCE_USUARIO: "Este convite não pertence ao usuário logado",
-  CONVITE_DUPLICADO_PENDENTE: "Já existe convite pendente para este email nesta campanha",
-  CONVITE_CODIGO_INDISPONIVEL: "Não foi possível gerar um código de convite. Tente novamente",
+  CONVITE_DUPLICADO_PENDENTE:
+    "Já existe convite pendente para este email nesta campanha",
+  CONVITE_CODIGO_INDISPONIVEL:
+    "Não foi possível gerar um código de convite. Tente novamente",
   AMIZADE_NOT_FOUND: "Amizade não encontrada",
   AMIZADE_SOLICITACAO_NOT_FOUND: "Solicitação de amizade não encontrada",
   AMIZADE_SELF: "Você não pode adicionar a si mesmo",
@@ -524,8 +522,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Ao informar suplementoId, a fonte deve ser SUPLEMENTO",
   MODIFICACAO_EQUIPAMENTOS_INVALIDOS:
     "Um ou mais equipamentos vinculados à modificação não existem",
-  MODIFICACAO_EM_USO:
-    "Esta modificação está em uso e não pode ser removida",
+  MODIFICACAO_EM_USO: "Esta modificação está em uso e não pode ser removida",
   MODIFICACAO_EQUIPAMENTO_NOT_FOUND:
     "Equipamento informado para validar modificações não existe",
 
@@ -554,15 +551,13 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Já existe categoria com este código no compêndio",
   COMPENDIO_CATEGORIA_COM_SUBCATEGORIAS:
     "Não é possível remover categoria com subcategorias",
-  COMPENDIO_SUBCATEGORIA_NOT_FOUND:
-    "Subcategoria do compêndio não encontrada",
+  COMPENDIO_SUBCATEGORIA_NOT_FOUND: "Subcategoria do compêndio não encontrada",
   COMPENDIO_SUBCATEGORIA_DUPLICADA:
     "Já existe subcategoria com este código no compêndio",
   COMPENDIO_SUBCATEGORIA_COM_ARTIGOS:
     "Não é possível remover subcategoria com artigos",
   COMPENDIO_ARTIGO_NOT_FOUND: "Artigo do compêndio não encontrado",
-  COMPENDIO_ARTIGO_DUPLICADO:
-    "Já existe artigo com este código no compêndio",
+  COMPENDIO_ARTIGO_DUPLICADO: "Já existe artigo com este código no compêndio",
   COMPENDIO_BUSCA_INVALIDA: "A busca no compêndio é inválida",
 
   // CATALOGOS MENORES / PROGRESSAO
@@ -628,16 +623,14 @@ export const ERROR_MESSAGES: Record<string, string> = {
   JSON_IMPORT_INVALIDO: "Arquivo JSON de importação inválido.",
   JSON_IMPORT_CAMPO_OBRIGATORIO:
     "O arquivo importado possui campo obrigatório ausente.",
-  JSON_IMPORT_CAMPO_INVALIDO:
-    "O arquivo importado possui campo inválido.",
+  JSON_IMPORT_CAMPO_INVALIDO: "O arquivo importado possui campo inválido.",
   JSON_IMPORT_ENUM_INVALIDO:
     "O arquivo importado possui valor inválido para uma opção.",
   JSON_IMPORT_HABILIDADE_INVALIDA:
     "O arquivo importado possui habilidade inválida.",
   JSON_IMPORT_HABILIDADE_OUTRA_TECNICA:
     "O arquivo importado referencia habilidade de outra técnica.",
-  JSON_IMPORT_TECNICA_INVALIDA:
-    "O arquivo importado possui técnica inválida.",
+  JSON_IMPORT_TECNICA_INVALIDA: "O arquivo importado possui técnica inválida.",
   JSON_IMPORT_VAZIO: "O arquivo JSON de importação está vazio.",
   INTERNAL_ERROR: "Erro interno do servidor. Tente novamente.",
   NOT_FOUND: "Recurso não encontrado",
@@ -751,7 +744,11 @@ function valorHeaderComoString(
       return valor.trim();
     }
 
-    if (Array.isArray(valor) && valor.length > 0 && typeof valor[0] === "string") {
+    if (
+      Array.isArray(valor) &&
+      valor.length > 0 &&
+      typeof valor[0] === "string"
+    ) {
       return valor[0].trim();
     }
   }
@@ -785,8 +782,11 @@ export function extrairContextoErro(error: unknown): ContextoErroApi {
       ? (body.details as Record<string, unknown>)
       : null;
 
-  const statusRaw = Number(err.status || response?.status || body?.statusCode || 0);
-  const status = Number.isFinite(statusRaw) && statusRaw > 0 ? statusRaw : undefined;
+  const statusRaw = Number(
+    err.status || response?.status || body?.statusCode || 0,
+  );
+  const status =
+    Number.isFinite(statusRaw) && statusRaw > 0 ? statusRaw : undefined;
 
   const code =
     typeof err.code === "string"
@@ -821,9 +821,9 @@ export function extrairContextoErro(error: unknown): ContextoErroApi {
       ? err.requestId
       : typeof body?.traceId === "string"
         ? body.traceId
-      : typeof details?.requestId === "string"
-        ? details.requestId
-        : undefined;
+        : typeof details?.requestId === "string"
+          ? details.requestId
+          : undefined;
 
   return {
     status,

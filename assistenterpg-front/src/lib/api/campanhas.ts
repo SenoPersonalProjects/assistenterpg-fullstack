@@ -1,7 +1,7 @@
 // lib/api/campanhas.ts
-import { apiClient } from './axios-client';
-import { normalizeListResult, type ListResult } from './pagination';
-import { normalizarDetalheSessao } from '../campanha/sessao-atualizacoes';
+import { apiClient } from "./axios-client";
+import { normalizeListResult, type ListResult } from "./pagination";
+import { normalizarDetalheSessao } from "../campanha/sessao-atualizacoes";
 import type {
   CampanhaResumo,
   ConviteCampanha,
@@ -43,11 +43,11 @@ import type {
   SessaoAgendadaResumo,
   AtualizacaoInspiracaoSessaoCampanha,
   AtualizacaoRecursosSessaoCampanha,
-} from '@/lib/types';
+} from "@/lib/types";
 
 export type AtualizarOrdemIniciativaSessaoCampanhaPayload = {
   ordem: Array<{
-    tipoParticipante: 'PERSONAGEM' | 'NPC';
+    tipoParticipante: "PERSONAGEM" | "NPC";
     id: number;
   }>;
   indiceTurnoAtual?: number;
@@ -68,10 +68,21 @@ export type UsarHabilidadeSessaoCampanhaPayload = {
 
 export type AcaoDominioSessaoPayload = {
   clientRequestId: string;
-  acao: 'FORMAR' | 'INTERROMPER' | 'REFINAR' | 'FORCAR' | 'PRESSIONAR' | 'ESTABILIZAR' | 'REFORCAR' | 'RECONFIGURAR' | 'DESFAZER' | 'REGISTRAR_RUPTURA' | 'ATRAVESSAR';
+  acao:
+    | "FORMAR"
+    | "INTERROMPER"
+    | "REFINAR"
+    | "FORCAR"
+    | "PRESSIONAR"
+    | "ESTABILIZAR"
+    | "REFORCAR"
+    | "RECONFIGURAR"
+    | "DESFAZER"
+    | "REGISTRAR_RUPTURA"
+    | "ATRAVESSAR";
   dominioAlvoId?: number;
   resultadoAtaque?: number;
-  potenciaRuptura?: 'NORMAL' | 'POTENCIALIZADO' | 'EXCEPCIONAL';
+  potenciaRuptura?: "NORMAL" | "POTENCIALIZADO" | "EXCEPCIONAL";
   golpeConcentrado?: boolean;
   motivo?: string;
 };
@@ -110,10 +121,10 @@ const CAMPANHA_DETALHE_CACHE_TTL_MS = 30_000;
 const campanhaDetalheCache = new Map<string, CampanhaDetalheCacheEntry>();
 const campanhaDetalheInFlight = new Map<string, Promise<unknown>>();
 const EVENTO_CONVITES_PENDENTES_ATUALIZADO =
-  'assistenterpg:convites-pendentes-atualizado';
+  "assistenterpg:convites-pendentes-atualizado";
 
 function emitirAtualizacaoConvitesPendentes(total: number | null): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   const evento = new CustomEvent<AtualizacaoConvitesPendentesDetail>(
     EVENTO_CONVITES_PENDENTES_ATUALIZADO,
@@ -134,14 +145,17 @@ export function apiNotificarConvitesPendentesAtualizados(
 export function apiInscreverAtualizacaoConvitesPendentes(
   onUpdate: (total: number | null) => void,
 ): () => void {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return () => undefined;
   }
 
   const listener = (event: Event) => {
-    const customEvent = event as CustomEvent<AtualizacaoConvitesPendentesDetail>;
+    const customEvent =
+      event as CustomEvent<AtualizacaoConvitesPendentesDetail>;
     const total =
-      typeof customEvent.detail?.total === 'number' ? customEvent.detail.total : null;
+      typeof customEvent.detail?.total === "number"
+        ? customEvent.detail.total
+        : null;
     onUpdate(total);
   };
 
@@ -174,11 +188,13 @@ export async function apiGetMinhasCampanhas(
   query?: MinhasCampanhasQuery,
 ): Promise<ListResult<CampanhaResumo>> {
   const params = new URLSearchParams();
-  if (query?.page) params.set('page', String(query.page));
-  if (query?.limit) params.set('limit', String(query.limit));
+  if (query?.page) params.set("page", String(query.page));
+  if (query?.limit) params.set("limit", String(query.limit));
 
   const url =
-    params.size > 0 ? `/campanhas/minhas?${params.toString()}` : '/campanhas/minhas';
+    params.size > 0
+      ? `/campanhas/minhas?${params.toString()}`
+      : "/campanhas/minhas";
   const { data } = await apiClient.get(url);
   return normalizeListResult<CampanhaResumo>(data);
 }
@@ -187,7 +203,7 @@ export async function apiCreateCampanha(payload: {
   nome: string;
   descricao?: string;
 }): Promise<CampanhaResumo> {
-  const { data } = await apiClient.post('/campanhas', payload);
+  const { data } = await apiClient.post("/campanhas", payload);
   return data;
 }
 
@@ -240,10 +256,13 @@ export async function apiCriarConvite(
     email?: string;
     apelido?: string;
     usuarioId?: number;
-    papel: 'MESTRE' | 'JOGADOR' | 'OBSERVADOR';
+    papel: "MESTRE" | "JOGADOR" | "OBSERVADOR";
   },
 ): Promise<ConviteCampanha> {
-  const { data } = await apiClient.post(`/campanhas/${campanhaId}/convites`, payload);
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/convites`,
+    payload,
+  );
   return data;
 }
 
@@ -257,7 +276,7 @@ export async function apiListarAmigosConvidaveisCampanha(
 }
 
 export async function apiListarConvitesPendentes(): Promise<ConviteCampanha[]> {
-  const { data } = await apiClient.get('/campanhas/convites/pendentes');
+  const { data } = await apiClient.get("/campanhas/convites/pendentes");
   const convites = Array.isArray(data) ? data : [];
   return convites;
 }
@@ -350,7 +369,7 @@ export async function apiAtualizarRecursosPersonagemCampanha(
 export async function apiAtualizarNucleoPersonagemCampanha(
   campanhaId: number,
   personagemCampanhaId: number,
-  payload: { nucleo: 'EQUILIBRIO' | 'PODER' | 'IMPULSO' },
+  payload: { nucleo: "EQUILIBRIO" | "PODER" | "IMPULSO" },
 ): Promise<PersonagemCampanhaResumo> {
   const { data } = await apiClient.patch(
     `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/nucleo`,
@@ -476,7 +495,10 @@ export async function apiRemoverEntidadeVinculadaPersonagem(
 export async function apiSacrificarNucleoPersonagemCampanha(
   campanhaId: number,
   personagemCampanhaId: number,
-  payload: { modo: 'ATUAL' | 'OUTRO'; nucleo?: 'EQUILIBRIO' | 'PODER' | 'IMPULSO' },
+  payload: {
+    modo: "ATUAL" | "OUTRO";
+    nucleo?: "EQUILIBRIO" | "PODER" | "IMPULSO";
+  },
 ): Promise<PersonagemCampanhaResumo> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/nucleos/sacrificar`,
@@ -496,15 +518,18 @@ export async function apiListarModificadoresPersonagemCampanha(
 ): Promise<ModificadorPersonagemCampanha[]> {
   const query = new URLSearchParams();
   if (incluirInativos) {
-    query.set('incluirInativos', 'true');
+    query.set("incluirInativos", "true");
   }
-  if (typeof filtros?.sessaoId === 'number' && Number.isInteger(filtros.sessaoId)) {
-    query.set('sessaoId', String(filtros.sessaoId));
+  if (
+    typeof filtros?.sessaoId === "number" &&
+    Number.isInteger(filtros.sessaoId)
+  ) {
+    query.set("sessaoId", String(filtros.sessaoId));
   }
-  if (typeof filtros?.cenaId === 'number' && Number.isInteger(filtros.cenaId)) {
-    query.set('cenaId', String(filtros.cenaId));
+  if (typeof filtros?.cenaId === "number" && Number.isInteger(filtros.cenaId)) {
+    query.set("cenaId", String(filtros.cenaId));
   }
-  const sufixo = query.size > 0 ? `?${query.toString()}` : '';
+  const sufixo = query.size > 0 ? `?${query.toString()}` : "";
   const { data } = await apiClient.get(
     `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/modificadores${sufixo}`,
   );
@@ -537,8 +562,15 @@ export async function apiAplicarModificadorPersonagemCampanha(
   return data;
 }
 
-export async function apiListarTiposResistenciaPersonagemCampanha(campanhaId: number, personagemCampanhaId: number): Promise<Array<{ id: number; codigo: string; nome: string; descricao: string | null }>> {
-  const { data } = await apiClient.get(`/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/resistencias-tipos`);
+export async function apiListarTiposResistenciaPersonagemCampanha(
+  campanhaId: number,
+  personagemCampanhaId: number,
+): Promise<
+  Array<{ id: number; codigo: string; nome: string; descricao: string | null }>
+> {
+  const { data } = await apiClient.get(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/resistencias-tipos`,
+  );
   return Array.isArray(data) ? data : [];
 }
 
@@ -579,7 +611,10 @@ export async function apiCriarSessaoCampanha(
   campanhaId: number,
   payload?: { titulo?: string },
 ): Promise<SessaoCampanhaDetalhe> {
-  const { data } = await apiClient.post(`/campanhas/${campanhaId}/sessoes`, payload ?? {});
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes`,
+    payload ?? {},
+  );
   apiInvalidateCampanhaDetalheCache(campanhaId);
   return data;
 }
@@ -626,7 +661,7 @@ export async function apiListarConflitosSessaoAgendadaCampanha(
     fimEm: query.fimEm,
   });
   if (query.incluirGoogle !== undefined) {
-    params.set('incluirGoogle', String(query.incluirGoogle));
+    params.set("incluirGoogle", String(query.incluirGoogle));
   }
 
   const { data } = await apiClient.get<ConflitosSessaoAgendadaResponse>(
@@ -745,7 +780,7 @@ export async function apiGastarInspiracaoSessaoCampanha(
   personagemCampanhaId: number,
   payload: {
     custo: 1 | 2 | 3;
-    efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO';
+    efeito: "BONUS_5" | "MAXIMIZAR" | "CRITICO";
     clientRequestId?: string;
   },
 ): Promise<AtualizacaoInspiracaoSessaoCampanha> {
@@ -780,7 +815,11 @@ export async function apiAtualizarEncontroSocialSessaoCampanha(
 export async function apiAtualizarEscaladaDadosSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
-  payload: { ativaNesteCombate: boolean; rodadaInicio?: number; bonusAtual?: number },
+  payload: {
+    ativaNesteCombate: boolean;
+    rodadaInicio?: number;
+    bonusAtual?: number;
+  },
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.patch(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/mecanicas/escalada`,
@@ -838,8 +877,8 @@ export async function apiConsumirItemSessaoCampanha(
   sessaoId: number,
   payload: {
     itemInventarioCampanhaId: number;
-    modo: 'NORMAL' | 'COM_CALMA' | 'MANUAL';
-    alvoTipo?: 'PERSONAGEM' | 'NPC';
+    modo: "NORMAL" | "COM_CALMA" | "MANUAL";
+    alvoTipo?: "PERSONAGEM" | "NPC";
     alvoId?: number;
     observacao?: string;
     clientRequestId?: string;
@@ -960,7 +999,7 @@ export async function apiAtualizarValorIniciativaSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
   payload: {
-    tipoParticipante: 'PERSONAGEM' | 'NPC';
+    tipoParticipante: "PERSONAGEM" | "NPC";
     id: number;
     valorIniciativa?: number | null;
   },
@@ -1202,7 +1241,7 @@ export async function apiListarChatSessaoCampanha(
 ): Promise<MensagemChatSessao[]> {
   const params = new URLSearchParams();
   if (afterId && Number.isFinite(afterId)) {
-    params.set('afterId', String(afterId));
+    params.set("afterId", String(afterId));
   }
 
   const url =
@@ -1224,10 +1263,10 @@ export async function apiListarEventosSessaoCampanha(
 ): Promise<EventoSessaoTimeline[]> {
   const params = new URLSearchParams();
   if (query?.limit && Number.isFinite(query.limit)) {
-    params.set('limit', String(Math.trunc(query.limit)));
+    params.set("limit", String(Math.trunc(query.limit)));
   }
   if (query?.incluirChat === true) {
-    params.set('incluirChat', 'true');
+    params.set("incluirChat", "true");
   }
 
   const url =
@@ -1254,7 +1293,7 @@ export async function apiDesfazerEventoSessaoCampanha(
 
 type EnviarMensagemTextoSessaoPayload = {
   mensagem: string;
-  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  visibilidade?: "PUBLICA" | "SECRETA_MESTRE";
 };
 
 type EnviarMensagemChatSessaoLegadoPayload =
@@ -1297,96 +1336,96 @@ export async function apiEnviarMensagemChatSessaoCampanha(
 }
 
 export type CriarRolagemFormulaSessaoPayload = {
-  tipo: 'FORMULA';
+  tipo: "FORMULA";
   expressao: string;
-  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
-  contexto?: { tipo: 'OUTRO' };
+  visibilidade?: "PUBLICA" | "SECRETA_MESTRE";
+  contexto?: { tipo: "OUTRO" };
   clientRequestId: string;
 };
 
 export type CriarRolagemPericiaPersonagemSessaoPayload = {
-  tipo: 'PERICIA_PERSONAGEM';
+  tipo: "PERICIA_PERSONAGEM";
   personagemSessaoId: number;
   periciaCodigo: string;
-  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  visibilidade?: "PUBLICA" | "SECRETA_MESTRE";
   contexto?: { dt?: number };
   clientRequestId: string;
 };
 
 export type CriarRolagemAtaquePersonagemSessaoPayload = {
-  tipo: 'ATAQUE_PERSONAGEM';
+  tipo: "ATAQUE_PERSONAGEM";
   personagemSessaoId: number;
   periciaCodigo: string;
-  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  visibilidade?: "PUBLICA" | "SECRETA_MESTRE";
   contexto?: { dt?: number };
   clientRequestId: string;
 };
 
 export type CriarRolagemPericiaNpcSessaoPayload = {
-  tipo: 'PERICIA_NPC';
+  tipo: "PERICIA_NPC";
   npcSessaoId: number;
   periciaCodigo: string;
-  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  visibilidade?: "PUBLICA" | "SECRETA_MESTRE";
   contexto?: { dt?: number };
   clientRequestId: string;
 };
 
 export type CriarRolagemAtaqueNpcPericiaSessaoPayload = {
-  tipo: 'ATAQUE_NPC';
-  origemAtaque: 'PERICIA';
+  tipo: "ATAQUE_NPC";
+  origemAtaque: "PERICIA";
   npcSessaoId: number;
   periciaCodigo: string;
-  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  visibilidade?: "PUBLICA" | "SECRETA_MESTRE";
   contexto?: { dt?: number };
   clientRequestId: string;
 };
 
 export type CriarRolagemAtaqueNpcAcaoSessaoPayload = {
-  tipo: 'ATAQUE_NPC';
-  origemAtaque: 'ACAO';
+  tipo: "ATAQUE_NPC";
+  origemAtaque: "ACAO";
   npcSessaoId: number;
   acaoIndice: number;
-  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  visibilidade?: "PUBLICA" | "SECRETA_MESTRE";
   contexto?: { dt?: number };
   clientRequestId: string;
 };
 
 export type CriarRolagemDanoNpcAcaoSessaoPayload = {
-  tipo: 'DANO_NPC';
-  origemDano: 'ACAO';
+  tipo: "DANO_NPC";
+  origemDano: "ACAO";
   npcSessaoId: number;
   acaoIndice: number;
-  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  visibilidade?: "PUBLICA" | "SECRETA_MESTRE";
   clientRequestId: string;
 };
 
 export type CriarRolagemTesteHabilidadePersonagemSessaoPayload = {
-  tipo: 'TESTE_HABILIDADE_PERSONAGEM';
+  tipo: "TESTE_HABILIDADE_PERSONAGEM";
   personagemSessaoId: number;
   habilidadeTecnicaId: number;
-  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  visibilidade?: "PUBLICA" | "SECRETA_MESTRE";
   clientRequestId: string;
 };
 
 export type CriarRolagemDanoHabilidadePersonagemSessaoPayload = {
-  tipo: 'DANO_PERSONAGEM';
-  origemDano: 'HABILIDADE_TECNICA';
+  tipo: "DANO_PERSONAGEM";
+  origemDano: "HABILIDADE_TECNICA";
   personagemSessaoId: number;
   habilidadeTecnicaId: number;
   variacaoHabilidadeId?: number;
   acumulos?: number;
-  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  visibilidade?: "PUBLICA" | "SECRETA_MESTRE";
   clientRequestId: string;
 };
 
 export type CriarRolagemCriticoHabilidadePersonagemSessaoPayload = {
-  tipo: 'CRITICO_PERSONAGEM';
-  origemCritico: 'HABILIDADE_TECNICA';
+  tipo: "CRITICO_PERSONAGEM";
+  origemCritico: "HABILIDADE_TECNICA";
   personagemSessaoId: number;
   habilidadeTecnicaId: number;
   variacaoHabilidadeId?: number;
   acumulos?: number;
-  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  visibilidade?: "PUBLICA" | "SECRETA_MESTRE";
   clientRequestId: string;
 };
 
@@ -1399,14 +1438,14 @@ export type AjusteAutomaticoMacroArmaSessao = {
 export type MacroArmaSessao = {
   itemInventarioCampanhaId: number;
   nome: string;
-  tipoArma: 'CORPO_A_CORPO' | 'A_DISTANCIA';
-  pericia: { codigo: 'LUTA' | 'PONTARIA'; nome: string };
+  tipoArma: "CORPO_A_CORPO" | "A_DISTANCIA";
+  pericia: { codigo: "LUTA" | "PONTARIA"; nome: string };
   agil: boolean;
-  atributoPadrao: 'FOR' | 'AGI';
-  atributosPermitidos: Array<'FOR' | 'AGI'>;
-  empunhaduras: Array<'LEVE' | 'UMA_MAO' | 'DUAS_MAOS'>;
+  atributoPadrao: "FOR" | "AGI";
+  atributosPermitidos: Array<"FOR" | "AGI">;
+  empunhaduras: Array<"LEVE" | "UMA_MAO" | "DUAS_MAOS">;
   danos: Array<{
-    empunhadura: 'LEVE' | 'UMA_MAO' | 'DUAS_MAOS' | null;
+    empunhadura: "LEVE" | "UMA_MAO" | "DUAS_MAOS" | null;
     tipoDano: string;
     rolagem: string;
     valorFlat: number;
@@ -1415,7 +1454,7 @@ export type MacroArmaSessao = {
   preview: {
     dadosLogicos: number;
     quantidadeDados: number;
-    keepMode: 'HIGHEST' | 'LOWEST';
+    keepMode: "HIGHEST" | "LOWEST";
     bonus: number;
     ajustesAutomaticos: AjusteAutomaticoMacroArmaSessao[];
   };
@@ -1428,13 +1467,14 @@ export type MacrosPersonagemSessaoResponse = {
   personalizadas: MacroPersonalizadaSessao[];
 };
 
-export type MacroPersonalizadaTipo = 'ATAQUE_PERICIA' | 'DANO_FORMULA' | 'FORMULA_LIVRE';
-export type VisibilidadeRolagemSessao = 'PUBLICA' | 'SECRETA_MESTRE';
-export type AtributoMacroPersonalizada = 'AGI' | 'FOR' | 'INT' | 'PRE' | 'VIG';
+export type MacroPersonalizadaTipo =
+  "ATAQUE_PERICIA" | "DANO_FORMULA" | "FORMULA_LIVRE";
+export type VisibilidadeRolagemSessao = "PUBLICA" | "SECRETA_MESTRE";
+export type AtributoMacroPersonalizada = "AGI" | "FOR" | "INT" | "PRE" | "VIG";
 export type MacroAtaqueConfigV1 = {
   periciaCodigo: string;
   atributoBase?: AtributoMacroPersonalizada;
-  categoriaAtaque: 'CORPO_A_CORPO' | 'A_DISTANCIA' | 'OUTRO';
+  categoriaAtaque: "CORPO_A_CORPO" | "A_DISTANCIA" | "OUTRO";
   ajusteFlatPadrao: number;
   ajusteDadosPadrao: number;
   dtPadrao?: number;
@@ -1446,7 +1486,8 @@ export type MacroDanoConfigV1 = {
   criticoMultiplicador?: number;
 };
 export type MacroFormulaLivreConfigV1 = { formula: string };
-export type MacroPersonalizadaConfigV1 = MacroAtaqueConfigV1 | MacroDanoConfigV1 | MacroFormulaLivreConfigV1;
+export type MacroPersonalizadaConfigV1 =
+  MacroAtaqueConfigV1 | MacroDanoConfigV1 | MacroFormulaLivreConfigV1;
 export type MacroPersonalizadaSessao = {
   id: number;
   nome: string;
@@ -1462,7 +1503,7 @@ export type MacroPersonalizadaSessao = {
     atributoBase: AtributoMacroPersonalizada;
     dadosLogicos: number;
     quantidadeDados: number;
-    keepMode: 'HIGHEST' | 'LOWEST';
+    keepMode: "HIGHEST" | "LOWEST";
     bonus: number;
     ajustesAutomaticos: AjusteAutomaticoMacroArmaSessao[];
   };
@@ -1483,29 +1524,33 @@ export type MacroPersonagemCampanhaDto = MacroPersonalizadaSessao & {
 };
 
 export type CriarRolagemAtaqueItemPersonagemSessaoPayload = {
-  tipo: 'ATAQUE_ITEM_PERSONAGEM';
+  tipo: "ATAQUE_ITEM_PERSONAGEM";
   personagemSessaoId: number;
   itemInventarioCampanhaId: number;
-  atributoEscolhido?: 'FOR' | 'AGI';
+  atributoEscolhido?: "FOR" | "AGI";
   ajusteFlatManual?: number;
   ajusteDadosManual?: number;
-  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  visibilidade?: "PUBLICA" | "SECRETA_MESTRE";
   contexto?: { dt?: number };
   clientRequestId: string;
 };
 
 export type CriarRolagemDanoItemPersonagemSessaoPayload = {
-  tipo: 'DANO_ITEM_PERSONAGEM' | 'CRITICO_ITEM_PERSONAGEM';
+  tipo: "DANO_ITEM_PERSONAGEM" | "CRITICO_ITEM_PERSONAGEM";
   personagemSessaoId: number;
   itemInventarioCampanhaId: number;
-  empunhadura?: 'LEVE' | 'UMA_MAO' | 'DUAS_MAOS';
+  empunhadura?: "LEVE" | "UMA_MAO" | "DUAS_MAOS";
   ajusteFlatManual?: number;
-  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  visibilidade?: "PUBLICA" | "SECRETA_MESTRE";
   clientRequestId: string;
 };
 
 export type CriarRolagemMacroPersonagemSessaoPayload = {
-  tipo: 'ATAQUE_MACRO_PERSONAGEM' | 'DANO_MACRO_PERSONAGEM' | 'CRITICO_MACRO_PERSONAGEM' | 'FORMULA_MACRO_PERSONAGEM';
+  tipo:
+    | "ATAQUE_MACRO_PERSONAGEM"
+    | "DANO_MACRO_PERSONAGEM"
+    | "CRITICO_MACRO_PERSONAGEM"
+    | "FORMULA_MACRO_PERSONAGEM";
   personagemSessaoId: number;
   macroId: number;
   ajusteFlatSessao?: number;
@@ -1641,7 +1686,10 @@ export async function apiCriarMacroPersonagemCampanha(
   personagemCampanhaId: number,
   payload: SalvarMacroPersonagemCampanhaPayload,
 ): Promise<MacroPersonagemCampanhaDto> {
-  const { data } = await apiClient.post(`/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/macros`, payload);
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/macros`,
+    payload,
+  );
   return data;
 }
 
@@ -1651,7 +1699,10 @@ export async function apiAtualizarMacroPersonagemCampanha(
   macroId: number,
   payload: SalvarMacroPersonagemCampanhaPayload & { revisaoEsperada: number },
 ): Promise<MacroPersonagemCampanhaDto> {
-  const { data } = await apiClient.patch(`/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/macros/${macroId}`, payload);
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/macros/${macroId}`,
+    payload,
+  );
   return data;
 }
 
@@ -1660,7 +1711,9 @@ export async function apiRemoverMacroPersonagemCampanha(
   personagemCampanhaId: number,
   macroId: number,
 ): Promise<{ id: number; ativo: false }> {
-  const { data } = await apiClient.delete(`/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/macros/${macroId}`);
+  const { data } = await apiClient.delete(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/macros/${macroId}`,
+  );
   return data;
 }
 
@@ -1693,7 +1746,10 @@ export async function apiCriarRolagemMacroPersonagemSessaoCampanha(
   sessaoId: number,
   payload: CriarRolagemMacroPersonagemSessaoPayload,
 ): Promise<MensagemChatSessao> {
-  const { data } = await apiClient.post(`/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`, payload);
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,
+    payload,
+  );
   return data;
 }
 
@@ -1765,11 +1821,11 @@ export async function apiSolicitarTransferenciaItemSessaoCampanha(
   itemId: number,
   payload:
     | {
-        destinoTipo: 'PERSONAGEM';
+        destinoTipo: "PERSONAGEM";
         destinoPersonagemCampanhaId: number;
       }
     | {
-        destinoTipo: 'NPC';
+        destinoTipo: "NPC";
         destinoNpcSessaoId: number;
       },
 ): Promise<TransferenciaItemSessaoCampanhaDto> {

@@ -264,8 +264,17 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: CriarDominioNpcSessaoDto,
   ) {
-    const resultado = await this.sessaoService.criarDominioNpcSessao(campanhaId, sessaoId, req.user.id, dto);
-    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'DOMINIO_ATUALIZADO');
+    const resultado = await this.sessaoService.criarDominioNpcSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'DOMINIO_ATUALIZADO',
+    );
     return resultado.detalhe;
   }
 
@@ -277,8 +286,18 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: AcaoDominioSessaoDto,
   ) {
-    const detalhe = await this.sessaoService.executarAcaoDominioSessao(campanhaId, sessaoId, dominioId, req.user.id, dto);
-    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'DOMINIO_ATUALIZADO');
+    const detalhe = await this.sessaoService.executarAcaoDominioSessao(
+      campanhaId,
+      sessaoId,
+      dominioId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'DOMINIO_ATUALIZADO',
+    );
     return detalhe;
   }
 
@@ -289,8 +308,17 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: CriarDisputaDominioSessaoDto,
   ) {
-    const detalhe = await this.sessaoService.criarDisputaDominioSessao(campanhaId, sessaoId, req.user.id, dto);
-    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'DOMINIO_DISPUTA_ATUALIZADA');
+    const detalhe = await this.sessaoService.criarDisputaDominioSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'DOMINIO_DISPUTA_ATUALIZADA',
+    );
     return detalhe;
   }
 
@@ -302,8 +330,18 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: ResolverDisputaDominioSessaoDto,
   ) {
-    const detalhe = await this.sessaoService.resolverDisputaDominioSessao(campanhaId, sessaoId, disputaId, req.user.id, dto);
-    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'DOMINIO_DISPUTA_ATUALIZADA');
+    const detalhe = await this.sessaoService.resolverDisputaDominioSessao(
+      campanhaId,
+      sessaoId,
+      disputaId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'DOMINIO_DISPUTA_ATUALIZADA',
+    );
     return detalhe;
   }
 
@@ -314,8 +352,17 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: CriarDefesaAntiDominioSessaoDto,
   ) {
-    const detalhe = await this.sessaoService.criarDefesaAntiDominioSessao(campanhaId, sessaoId, req.user.id, dto);
-    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'DOMINIO_DEFESA_ATUALIZADA');
+    const detalhe = await this.sessaoService.criarDefesaAntiDominioSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'DOMINIO_DEFESA_ATUALIZADA',
+    );
     return detalhe;
   }
 
@@ -327,8 +374,18 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: DormirInterludioSessaoDto,
   ) {
-    const detalhe = await this.sessaoService.dormirInterludioSessao(campanhaId, sessaoId, personagemSessaoId, req.user.id, dto);
-    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'DOMINIO_INTERLUDIO_DESCANSO');
+    const detalhe = await this.sessaoService.dormirInterludioSessao(
+      campanhaId,
+      sessaoId,
+      personagemSessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'DOMINIO_INTERLUDIO_DESCANSO',
+    );
     return detalhe;
   }
 
