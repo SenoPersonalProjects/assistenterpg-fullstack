@@ -515,7 +515,10 @@ export function parseLivroPrincipalMarkdown(markdown: string): LivroSeed {
   }
 
   categorias.unshift(
-    createIntroCategory(categorias, getLivroPrincipalVersao(normalizedMarkdown)),
+    createIntroCategory(
+      categorias,
+      getLivroPrincipalVersao(normalizedMarkdown),
+    ),
   );
 
   return {

@@ -8467,8 +8467,9 @@ export class SessaoService {
             },
           });
 
-          const efeitoRecuperacaoNeural =
-            await this.aplicarRecuperacaoNeuralTx(tx, {
+          const efeitoRecuperacaoNeural = await this.aplicarRecuperacaoNeuralTx(
+            tx,
+            {
               mecanicaSessao,
               condicaoSessaoId: dto.condicaoSessaoId,
               ignorarSobrecarga: dto.ignorarSobrecarga === true,
@@ -8478,7 +8479,8 @@ export class SessaoService {
               personagem: personagemSessao.personagemCampanha,
               rodadaAtual: sessao.rodadaAtual,
               usuarioId,
-            });
+            },
+          );
 
           if (
             custo.isSustentada &&
@@ -13651,7 +13653,10 @@ export class SessaoService {
         cenaId: args.cenaId,
         personagemAtorId: args.personagemSessaoId,
         tipoEvento: 'RECUPERACAO_NEURAL_USADA',
-        dados: this.jsonParaPersistencia({ ...resultado, usuarioId: args.usuarioId }),
+        dados: this.jsonParaPersistencia({
+          ...resultado,
+          usuarioId: args.usuarioId,
+        }),
       },
     });
     return resultado;

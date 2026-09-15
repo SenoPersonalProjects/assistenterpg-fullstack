@@ -421,6 +421,18 @@ export const ERROR_MESSAGES: Record<string, string> = {
   SESSAO_SUSTENTACAO_SEM_CUSTO:
     "Habilidade sustentada sem custo não pode ser encerrada.",
   SESSAO_SUSTENTACAO_NOT_FOUND: "Sustentação ativa não encontrada.",
+  SESSAO_RECUPERACAO_NEURAL_ESGOTAMENTO_OBRIGATORIO:
+    "Selecione o esgotamento que será removido pela Recuperação Neural.",
+  SESSAO_RECUPERACAO_NEURAL_ESGOTAMENTO_INVALIDO:
+    "O esgotamento selecionado não está ativo neste personagem.",
+  SESSAO_RECUPERACAO_NEURAL_SOBRECARGA_LIMITE:
+    "A Recuperação Neural ultrapassaria seu limite de Sobrecarga Neural.",
+  SESSAO_RECUPERACAO_NEURAL_SOBRECARGA_NOT_FOUND:
+    "A condição Sobrecarga Neural não está cadastrada.",
+  SESSAO_RECUPERACAO_NEURAL_TOLERANCIA_NECESSARIA:
+    "Apenas quem possui Tolerância Neural pode ignorar Sobrecarga.",
+  SESSAO_RECUPERACAO_NEURAL_TOLERANCIA_JA_USADA:
+    "Tolerância Neural já foi usada nesta cena.",
   SESSAO_RECURSO_INSUFICIENTE:
     "Recursos insuficientes para usar a habilidade.",
   SESSAO_RECURSOS_DESATUALIZADOS:
