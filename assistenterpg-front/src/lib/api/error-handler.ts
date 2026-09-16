@@ -449,6 +449,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Escolha exatamente um participante para a defesa.",
   DOMINIO_INTERLUDIO_INDISPONIVEL:
     "Dormir para recuperar o Domínio exige uma cena livre.",
+  DOMINIO_EPIFANIA_JA_MANIFESTADA:
+    "Este personagem já manifestou uma Epifania nesta cena.",
   SESSAO_RECURSOS_DESATUALIZADOS:
     "Os recursos mudaram em outra tela. Sincronize a sessão e tente novamente.",
   SESSAO_LIMITE_PEEA_EXCEDIDO: "Limite de PE/EA por turno excedido.",
