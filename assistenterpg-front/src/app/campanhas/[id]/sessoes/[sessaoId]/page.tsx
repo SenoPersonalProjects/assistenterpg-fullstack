@@ -4248,6 +4248,10 @@ export default function SessaoCampanhaPage() {
                     dominios={detalhe.dominios ?? []}
                     sessaoEncerrada={sessaoEncerrada}
                     ehMestre={podeControlarSessao}
+                    personagens={detalhe.cards.map((card) => ({
+                      id: card.personagemSessaoId,
+                      nome: card.nomePersonagem,
+                    }))}
                     onAtualizar={setDetalhe}
                   />
 

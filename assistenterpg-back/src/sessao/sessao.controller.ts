@@ -34,6 +34,7 @@ import {
   CriarDominioNpcSessaoDto,
   DormirInterludioSessaoDto,
   ResolverDisputaDominioSessaoDto,
+  TentarEpifaniaDominioSessaoDto,
 } from './dto/dominio-sessao.dto';
 import { UsarHabilidadeClasseSessaoDto } from './dto/usar-habilidade-classe-sessao.dto';
 import { EncerrarSustentacaoSessaoDto } from './dto/encerrar-sustentacao-sessao.dto';
@@ -276,6 +277,27 @@ export class SessaoController {
       'DOMINIO_ATUALIZADO',
     );
     return resultado.detalhe;
+  }
+
+  @Post(':sessaoId/dominios/epifania')
+  async tentarEpifaniaDominioSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: TentarEpifaniaDominioSessaoDto,
+  ) {
+    const detalhe = await this.sessaoService.tentarEpifaniaDominioSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'DOMINIO_ATUALIZADO',
+    );
+    return detalhe;
   }
 
   @Post(':sessaoId/dominios/:dominioId/acoes')

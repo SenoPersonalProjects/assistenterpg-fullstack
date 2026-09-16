@@ -26,6 +26,56 @@ const ACOES_DOMINIO = [
   'ATRAVESSAR',
 ] as const;
 const TIPOS_DEFESA = ['CESTA_OCA', 'DOMINIO_SIMPLES', 'AMPLIFICACAO'] as const;
+const ATRIBUTOS_EPIFANIA = ['FOR', 'AGI', 'VIG', 'INT', 'PRE'] as const;
+
+export class TentarEpifaniaDominioSessaoDto {
+  @IsUUID('4')
+  clientRequestId!: string;
+
+  @IsInt()
+  @Min(1)
+  personagemSessaoId!: number;
+
+  @IsString()
+  nomeDominio!: string;
+
+  @IsOptional()
+  @IsString()
+  descricao?: string;
+
+  @IsIn(ATRIBUTOS_EPIFANIA)
+  atributo!: (typeof ATRIBUTOS_EPIFANIA)[number];
+
+  @IsIn(TIPOS_DOMINIO)
+  tipo!: (typeof TIPOS_DOMINIO)[number];
+
+  @IsInt()
+  @Min(2)
+  @Max(5)
+  grauBarreira!: number;
+
+  @IsInt()
+  @Min(0)
+  custoEA!: number;
+
+  @IsInt()
+  @Min(0)
+  custoPE!: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  alvosPersonagemSessaoIds?: number[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  alvosNpcSessaoIds?: number[];
+}
 
 export class CriarDominioNpcSessaoDto {
   @IsUUID('4')

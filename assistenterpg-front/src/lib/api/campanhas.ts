@@ -87,6 +87,20 @@ export type AcaoDominioSessaoPayload = {
   motivo?: string;
 };
 
+export type TentarEpifaniaDominioSessaoPayload = {
+  clientRequestId: string;
+  personagemSessaoId: number;
+  nomeDominio: string;
+  descricao?: string;
+  atributo: "FOR" | "AGI" | "VIG" | "INT" | "PRE";
+  tipo: "FECHADO" | "ABERTO";
+  grauBarreira: number;
+  custoEA: number;
+  custoPE: number;
+  alvosPersonagemSessaoIds?: number[];
+  alvosNpcSessaoIds?: number[];
+};
+
 export type UsarHabilidadeClasseSessaoCampanhaPayload = {
   clientRequestId?: string;
   habilidadeId: number;
@@ -1202,6 +1216,18 @@ export async function apiExecutarAcaoDominioSessaoCampanha(
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/dominios/${dominioId}/acoes`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiTentarEpifaniaDominioSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: TentarEpifaniaDominioSessaoPayload,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/dominios/epifania`,
     payload,
   );
   return data;

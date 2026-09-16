@@ -51,6 +51,7 @@ Para reduzir ambiguidade e facilitar manutenção, este README permanece como vi
 - auditoria e acompanhamento — rodada 1: [`AUDITORIA-E-MELHORIAS-2026-09-11.md`](./AUDITORIA-E-MELHORIAS-2026-09-11.md)
 - smoke autenticado de rolagens autoritativas: [`GUIA-SMOKE-ROLAGENS-AUTORITATIVAS.md`](./GUIA-SMOKE-ROLAGENS-AUTORITATIVAS.md)
 - política de compatibilidade de sessão: [`POLITICA-COMPATIBILIDADE-SESSAO.md`](./POLITICA-COMPATIBILIDADE-SESSAO.md)
+- acompanhamento de Epifania e Domínio Incompleto: [`EPIFANIA-DOMINIO-INCOMPLETO-ACOMPANHAMENTO.md`](./EPIFANIA-DOMINIO-INCOMPLETO-ACOMPANHAMENTO.md)
 
 ## 2. Arquitetura
 

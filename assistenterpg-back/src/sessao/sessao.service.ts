@@ -58,6 +58,7 @@ import {
   CriarDominioNpcSessaoDto,
   DormirInterludioSessaoDto,
   ResolverDisputaDominioSessaoDto,
+  TentarEpifaniaDominioSessaoDto,
 } from './dto/dominio-sessao.dto';
 import { UsarHabilidadeClasseSessaoDto } from './dto/usar-habilidade-classe-sessao.dto';
 import { AtualizarRecursosPersonagemSessaoDto } from './dto/atualizar-recursos-personagem-sessao.dto';
@@ -1836,6 +1837,9 @@ export class SessaoService {
                   : 'SELADA',
         instavel: dominio.instavel,
         exteriorReforcado: dominio.exteriorReforcado,
+        incompleto: dominio.incompleto,
+        atributoEpifania: dominio.atributoEpifania,
+        bonusDadosEfeito: dominio.bonusDadosEfeito,
         rodadaAbertura: dominio.rodadaAbertura,
         participante: dominio.personagemSessao
           ? {
@@ -15040,6 +15044,183 @@ export class SessaoService {
     };
   }
 
+  async tentarEpifaniaDominioSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: TentarEpifaniaDominioSessaoDto,
+  ) {
+    const { acesso, sessao } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'resolver Epifania de Dominio',
+    );
+    this.assertMestre(acesso, 'resolver Epifania de Dominio');
+    const cena = await this.obterCenaAtualSessaoTx(this.prisma, sessaoId);
+    const personagem = await this.prisma.personagemSessao.findFirst({
+      where: { id: dto.personagemSessaoId, sessaoId, cenaId: cena.id },
+      select: {
+        id: true,
+        personagemCampanhaId: true,
+        personagemCampanha: { select: { eaAtual: true, peAtual: true } },
+      },
+    });
+    if (!personagem)
+      throw new BusinessException(
+        'Personagem da Epifania nao esta na cena atual.',
+        'DOMINIO_PARTICIPANTE_INVALIDO',
+      );
+    const resultado = Math.floor(Math.random() * 20) + 1;
+    await this.prisma.$transaction(async (tx) => {
+      const epifania = await tx.epifaniaDominioSessao.findUnique({
+        where: {
+          sessaoId_cenaId_personagemSessaoId: {
+            sessaoId,
+            cenaId: cena.id,
+            personagemSessaoId: personagem.id,
+          },
+        },
+      });
+      if (epifania?.manifestadaEm)
+        throw new BusinessException(
+          'Este personagem ja manifestou uma Epifania nesta cena.',
+          'DOMINIO_EPIFANIA_JA_MANIFESTADA',
+        );
+      const dt = Math.max(1, 20 - (epifania?.tentativasFalhas ?? 0));
+      const sucesso = resultado >= dt;
+      if (!sucesso) {
+        await tx.epifaniaDominioSessao.upsert({
+          where: {
+            sessaoId_cenaId_personagemSessaoId: {
+              sessaoId,
+              cenaId: cena.id,
+              personagemSessaoId: personagem.id,
+            },
+          },
+          create: {
+            sessaoId,
+            cenaId: cena.id,
+            personagemSessaoId: personagem.id,
+            tentativasFalhas: 1,
+            ultimaDt: dt,
+            ultimoResultado: resultado,
+          },
+          update: {
+            tentativasFalhas: { increment: 1 },
+            ultimaDt: dt,
+            ultimoResultado: resultado,
+          },
+        });
+        await tx.eventoSessao.create({
+          data: {
+            sessaoId,
+            cenaId: cena.id,
+            personagemAtorId: personagem.id,
+            tipoEvento: 'DOMINIO_EPIFANIA_FALHOU',
+            solicitanteUsuarioId: usuarioId,
+            clientRequestId: dto.clientRequestId,
+            dados: this.jsonParaPersistencia({ resultado, dt }),
+          },
+        });
+        return;
+      }
+      if (
+        personagem.personagemCampanha.eaAtual < dto.custoEA ||
+        personagem.personagemCampanha.peAtual < dto.custoPE
+      )
+        throw new BusinessException(
+          'Recursos insuficientes para manifestar o Dominio Incompleto.',
+          'DOMINIO_RECURSOS_INSUFICIENTES',
+        );
+      await tx.personagemCampanha.update({
+        where: { id: personagem.personagemCampanhaId },
+        data: {
+          eaAtual: { decrement: dto.custoEA },
+          peAtual: { decrement: dto.custoPE },
+        },
+      });
+      const integridade =
+        dto.tipo === 'FECHADO'
+          ? 4 + Math.max(0, dto.grauBarreira - 2)
+          : null;
+      const dominio = await tx.dominioSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cena.id,
+          personagemSessaoId: personagem.id,
+          nome: dto.nomeDominio.trim(),
+          descricaoAcertoGarantido: dto.descricao?.trim() || null,
+          tipo: dto.tipo,
+          estado: 'ATIVO',
+          acertoGarantidoAtivo: false,
+          grauBarreira: dto.grauBarreira,
+          integridadeMax: integridade,
+          integridadeAtual: integridade,
+          incompleto: true,
+          atributoEpifania: dto.atributo,
+          bonusDadosEfeito: resultado >= dt + 10 ? 2 : 1,
+          rodadaAbertura: sessao.rodadaAtual,
+          criadoPorUsuarioId: usuarioId,
+        },
+      });
+      await this.criarAlvosDominioTx(
+        tx,
+        dominio.id,
+        sessaoId,
+        cena.id,
+        dto.alvosPersonagemSessaoIds,
+        dto.alvosNpcSessaoIds,
+      );
+      await tx.epifaniaDominioSessao.upsert({
+        where: {
+          sessaoId_cenaId_personagemSessaoId: {
+            sessaoId,
+            cenaId: cena.id,
+            personagemSessaoId: personagem.id,
+          },
+        },
+        create: {
+          sessaoId,
+          cenaId: cena.id,
+          personagemSessaoId: personagem.id,
+          ultimaDt: dt,
+          ultimoResultado: resultado,
+          manifestadaEm: new Date(),
+          dominioSessaoId: dominio.id,
+        },
+        update: {
+          ultimaDt: dt,
+          ultimoResultado: resultado,
+          manifestadaEm: new Date(),
+          dominioSessaoId: dominio.id,
+        },
+      });
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cena.id,
+          personagemAtorId: personagem.id,
+          tipoEvento: 'DOMINIO_EPIFANIA_MANIFESTADA',
+          solicitanteUsuarioId: usuarioId,
+          clientRequestId: dto.clientRequestId,
+          dados: this.jsonParaPersistencia({
+            dominioId: dominio.id,
+            resultado,
+            dt,
+            atributo: dto.atributo,
+            bonusJujutsu: 5,
+            bonusLuta: 5,
+            bonusDadosEfeito: resultado >= dt + 10 ? 2 : 1,
+            custoEA: dto.custoEA,
+            custoPE: dto.custoPE,
+          }),
+        },
+      });
+    });
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
   async executarAcaoDominioSessao(
     campanhaId: number,
     sessaoId: number,
@@ -15768,6 +15949,7 @@ export class SessaoService {
       sessaoId: number;
       cenaId: number;
       estado: string;
+      incompleto: boolean;
       personagemSessaoId: number | null;
       npcSessaoId: number | null;
       sustentacaoHabilidadeId: number | null;
@@ -15803,6 +15985,7 @@ export class SessaoService {
       npcSessaoId: dominio.npcSessaoId,
       usuarioId,
       motivo,
+      incompleto: dominio.incompleto,
     });
   }
 
@@ -15815,6 +15998,7 @@ export class SessaoService {
       npcSessaoId: number | null;
       usuarioId: number;
       motivo: string;
+      incompleto: boolean;
     },
   ): Promise<void> {
     const condicoes = await tx.condicao.findMany({
@@ -15836,7 +16020,8 @@ export class SessaoService {
       personagemSessaoId: args.personagemSessaoId ?? undefined,
       npcSessaoId: args.npcSessaoId ?? undefined,
     };
-    const turnosTecnica = args.motivo === 'INTERRUPCAO' ? 1 : 2;
+    const turnosTecnica =
+      args.motivo === 'INTERRUPCAO' ? 1 : args.incompleto ? 4 : 2;
     await Promise.all([
       tx.condicaoPersonagemSessao.updateMany({
         where: {

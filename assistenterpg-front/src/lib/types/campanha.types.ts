@@ -1071,6 +1071,9 @@ export type SessaoCampanhaDetalhe = {
       "SELADA" | "FISSURA" | "BRECHA" | "COLAPSADA" | "ABERTO" | string;
     instavel: boolean;
     exteriorReforcado: boolean;
+    incompleto?: boolean;
+    atributoEpifania?: string | null;
+    bonusDadosEfeito?: number;
     rodadaAbertura: number;
     participante: {
       tipo: "PERSONAGEM" | "NPC" | string;
