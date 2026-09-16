@@ -2,12 +2,16 @@ import type { MetadataRoute } from 'next';
 import type { CompendioLivro } from '@/lib/utils/compendio';
 import { urlApiPublica, urlPublica } from '@/lib/seo/site';
 
-export const revalidate = 300;
-export const dynamic = 'force-dynamic';
+// O sitemap é uma entrada para crawlers: ele não pode depender de o backend
+// estar acordado a cada visita. O Next/Vercel mantém a última versão válida e
+// a revalida em segundo plano, preservando a resposta anterior se a consulta
+// ao catálogo falhar temporariamente.
+export const revalidate = 3600;
 
 async function listarLivrosPublicosParaSitemap(): Promise<CompendioLivro[]> {
   try {
     const resposta = await fetch(urlApiPublica('/compendio/livros'), {
+      cache: 'force-cache',
       next: { revalidate },
     });
 

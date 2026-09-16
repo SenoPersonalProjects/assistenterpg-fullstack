@@ -15,7 +15,9 @@ São indexáveis:
 Rotas de autenticação, dados de usuário, campanhas, fichas, administração e a
 busca parametrizada do Compêndio permanecem com `noindex, nofollow`. O sitemap
 é montado a partir dos livros, categorias, subcategorias e artigos ativos e
-publicados retornados pela API pública.
+publicados retornados pela API pública. A versão gerada é mantida em cache por
+uma hora: assim, uma indisponibilidade transitória do catálogo não impede que
+crawlers recebam o último sitemap válido.
 
 ## Marca e instalação
 
@@ -32,6 +34,11 @@ O frontend publica favicon, ícones Apple, ícones de instalação e manifest em
 4. Envie o sitemap em **Sitemaps** no Search Console.
 5. Use a inspeção de URL para validar a landing e pelo menos um artigo público
    após cada mudança estrutural importante no Compêndio.
+
+Se o Search Console informar que não conseguiu buscar o sitemap, confirme
+primeiro que `https://<dominio>/sitemap.xml` responde `200` e exibe XML. Em
+seguida, reenvie somente `/sitemap.xml`; o Google pode levar alguns dias para
+atualizar o status e a quantidade de URLs encontradas.
 
 A verificação atual do Google Search Console é uma meta tag pública, servida
 pela aplicação. Para substituir o valor ao trocar de propriedade, configure
