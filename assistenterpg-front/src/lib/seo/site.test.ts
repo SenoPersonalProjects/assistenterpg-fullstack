@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { metadataPublica, serializarJsonLd, urlPublica } from './site';
+import { metadataPublica, serializarJsonLd, urlApiPublica, urlPublica } from './site';
 
 describe('SEO público', () => {
   it('monta URLs canônicas na origem pública', () => {
     expect(urlPublica('/compendio')).toBe(
       'https://assistenterpg-fullstack.vercel.app/compendio',
     );
+  });
+
+  it('mantém uma origem pública para o sitemap consultar o Compêndio', () => {
+    expect(urlApiPublica('/compendio/livros')).toMatch(/\/compendio\/livros$/);
   });
 
   it('declara metadata indexável com canonical e Open Graph', () => {

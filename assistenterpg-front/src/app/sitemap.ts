@@ -1,12 +1,25 @@
 import type { MetadataRoute } from 'next';
-import { apiListarLivros } from '@/lib/utils/compendio';
-import { urlPublica } from '@/lib/seo/site';
+import type { CompendioLivro } from '@/lib/utils/compendio';
+import { urlApiPublica, urlPublica } from '@/lib/seo/site';
 
 export const revalidate = 300;
 export const dynamic = 'force-dynamic';
 
+async function listarLivrosPublicosParaSitemap(): Promise<CompendioLivro[]> {
+  try {
+    const resposta = await fetch(urlApiPublica('/compendio/livros'), {
+      next: { revalidate },
+    });
+
+    if (!resposta.ok) return [];
+    return (await resposta.json()) as CompendioLivro[];
+  } catch {
+    return [];
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const livros = await apiListarLivros();
+  const livros = await listarLivrosPublicosParaSitemap();
   const entradas: MetadataRoute.Sitemap = [
     { url: urlPublica('/'), changeFrequency: 'weekly', priority: 1 },
     { url: urlPublica('/compendio'), changeFrequency: 'daily', priority: 0.9 },
