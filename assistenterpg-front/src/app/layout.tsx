@@ -36,8 +36,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
       { url: '/icons/maledicencia-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any', type: 'image/x-icon' },
     ],
     apple: [{ url: '/icons/maledicencia-180.png', sizes: '180x180', type: 'image/png' }],
   },

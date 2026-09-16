@@ -23,7 +23,10 @@ crawlers recebam o último sitemap válido.
 
 Os ícones derivam de `logo-padrao.png`, a marca do dado com olhos azul-ciano.
 O frontend publica favicon, ícones Apple, ícones de instalação e manifest em
-`/manifest.webmanifest`.
+`/manifest.webmanifest`. A variante com transparência usada para esses ativos é
+`public/images/logos/logo-padrao-transparent.png`; se a marca for atualizada,
+regenere os tamanhos e o `.ico` com
+`scripts/gerar-icones-maledicencia.ps1`.
 
 ## Operação após domínio próprio
 
