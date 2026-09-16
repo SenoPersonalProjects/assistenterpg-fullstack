@@ -31,6 +31,9 @@ describe('SessaoService - recursos incrementais', () => {
       personagemCampanha: {
         update: jest.fn().mockResolvedValue({}),
       },
+      personagemSessaoHabilidadeSustentada: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
       eventoSessao: {
         create: jest.fn().mockResolvedValue({
           id: 91,

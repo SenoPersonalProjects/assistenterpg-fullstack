@@ -30,4 +30,12 @@ Status: Em validação
 
 ## Limites deliberados
 
+## Registro de aplicação — 2026-09-16
+
+- Migration `20260916110000_concentracao_sustentacoes` aplicada no TiDB remoto `test`; a validação posterior confirmou 112 migrations registradas.
+- Seed idempotente `tecnicas-nao-inatas` executado após a migration para atualizar os metadados de Concentração no catálogo.
+- Testes focados de sessão: 3 suites, 150 testes aprovados. A simulação incremental de recursos agora inclui explicitamente o repositório de sustentações, cobrindo o novo ponto de consulta sem acessar banco real.
+- Builds de backend e frontend executados localmente; o build do frontend concluiu sem erros de TypeScript.
+- A bateria manual acima continua acumulada para a validação final em sessão autenticada.
+
 Concentração é processada no ponto autoritativo de ajuste de PV do personagem. Integrações futuras de dano automático que alterem PV diretamente devem reutilizar esse mesmo fluxo, em vez de atualizar o recurso fora da sessão. Instabilidade automática de Domínios por dano de 50% dos PV máximos permanece no próximo lote de aperfeiçoamento de Domínios.
