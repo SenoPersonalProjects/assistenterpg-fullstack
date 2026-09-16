@@ -15678,8 +15678,11 @@ export class SessaoService {
     tx: Prisma.TransactionClient,
     dominio: {
       id: number;
+      sessaoId: number;
+      cenaId: number;
       estado: string;
       personagemSessaoId: number | null;
+      npcSessaoId: number | null;
       sustentacaoHabilidadeId: number | null;
     },
     usuarioId: number,
@@ -15706,6 +15709,125 @@ export class SessaoService {
           motivoDesativacao: motivo,
         },
       });
+    await this.aplicarEsgotamentosDominioTx(tx, {
+      sessaoId: dominio.sessaoId,
+      cenaId: dominio.cenaId,
+      personagemSessaoId: dominio.personagemSessaoId,
+      npcSessaoId: dominio.npcSessaoId,
+      usuarioId,
+      motivo,
+    });
+  }
+
+  private async aplicarEsgotamentosDominioTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      sessaoId: number;
+      cenaId: number;
+      personagemSessaoId: number | null;
+      npcSessaoId: number | null;
+      usuarioId: number;
+      motivo: string;
+    },
+  ): Promise<void> {
+    const condicoes = await tx.condicao.findMany({
+      where: {
+        codigo: { in: [...CODIGOS_CONDICAO_ESGOTAMENTO_NEURAL] },
+      },
+      select: { id: true, codigo: true, nome: true },
+    });
+    const porCodigo = new Map(
+      condicoes.flatMap((condicao) =>
+        condicao.codigo ? [[condicao.codigo, condicao] as const] : [],
+      ),
+    );
+    const tecnica = porCodigo.get('ESGOTAMENTO_TECNICA');
+    const dominio = porCodigo.get('ESGOTAMENTO_DOMINIO');
+    if (!tecnica || !dominio) return;
+
+    const alvo = {
+      personagemSessaoId: args.personagemSessaoId ?? undefined,
+      npcSessaoId: args.npcSessaoId ?? undefined,
+    };
+    const turnosTecnica = args.motivo === 'INTERRUPCAO' ? 1 : 2;
+    await Promise.all([
+      tx.condicaoPersonagemSessao.updateMany({
+        where: {
+          sessaoId: args.sessaoId,
+          ativo: true,
+          condicaoId: tecnica.id,
+          ...alvo,
+        },
+        data: {
+          duracaoModo: CONDICAO_DURACAO_MODOS.TURNOS_ALVO,
+          restanteDuracao: turnosTecnica,
+          motivoRemocao: null,
+        },
+      }),
+      tx.condicaoPersonagemSessao.updateMany({
+        where: {
+          sessaoId: args.sessaoId,
+          ativo: true,
+          condicaoId: dominio.id,
+          ...alvo,
+        },
+        data: { motivoRemocao: null },
+      }),
+    ]);
+    const ativas = await tx.condicaoPersonagemSessao.findMany({
+      where: {
+        sessaoId: args.sessaoId,
+        ativo: true,
+        condicaoId: { in: [tecnica.id, dominio.id] },
+        ...alvo,
+      },
+      select: { condicaoId: true },
+    });
+    const ativasIds = new Set(ativas.map((item) => item.condicaoId));
+    const faltantes = [tecnica, dominio].filter(
+      (condicao) => !ativasIds.has(condicao.id),
+    );
+    if (faltantes.length === 0) return;
+    await tx.condicaoPersonagemSessao.createMany({
+      data: faltantes.map((condicao) => ({
+        sessaoId: args.sessaoId,
+        cenaId: args.cenaId,
+        personagemSessaoId: args.personagemSessaoId,
+        npcSessaoId: args.npcSessaoId,
+        condicaoId: condicao.id,
+        turnoAplicacao: 0,
+        duracaoModo:
+          condicao.codigo === 'ESGOTAMENTO_TECNICA'
+            ? CONDICAO_DURACAO_MODOS.TURNOS_ALVO
+            : CONDICAO_DURACAO_MODOS.ATE_REMOVER,
+        restanteDuracao:
+          condicao.codigo === 'ESGOTAMENTO_TECNICA' ? turnosTecnica : null,
+        ativo: true,
+        automatica: true,
+        contadorTurnos: 0,
+        acumulos: 1,
+        fonteCodigo: 'EXPANSAO_DOMINIO',
+        origemDescricao: args.motivo,
+      })),
+    });
+    await Promise.all(
+      faltantes.map((condicao) =>
+        tx.eventoSessao.create({
+          data: {
+            sessaoId: args.sessaoId,
+            cenaId: args.cenaId,
+            personagemAtorId: args.personagemSessaoId,
+            tipoEvento: 'CONDICAO_APLICADA',
+            dados: this.jsonParaPersistencia({
+              condicaoId: condicao.id,
+              condicaoNome: condicao.nome,
+              motivo: args.motivo,
+              aplicadoPorId: args.usuarioId,
+            }),
+          },
+        }),
+      ),
+    );
   }
 
   private async obterSessaoMutavelComAcesso(
