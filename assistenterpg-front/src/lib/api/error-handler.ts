@@ -451,6 +451,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Dormir para recuperar o Domínio exige uma cena livre.",
   DOMINIO_EPIFANIA_JA_MANIFESTADA:
     "Este personagem já manifestou uma Epifania nesta cena.",
+  DOMINIO_EPIFANIA_NOME_INVALIDO: "Informe um nome para o Domínio Incompleto.",
   SESSAO_RECURSOS_DESATUALIZADOS:
     "Os recursos mudaram em outra tela. Sincronize a sessão e tente novamente.",
   SESSAO_LIMITE_PEEA_EXCEDIDO: "Limite de PE/EA por turno excedido.",

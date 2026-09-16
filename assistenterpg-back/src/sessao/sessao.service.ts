@@ -15057,6 +15057,12 @@ export class SessaoService {
       'resolver Epifania de Dominio',
     );
     this.assertMestre(acesso, 'resolver Epifania de Dominio');
+    const nomeDominio = dto.nomeDominio.trim();
+    if (!nomeDominio)
+      throw new BusinessException(
+        'Informe o nome do Dominio Incompleto.',
+        'DOMINIO_EPIFANIA_NOME_INVALIDO',
+      );
     const cena = await this.obterCenaAtualSessaoTx(this.prisma, sessaoId);
     const personagem = await this.prisma.personagemSessao.findFirst({
       where: { id: dto.personagemSessaoId, sessaoId, cenaId: cena.id },
@@ -15147,7 +15153,7 @@ export class SessaoService {
           sessaoId,
           cenaId: cena.id,
           personagemSessaoId: personagem.id,
-          nome: dto.nomeDominio.trim(),
+          nome: nomeDominio,
           descricaoAcertoGarantido: dto.descricao?.trim() || null,
           tipo: dto.tipo,
           estado: 'ATIVO',
@@ -19576,6 +19582,24 @@ export class SessaoService {
               { personagemSessaoId: personagemSessaoId ?? undefined },
               { npcSessaoId: npcSessaoId ?? undefined },
             ],
+          },
+        },
+        // A disputa neutraliza o Acerto Garantido para os alvos definidos pelo
+        // mestre. Um Dominio Incompleto participa dessa neutralizacao mesmo
+        // sem ter Acerto Garantido proprio.
+        participacoesDisputa: {
+          none: {
+            disputa: {
+              estado: 'ATIVA',
+              alvos: {
+                some: {
+                  OR: [
+                    { personagemSessaoId: personagemSessaoId ?? undefined },
+                    { npcSessaoId: npcSessaoId ?? undefined },
+                  ],
+                },
+              },
+            },
           },
         },
       },

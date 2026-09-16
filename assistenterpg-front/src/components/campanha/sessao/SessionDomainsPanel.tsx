@@ -45,6 +45,12 @@ export function SessionDomainsPanel({
   const [atributoEpifania, setAtributoEpifania] = useState<
     "FOR" | "AGI" | "VIG" | "INT" | "PRE"
   >("PRE");
+  const [tipoEpifania, setTipoEpifania] = useState<"FECHADO" | "ABERTO">(
+    "FECHADO",
+  );
+  const [grauBarreiraEpifania, setGrauBarreiraEpifania] = useState("2");
+  const [custoEaEpifania, setCustoEaEpifania] = useState("0");
+  const [custoPeEpifania, setCustoPeEpifania] = useState("0");
   async function executar(
     dominioId: number,
     acao: Parameters<typeof apiExecutarAcaoDominioSessaoCampanha>[3]["acao"],
@@ -72,8 +78,25 @@ export function SessionDomainsPanel({
   }
   async function tentarEpifania() {
     const personagemSessaoId = Number(personagemEpifaniaId);
+    const grauBarreira = Number(grauBarreiraEpifania);
+    const custoEA = Number(custoEaEpifania);
+    const custoPE = Number(custoPeEpifania);
     if (!personagemSessaoId || !nomeEpifania.trim()) {
       setErro("Escolha o personagem e informe o nome do Domínio Incompleto.");
+      return;
+    }
+    if (
+      !Number.isInteger(grauBarreira) ||
+      grauBarreira < 2 ||
+      grauBarreira > 5 ||
+      !Number.isInteger(custoEA) ||
+      custoEA < 0 ||
+      !Number.isInteger(custoPE) ||
+      custoPE < 0
+    ) {
+      setErro(
+        "Informe grau de barreira entre 2 e 5 e custos inteiros validos.",
+      );
       return;
     }
     setErro(null);
@@ -85,10 +108,10 @@ export function SessionDomainsPanel({
           personagemSessaoId,
           nomeDominio: nomeEpifania.trim(),
           atributo: atributoEpifania,
-          tipo: "FECHADO",
-          grauBarreira: 2,
-          custoEA: 0,
-          custoPE: 0,
+          tipo: tipoEpifania,
+          grauBarreira,
+          custoEA,
+          custoPE,
         }),
       );
       setEpifaniaAberta(false);
@@ -174,6 +197,59 @@ export function SessionDomainsPanel({
                   <option value="PRE">Presença</option>
                 </select>
               </label>
+              <label className="text-xs text-app-muted">
+                Estrutura
+                <select
+                  className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg"
+                  value={tipoEpifania}
+                  onChange={(event) =>
+                    setTipoEpifania(event.target.value as typeof tipoEpifania)
+                  }
+                >
+                  <option value="FECHADO">Dominio fechado</option>
+                  <option value="ABERTO">Dominio aberto</option>
+                </select>
+              </label>
+              <label className="text-xs text-app-muted">
+                Grau de barreira (2 a 5)
+                <input
+                  className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg"
+                  type="number"
+                  min="2"
+                  max="5"
+                  step="1"
+                  value={grauBarreiraEpifania}
+                  onChange={(event) =>
+                    setGrauBarreiraEpifania(event.target.value)
+                  }
+                />
+              </label>
+              <label className="text-xs text-app-muted">
+                Custo de EA
+                <input
+                  className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={custoEaEpifania}
+                  onChange={(event) => setCustoEaEpifania(event.target.value)}
+                />
+              </label>
+              <label className="text-xs text-app-muted">
+                Custo de PE
+                <input
+                  className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={custoPeEpifania}
+                  onChange={(event) => setCustoPeEpifania(event.target.value)}
+                />
+              </label>
+              <p className="text-xs text-app-muted md:col-span-2">
+                A Epifania nao possui Acerto Garantido. O mestre define custos e
+                estrutura coerentes com a manifestacao narrada.
+              </p>
               <div className="flex items-end">
                 <Button
                   size="sm"

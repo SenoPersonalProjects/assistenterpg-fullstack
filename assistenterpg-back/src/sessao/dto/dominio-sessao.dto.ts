@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsIn,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
@@ -37,6 +38,7 @@ export class TentarEpifaniaDominioSessaoDto {
   personagemSessaoId!: number;
 
   @IsString()
+  @IsNotEmpty()
   nomeDominio!: string;
 
   @IsOptional()

@@ -5959,4 +5959,44 @@ describe('SessaoService', () => {
       ),
     ).toThrow(BusinessException);
   });
+
+  it('neutraliza Acerto Garantido para alvos de uma disputa ativa', async () => {
+    const tx = {
+      defesaAntiDominioSessao: { findFirst: jest.fn().mockResolvedValue(null) },
+      dominioSessao: { findMany: jest.fn().mockResolvedValue([]) },
+      eventoSessao: { create: jest.fn() },
+    };
+
+    await (service as any).registrarAcertosGarantidosNoInicioTurnoTx(tx, {
+      sessaoId: 21,
+      cenaId: 5,
+      participante: {
+        tipoParticipante: 'PERSONAGEM',
+        personagemSessaoId: 41,
+      },
+    });
+
+    expect(tx.dominioSessao.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          participacoesDisputa: {
+            none: {
+              disputa: {
+                estado: 'ATIVA',
+                alvos: {
+                  some: {
+                    OR: [
+                      { personagemSessaoId: 41 },
+                      { npcSessaoId: undefined },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        }),
+      }),
+    );
+    expect(tx.eventoSessao.create).not.toHaveBeenCalled();
+  });
 });
