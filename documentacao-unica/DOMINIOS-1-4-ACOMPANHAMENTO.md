@@ -36,6 +36,9 @@ O núcleo foi publicado no commit `53fba4b`. Antes de encerrar o lote, concluir 
 - [x] A defesa anti-Domínio valida o participante, cobra EA/PE na mesma
   transação, substitui a defesa equivalente anterior e registra uma chave de
   idempotência no histórico.
+- [x] O endpoint direto de defesa é exclusivo do mestre/NPC; personagens usam
+  a habilidade catalogada, cujo custo é calculado pelo backend e não pelo
+  cliente.
 - [x] Reconfigurar ou estabilizar barreiras rejeita Domínios que não estejam
   ativos, evitando mutações após encerramento ou colapso.
 - [x] `prisma-transaction-policy`, lint, builds e a CI serão mantidos como

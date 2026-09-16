@@ -15430,6 +15430,10 @@ export class SessaoService {
       usuarioId,
       'ativar defesa anti-Dominio',
     );
+    // Este endpoint e reservado ao fluxo estruturado do mestre (especialmente
+    // NPCs). Personagens ativam a defesa pela habilidade catalogada, que
+    // calcula e cobra os custos autoritativamente no uso de habilidade.
+    this.assertMestre(acesso, 'ativar defesa anti-Dominio diretamente');
     if (!!dto.personagemSessaoId === !!dto.npcSessaoId)
       throw new BusinessException(
         'Informe exatamente um participante para a defesa.',
@@ -15453,13 +15457,6 @@ export class SessaoService {
         'Participante da defesa nao esta na sessao.',
         'DOMINIO_DEFESA_PARTICIPANTE_INVALIDO',
       );
-    if (
-      !acesso.ehMestre &&
-      personagem?.controladorUsuarioId !== usuarioId &&
-      personagem?.personagemCampanha.donoId !== usuarioId &&
-      npc?.controladorUsuarioId !== usuarioId
-    )
-      throw new CampanhaAcessoNegadoException(campanhaId, usuarioId);
     const integridade =
       dto.tipo === 'AMPLIFICACAO'
         ? null
