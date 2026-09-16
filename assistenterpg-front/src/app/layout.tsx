@@ -11,7 +11,13 @@ import { FriendChatProvider } from '@/context/FriendChatContext';
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 import { DialogProvider } from '@/components/ui/DialogProvider';
 import { ClientRuntimeObserver } from '@/components/observabilidade/ClientRuntimeObserver';
-import { SITE_DESCRIPTION, SITE_NAME, siteUrl, urlPublica } from '@/lib/seo/site';
+import {
+  googleSiteVerification,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  siteUrl,
+  urlPublica,
+} from '@/lib/seo/site';
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
@@ -26,6 +32,7 @@ export const metadata: Metadata = {
   creator: 'Maledicência RPG',
   publisher: 'Maledicência RPG',
   formatDetection: { telephone: false, address: false, email: false },
+  verification: googleSiteVerification ? { google: googleSiteVerification } : undefined,
   robots: { index: false, follow: false },
   icons: {
     icon: [

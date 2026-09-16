@@ -6,6 +6,7 @@ export const SITE_DESCRIPTION =
 
 const FALLBACK_SITE_URL = 'https://assistenterpg-fullstack.vercel.app';
 const FALLBACK_PUBLIC_API_URL = 'https://assistenterpg-fullstack.onrender.com';
+const GOOGLE_SITE_VERIFICATION_DEFAULT = '3nvp-zCHa1U3ZYIkROU0ojqWMpTJ7rYmJPx77vzoLAw';
 
 function normalizarUrlBase(valor: string | undefined) {
   const candidata = valor?.trim() || FALLBACK_SITE_URL;
@@ -16,6 +17,8 @@ export const siteUrl = normalizarUrlBase(process.env.NEXT_PUBLIC_SITE_URL);
 export const apiPublicaUrl = normalizarUrlBase(
   process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || FALLBACK_PUBLIC_API_URL,
 );
+export const googleSiteVerification =
+  process.env.GOOGLE_SITE_VERIFICATION?.trim() || GOOGLE_SITE_VERIFICATION_DEFAULT;
 
 export function urlPublica(caminho = '/') {
   return new URL(caminho, siteUrl).toString();

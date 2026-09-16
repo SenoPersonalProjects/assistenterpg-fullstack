@@ -33,10 +33,10 @@ O frontend publica favicon, ícones Apple, ícones de instalação e manifest em
 5. Use a inspeção de URL para validar a landing e pelo menos um artigo público
    após cada mudança estrutural importante no Compêndio.
 
-Não inclua token de verificação de mecanismos de busca no repositório. Se uma
-verificação por meta tag for necessária, ela deve ser configurada por variável
-de ambiente e adicionada como uma mudança própria, com o valor secreto somente
-no provedor de hospedagem.
+A verificação atual do Google Search Console é uma meta tag pública, servida
+pela aplicação. Para substituir o valor ao trocar de propriedade, configure
+`GOOGLE_SITE_VERIFICATION` no ambiente de produção da Vercel; ela tem
+precedência sobre o valor de verificação atual centralizado no metadata.
 
 ## Critérios editoriais
 
