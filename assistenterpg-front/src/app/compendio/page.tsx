@@ -10,9 +10,15 @@ import { PageToolbar } from '@/components/ui/PageToolbar';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 import { apiListarDestaques, apiListarLivros } from '@/lib/utils/compendio';
+import { metadataPublica } from '@/lib/seo/site';
 
 // Avoid static prerender depending on the compendium API during offline builds.
 export const dynamic = 'force-dynamic';
+export const metadata = metadataPublica({
+  title: 'Compêndio',
+  description: 'Consulte livros, regras, técnicas e suplementos oficiais de Maledicência RPG.',
+  path: '/compendio',
+});
 
 export default async function CompendioPage() {
   const [livros, destaques] = await Promise.all([

@@ -1,13 +1,30 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { BookIndex } from '@/components/compendio/BookIndex';
 import { ReaderShell } from '@/components/compendio/ReaderShell';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { apiBuscarLivroPorCodigo } from '@/lib/utils/compendio';
+import { metadataPublica } from '@/lib/seo/site';
 
 type Props = {
   params: Promise<{ livroCodigo: string }>;
 };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { livroCodigo } = await params;
+  const livro = await apiBuscarLivroPorCodigo(livroCodigo);
+
+  if (!livro || livro.status !== 'PUBLICADO') {
+    return { title: 'Livro não encontrado', robots: { index: false, follow: false } };
+  }
+
+  return metadataPublica({
+    title: livro.titulo,
+    description: livro.descricao || `Índice e regras do livro ${livro.titulo}.`,
+    path: `/compendio/livros/${livro.codigo}`,
+  });
+}
 
 export default async function CompendioLivroPage({ params }: Props) {
   const { livroCodigo } = await params;

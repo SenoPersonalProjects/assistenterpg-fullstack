@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { ArtigoContent } from '@/components/compendio/ArtigoContent';
 import { CompendioArticleAdminActions } from '@/components/compendio/CompendioArticleAdminActions';
 import { ReaderNavigationFooter } from '@/components/compendio/ReaderNavigationFooter';
@@ -13,6 +14,7 @@ import {
 } from '@/lib/utils/compendio';
 import { getCompendioBookHref } from '@/lib/utils/compendio-books';
 import { stripCompendioDisplayNumber } from '@/lib/utils/compendio-display';
+import { metadataPublica, serializarJsonLd, urlPublica } from '@/lib/seo/site';
 
 type Props = {
   params: Promise<{
@@ -22,6 +24,27 @@ type Props = {
     artigo: string;
   }>;
 };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { livroCodigo, categoria, subcategoria, artigo: artigoCodigo } = await params;
+  const artigo = await apiBuscarArtigoDoLivroPorCodigo(
+    livroCodigo,
+    categoria,
+    subcategoria,
+    artigoCodigo,
+  );
+
+  if (!artigo || !artigo.ativo) {
+    return { title: 'Seção não encontrada', robots: { index: false, follow: false } };
+  }
+
+  return metadataPublica({
+    title: stripCompendioDisplayNumber(artigo.titulo),
+    description: artigo.resumo || `Regra de Maledicência RPG: ${stripCompendioDisplayNumber(artigo.titulo)}.`,
+    path: `/compendio/livros/${livroCodigo}/${categoria}/${subcategoria}/${artigoCodigo}`,
+    type: 'article',
+  });
+}
 
 export default async function CompendioLivroArtigoPage({ params }: Props) {
   const {
@@ -71,6 +94,22 @@ export default async function CompendioLivroArtigoPage({ params }: Props) {
     artigo.subcategoria?.nome || 'Tópico',
   );
   const artigoTitulo = stripCompendioDisplayNumber(artigo.titulo);
+  const artigoPath = `/compendio/livros/${livroCodigo}/${categoriaCodigo}/${subcategoriaCodigo}/${artigoCodigo}`;
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: artigoTitulo,
+    description: artigo.resumo || undefined,
+    inLanguage: 'pt-BR',
+    url: urlPublica(artigoPath),
+    isPartOf: {
+      '@type': 'Book',
+      name: livro.titulo,
+      url: urlPublica(`/compendio/livros/${livro.codigo}`),
+    },
+    articleSection: `${categoriaNome} / ${subcategoriaNome}`,
+    keywords: artigo.tags ?? undefined,
+  };
 
   return (
     <ReaderShell
@@ -80,6 +119,10 @@ export default async function CompendioLivroArtigoPage({ params }: Props) {
       activeArtigoCodigo={artigoCodigo}
     >
       <article className="mx-auto max-w-3xl space-y-6">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializarJsonLd(jsonLd) }}
+        />
         <PageHeader
           icon="document"
           title={artigoTitulo}

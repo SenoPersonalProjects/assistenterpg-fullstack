@@ -11,12 +11,51 @@ import { FriendChatProvider } from '@/context/FriendChatContext';
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 import { DialogProvider } from '@/components/ui/DialogProvider';
 import { ClientRuntimeObserver } from '@/components/observabilidade/ClientRuntimeObserver';
+import { SITE_DESCRIPTION, SITE_NAME, siteUrl, urlPublica } from '@/lib/seo/site';
 
 export const metadata: Metadata = {
-  title: 'Assistente RPG - Maledicência RPG',
-  description: 'Sistema completo para gerenciar personagens e campanhas de Maledicência RPG',
+  metadataBase: siteUrl,
+  applicationName: SITE_NAME,
+  title: {
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  category: 'Role-playing game',
+  authors: [{ name: 'Maledicência RPG' }],
+  creator: 'Maledicência RPG',
+  publisher: 'Maledicência RPG',
+  formatDetection: { telephone: false, address: false, email: false },
+  robots: { index: false, follow: false },
   icons: {
-    icon: '/images/logos/logo-padrao.png',
+    icon: [
+      { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
+      { url: '/icons/maledicencia-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [{ url: '/icons/maledicencia-180.png', sizes: '180x180', type: 'image/png' }],
+  },
+  manifest: '/manifest.webmanifest',
+  openGraph: {
+    type: 'website',
+    locale: 'pt_BR',
+    url: urlPublica('/'),
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    images: [
+      {
+        url: urlPublica('/images/logos/logo-padrao.png'),
+        width: 1200,
+        height: 1200,
+        alt: 'Marca do Maledicência RPG',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    images: [urlPublica('/images/logos/logo-padrao.png')],
   },
 };
 

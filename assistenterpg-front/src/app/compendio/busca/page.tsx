@@ -9,6 +9,12 @@ import { PageToolbar } from '@/components/ui/PageToolbar';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 import { apiBuscarCompendioPaginadoComEstado, apiBuscarLivroPorCodigo } from '@/lib/utils/compendio';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Busca no Compêndio',
+  robots: { index: false, follow: false },
+};
 
 type Props = {
   searchParams: Promise<{ q?: string; livroCodigo?: string; page?: string }>;
