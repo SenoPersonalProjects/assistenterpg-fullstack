@@ -28,3 +28,15 @@ O núcleo foi publicado no commit `53fba4b`. Antes de encerrar o lote, concluir 
 - [x] Encerrar, colapsar ou interromper um Domínio aplica Esgotamento da Técnica e Esgotamento de Domínio, inclusive para NPCs.
 - [x] A CI do frontend, backend e documentação foi validada após essa alteração.
 - [x] TiDB de teste: 119 tabelas, 110 migrations e seed de técnicas não inatas concluído.
+
+## Blindagem de fluxos — 2026-09-16
+
+- [x] Listas explícitas de alvos são rejeitadas quando repetem participantes ou
+  incluem personagens/NPCs que não pertencem à cena atual.
+- [x] A defesa anti-Domínio valida o participante, cobra EA/PE na mesma
+  transação, substitui a defesa equivalente anterior e registra uma chave de
+  idempotência no histórico.
+- [x] Reconfigurar ou estabilizar barreiras rejeita Domínios que não estejam
+  ativos, evitando mutações após encerramento ou colapso.
+- [x] `prisma-transaction-policy`, lint, builds e a CI serão mantidos como
+  evidências automáticas; a bateria manual continua acumulada para a sessão.
