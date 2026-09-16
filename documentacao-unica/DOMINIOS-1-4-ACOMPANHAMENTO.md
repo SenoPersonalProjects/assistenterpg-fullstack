@@ -40,3 +40,12 @@ O núcleo foi publicado no commit `53fba4b`. Antes de encerrar o lote, concluir 
   ativos, evitando mutações após encerramento ou colapso.
 - [x] `prisma-transaction-policy`, lint, builds e a CI serão mantidos como
   evidências automáticas; a bateria manual continua acumulada para a sessão.
+
+## Bateria manual pendente
+
+- [ ] Abrir um Domínio de personagem e confirmar a formação pelo mestre; verificar o evento e o Acerto Garantido no turno do alvo.
+- [ ] Interromper, desfazer e colapsar um Domínio; verificar os dois Esgotamentos e o descanso em interlúdio.
+- [ ] Criar uma disputa com dois e três Domínios, usar Refinar/Forçar/Pressionar e conferir Dominância, empate e encerramento.
+- [ ] Registrar Ruptura, Reforçar e Reconfigurar uma barreira fechada; confirmar que Domínio aberto não aceita Integridade.
+- [ ] Ativar Cesta Oca, Domínio Simples e Amplificação; verificar recursos, substituição da defesa e permissão de mestre/controlador/terceiro.
+- [ ] Repetir uma ação com a mesma requisição no navegador/rede e confirmar que o histórico e os recursos não são duplicados.
