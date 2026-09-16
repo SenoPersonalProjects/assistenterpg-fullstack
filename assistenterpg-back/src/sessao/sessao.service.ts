@@ -15117,12 +15117,22 @@ export class SessaoService {
           data: { rupturas: Math.max(0, atual.rupturas - 1) },
         });
       } else if (dto.acao === 'RECONFIGURAR') {
+        if (atual.tipo !== 'FECHADO' || atual.estado !== 'ATIVO')
+          throw new BusinessException(
+            'Apenas Dominio fechado ativo pode reconfigurar a barreira.',
+            'DOMINIO_ACAO_INVALIDA',
+          );
         await this.cobrarPeDominioTx(tx, atual, 1);
         await tx.dominioSessao.update({
           where: { id: dominioId },
           data: { exteriorReforcado: !atual.exteriorReforcado },
         });
       } else if (dto.acao === 'ESTABILIZAR') {
+        if (atual.estado !== 'ATIVO')
+          throw new BusinessException(
+            'Apenas Dominio ativo pode ser estabilizado.',
+            'DOMINIO_ACAO_INVALIDA',
+          );
         await tx.dominioSessao.update({
           where: { id: dominioId },
           data: { instavel: false },
@@ -15428,16 +15438,21 @@ export class SessaoService {
     const cena = await this.obterCenaAtualSessaoTx(this.prisma, sessaoId);
     const personagem = dto.personagemSessaoId
       ? await this.prisma.personagemSessao.findFirst({
-          where: { id: dto.personagemSessaoId, sessaoId },
+          where: { id: dto.personagemSessaoId, sessaoId, cenaId: cena.id },
           include: { personagemCampanha: { select: { donoId: true } } },
         })
       : null;
     const npc = dto.npcSessaoId
       ? await this.prisma.npcAmeacaSessao.findFirst({
-          where: { id: dto.npcSessaoId, sessaoId },
+          where: { id: dto.npcSessaoId, sessaoId, cenaId: cena.id },
           select: { controladorUsuarioId: true },
         })
       : null;
+    if (!personagem && !npc)
+      throw new BusinessException(
+        'Participante da defesa nao esta na sessao.',
+        'DOMINIO_DEFESA_PARTICIPANTE_INVALIDO',
+      );
     if (
       !acesso.ehMestre &&
       personagem?.controladorUsuarioId !== usuarioId &&
@@ -15451,19 +15466,55 @@ export class SessaoService {
         : (dto.tipo === 'CESTA_OCA' ? 2 : 3) +
           Math.ceil((dto.grauAntiBarreira ?? 0) / 2) +
           (dto.pesEnraizados ? 2 : 0);
-    await this.prisma.defesaAntiDominioSessao.create({
-      data: {
-        sessaoId,
-        cenaId: cena.id,
-        personagemSessaoId: dto.personagemSessaoId,
-        npcSessaoId: dto.npcSessaoId,
-        tipo: dto.tipo,
-        integridadeMax: integridade,
-        integridadeAtual: integridade,
-        pesEnraizados: dto.pesEnraizados ?? false,
-        variacao: dto.variacao,
-        criadoPorUsuarioId: usuarioId,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      const participante = {
+        personagemSessaoId: dto.personagemSessaoId ?? null,
+        npcSessaoId: dto.npcSessaoId ?? null,
+      };
+      await this.cobrarEaDominioTx(tx, participante, dto.custoEA ?? 0);
+      await this.cobrarPeDominioTx(tx, participante, dto.custoPE ?? 0);
+      await tx.defesaAntiDominioSessao.updateMany({
+        where: {
+          sessaoId,
+          ...participante,
+          tipo: dto.tipo,
+          ativa: true,
+        },
+        data: {
+          ativa: false,
+          encerradaEm: new Date(),
+          motivoEncerramento: 'Substituida por nova defesa anti-Dominio.',
+        },
+      });
+      const defesa = await tx.defesaAntiDominioSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cena.id,
+          ...participante,
+          tipo: dto.tipo,
+          integridadeMax: integridade,
+          integridadeAtual: integridade,
+          pesEnraizados: dto.pesEnraizados ?? false,
+          variacao: dto.variacao,
+          criadoPorUsuarioId: usuarioId,
+        },
+      });
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cena.id,
+          tipoEvento: 'DOMINIO_DEFESA_ATIVADA',
+          solicitanteUsuarioId: usuarioId,
+          clientRequestId: dto.clientRequestId,
+          dados: this.jsonParaPersistencia({
+            defesaId: defesa.id,
+            tipo: dto.tipo,
+            ...participante,
+            custoEA: dto.custoEA ?? 0,
+            custoPE: dto.custoPE ?? 0,
+          }),
+        },
+      });
     });
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
   }
@@ -15552,6 +15603,7 @@ export class SessaoService {
           select: { id: true },
         })
       ).map((x) => x.id);
+    await this.validarAlvosDominioNaCenaTx(tx, sessaoId, cenaId, ps, ns);
     await tx.dominioSessaoAlvo.createMany({
       data: [
         ...ps.map((personagemSessaoId) => ({
@@ -15589,6 +15641,7 @@ export class SessaoService {
           select: { id: true },
         })
       ).map((x) => x.id);
+    await this.validarAlvosDominioNaCenaTx(tx, sessaoId, cenaId, ps, ns);
     await tx.disputaDominioAlvo.createMany({
       data: [
         ...ps.map((personagemSessaoId) => ({
@@ -15598,6 +15651,43 @@ export class SessaoService {
         ...ns.map((npcSessaoId) => ({ disputaDominioSessaoId, npcSessaoId })),
       ],
     });
+  }
+
+  private async validarAlvosDominioNaCenaTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    cenaId: number,
+    personagemSessaoIds: number[],
+    npcSessaoIds: number[],
+  ): Promise<void> {
+    const personagensUnicos = [...new Set(personagemSessaoIds)];
+    const npcsUnicos = [...new Set(npcSessaoIds)];
+    if (
+      personagensUnicos.length !== personagemSessaoIds.length ||
+      npcsUnicos.length !== npcSessaoIds.length
+    )
+      throw new BusinessException(
+        'Um alvo de Dominio foi informado mais de uma vez.',
+        'DOMINIO_PARTICIPANTE_INVALIDO',
+      );
+    const [personagens, npcs] = await Promise.all([
+      tx.personagemSessao.findMany({
+        where: { id: { in: personagensUnicos }, sessaoId, cenaId },
+        select: { id: true },
+      }),
+      tx.npcAmeacaSessao.findMany({
+        where: { id: { in: npcsUnicos }, sessaoId, cenaId },
+        select: { id: true },
+      }),
+    ]);
+    if (
+      personagens.length !== personagensUnicos.length ||
+      npcs.length !== npcsUnicos.length
+    )
+      throw new BusinessException(
+        'Todos os alvos de Dominio devem estar na cena atual.',
+        'DOMINIO_PARTICIPANTE_INVALIDO',
+      );
   }
 
   private async cobrarEaDominioTx(
