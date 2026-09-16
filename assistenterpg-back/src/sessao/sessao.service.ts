@@ -1580,6 +1580,7 @@ export class SessaoService {
             nomeVariacao: true,
             custoSustentacaoEA: true,
             custoSustentacaoPE: true,
+            requerConcentracao: true,
             acumulos: true,
             ativadaNaRodada: true,
             ultimaCobrancaRodada: true,
@@ -1670,6 +1671,7 @@ export class SessaoService {
         nomeVariacao: string | null;
         custoSustentacaoEA: number;
         custoSustentacaoPE: number;
+        requerConcentracao: boolean;
         acumulos: number;
         permiteAcumulos: boolean;
         ativadaNaRodada: number;
@@ -1689,6 +1691,7 @@ export class SessaoService {
         nomeVariacao: sustentacao.nomeVariacao,
         custoSustentacaoEA: sustentacao.custoSustentacaoEA,
         custoSustentacaoPE: sustentacao.custoSustentacaoPE,
+        requerConcentracao: sustentacao.requerConcentracao,
         acumulos: sustentacao.acumulos,
         permiteAcumulos: this.sustentacaoPermiteAcumulos(sustentacao),
         ativadaNaRodada: sustentacao.ativadaNaRodada,
@@ -3419,6 +3422,17 @@ export class SessaoService {
             data: valores,
           });
 
+          const danoRecebido = Math.max(0, antes.pvAtual - depois.pvAtual);
+          if (danoRecebido > 0) {
+            await this.processarConcentracaoAoReceberDanoTx(tx, {
+              campanhaId,
+              sessaoId,
+              personagemSessaoId: personagemSessao.id,
+              cenaId: personagemSessao.cenaId,
+              danoRecebido,
+            });
+          }
+
           let condicoesAtivas: CondicaoAtivaSessaoResumo[] | undefined;
           if (
             camposAlterados.includes('pvAtual') ||
@@ -4121,7 +4135,11 @@ export class SessaoService {
                     periciaCodigo: pericia.periciaCodigo,
                     dt: dto.contexto?.dt ?? null,
                   },
-                  ajustesAplicados: [...escalada.ajustes, ...perito.ajustes],
+                  ajustesAplicados: [
+                    ...pericia.ajustesAtivos,
+                    ...escalada.ajustes,
+                    ...perito.ajustes,
+                  ],
                   inspiracaoAutomatica,
                 }),
               },
@@ -5204,6 +5222,7 @@ export class SessaoService {
             let payloads: DiceRollPayloadServidor[];
             let dadosRolagemEspecificos: Record<string, unknown>;
             let contextoRolagem: Record<string, unknown>;
+            let ajustesAtivos: Array<Record<string, unknown>> = [];
 
             if (dto.tipo === 'TESTE_HABILIDADE_PERSONAGEM') {
               const teste = await this.resolverTesteHabilidadeAutoritativoTx(
@@ -5225,11 +5244,22 @@ export class SessaoService {
                 periciasCodigos: teste.periciasCodigos,
               };
             } else {
+              const bonusAtivo =
+                fonte.tecnica.tipo === 'INATA'
+                  ? await this.resolverBonusAtivosPersonagemSessaoTx(
+                      tx,
+                      sessaoId,
+                      dto.personagemSessaoId,
+                      fonte.cenaId,
+                    )
+                  : null;
+              ajustesAtivos = bonusAtivo?.ajustes ?? [];
               const dano = this.resolverDanoHabilidadeAutoritativo(
                 fonte.habilidade,
                 dto.variacaoHabilidadeId,
                 dto.acumulos,
                 ehCritico,
+                bonusAtivo?.bonusDadosEfeito ?? 0,
               );
               payloads = dano.expressoes.map((expressao) =>
                 rolarDadosServidor(expressao),
@@ -5254,6 +5284,7 @@ export class SessaoService {
                 variacaoHabilidadeId: dano.variacaoHabilidadeId,
                 variacaoNome: dano.variacaoNome,
                 acumulosAplicados: dano.acumulosAplicados,
+                bonusDadosEfeitoAtivo: bonusAtivo?.bonusDadosEfeito ?? 0,
                 formulasResolvidas: payloads.map((payload) =>
                   formatarExpressaoDiceServidor(payload),
                 ),
@@ -5319,7 +5350,7 @@ export class SessaoService {
                     tecnicaId: fonte.tecnica.id,
                     habilidadeTecnicaId: fonte.habilidade.id,
                   },
-                  ajustesAplicados: [],
+                  ajustesAplicados: ajustesAtivos,
                   inspiracaoAutomatica: null,
                 }),
               },
@@ -8620,6 +8651,7 @@ export class SessaoService {
                   nomeVariacao: custo.nomeVariacao,
                   custoSustentacaoEA: custo.custoSustentacaoEA ?? 0,
                   custoSustentacaoPE: custo.custoSustentacaoPE ?? 0,
+                  requerConcentracao: this.custoRequerConcentracao(custo),
                   acumulos: Math.max(1, custo.acumulosAplicados || 1),
                   ativadaNaRodada: sessao.rodadaAtual,
                   ultimaCobrancaRodada: sessao.rodadaAtual,
@@ -12227,6 +12259,7 @@ export class SessaoService {
     habilidadeTecnicaId: number,
   ): Promise<{
     personagemCampanhaId: number;
+    cenaId: number | null;
     personagemNome: string;
     donoId: number;
     tecnica: TecnicaSessaoResumo;
@@ -12240,6 +12273,8 @@ export class SessaoService {
         personagemCampanha: { campanhaId },
       },
       select: {
+        id: true,
+        cenaId: true,
         personagemCampanhaId: true,
         personagemCampanha: {
           select: {
@@ -12355,6 +12390,7 @@ export class SessaoService {
       if (habilidade) {
         return {
           personagemCampanhaId: personagem.personagemCampanhaId,
+          cenaId: personagem.cenaId,
           personagemNome: personagem.personagemCampanha.nome,
           donoId: personagem.personagemCampanha.donoId,
           tecnica,
@@ -12472,6 +12508,7 @@ export class SessaoService {
     variacaoHabilidadeId?: number,
     acumulosSolicitados?: number,
     aplicarCritico = false,
+    bonusDadosEfeitoAtivo = 0,
   ): {
     variacaoHabilidadeId: number | null;
     variacaoNome: string | null;
@@ -12559,14 +12596,38 @@ export class SessaoService {
         fonte.erro ?? 'Critico estruturado invalido.',
       );
     }
+    const expressoesComBonus = fonte.expressoes.map((expressao, indice) =>
+      indice === 0
+        ? this.adicionarDadosEfeitoExpressao(expressao, bonusDadosEfeitoAtivo)
+        : expressao,
+    );
     return {
       variacaoHabilidadeId: variacao?.id ?? null,
       variacaoNome: variacao?.nome ?? null,
       acumulosAplicados: acumulosInformados,
-      expressoes: fonte.expressoes,
+      expressoes: expressoesComBonus,
       expressoesBase: fonteBase.expressoes,
       criticoMultiplicador,
     };
+  }
+
+  private adicionarDadosEfeitoExpressao(
+    expressao: DiceExpressionServidor,
+    bonusDadosEfeito: number,
+  ): DiceExpressionServidor {
+    const bonus = Math.max(0, Math.trunc(bonusDadosEfeito));
+    if (bonus === 0) return expressao;
+    if (expressao.termos?.length) {
+      const [primeiro, ...demais] = expressao.termos;
+      return {
+        ...expressao,
+        termos: [
+          { ...primeiro, quantidade: primeiro.quantidade + bonus },
+          ...demais,
+        ],
+      };
+    }
+    return { ...expressao, quantidade: expressao.quantidade + bonus };
   }
 
   private async resolverMacroArmaAutoritativoTx(
@@ -12693,7 +12754,9 @@ export class SessaoService {
     const dadosLogicos =
       pericia.valorAtributo + ajusteAutomaticoDados + ajusteManualNormalizado;
     const quantidadeDados = this.calcularDadosPadraoPericia(dadosLogicos);
-    if (quantidadeDados > LIMITES_DICE_SESSAO.dados) {
+    const quantidadeDadosComBonusAtivos =
+      quantidadeDados + pericia.bonusDadosAtivos;
+    if (quantidadeDadosComBonusAtivos > LIMITES_DICE_SESSAO.dados) {
       throw new SessaoRolagemInvalidaException(
         `A macro excede o limite de ${LIMITES_DICE_SESSAO.dados} dados.`,
       );
@@ -12702,7 +12765,7 @@ export class SessaoService {
       pericia,
       atributoEscolhido,
       dadosLogicos,
-      quantidadeDados,
+      quantidadeDados: quantidadeDadosComBonusAtivos,
       keepMode: dadosLogicos > 0 ? ('HIGHEST' as const) : ('LOWEST' as const),
       ajustesAutomaticos,
       item: {
@@ -12864,6 +12927,8 @@ export class SessaoService {
     valorAtributo: number;
     quantidadeDados: number;
     keepMode: 'HIGHEST' | 'LOWEST';
+    bonusDadosAtivos: number;
+    ajustesAtivos: Array<Record<string, unknown>>;
   }> {
     const periciaCodigo = periciaCodigoRaw.trim().toUpperCase();
     const [personagem, periciaCatalogo] = await Promise.all([
@@ -12874,6 +12939,8 @@ export class SessaoService {
           personagemCampanha: { campanhaId },
         },
         select: {
+          id: true,
+          cenaId: true,
           personagemCampanhaId: true,
           personagemCampanha: {
             select: {
@@ -12973,6 +13040,14 @@ export class SessaoService {
       )
         .get(personagem.personagemCampanhaId)
         ?.get(periciaCodigo) ?? 0;
+    const bonusAtivo = await this.resolverBonusAtivosPersonagemSessaoTx(
+      tx,
+      sessaoId,
+      personagem.id,
+      personagem.cenaId,
+      periciaCodigo,
+      atributoBase,
+    );
     const valorAtributo = this.obterAtributoPersonagemPorBase(
       base,
       atributoBase,
@@ -12980,7 +13055,8 @@ export class SessaoService {
     const bonusTotal =
       (periciaEfetiva?.bonusTreinamento ?? 0) +
       (periciaEfetiva?.bonusOutros ?? 0) +
-      bonusEquipamento;
+      bonusEquipamento +
+      bonusAtivo.bonusPericia;
 
     return {
       personagemCampanhaId: personagem.personagemCampanhaId,
@@ -12992,9 +13068,74 @@ export class SessaoService {
       grauTreinamento: periciaEfetiva?.grauTreinamento ?? 0,
       bonusTotal,
       valorAtributo,
-      quantidadeDados: this.calcularDadosPadraoPericia(valorAtributo),
+      quantidadeDados:
+        this.calcularDadosPadraoPericia(valorAtributo) +
+        bonusAtivo.bonusDadosAtributo,
       keepMode: valorAtributo > 0 ? 'HIGHEST' : 'LOWEST',
+      bonusDadosAtivos: bonusAtivo.bonusDadosAtributo,
+      ajustesAtivos: bonusAtivo.ajustes,
     };
+  }
+
+  private async resolverBonusAtivosPersonagemSessaoTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    personagemSessaoId: number,
+    cenaId: number | null,
+    periciaCodigo?: string,
+    atributoBase?: string,
+  ): Promise<{
+    bonusPericia: number;
+    bonusDadosAtributo: number;
+    bonusDadosEfeito: number;
+    ajustes: Array<Record<string, unknown>>;
+  }> {
+    if (!cenaId) {
+      return {
+        bonusPericia: 0,
+        bonusDadosAtributo: 0,
+        bonusDadosEfeito: 0,
+        ajustes: [],
+      };
+    }
+    const dominios = await tx.dominioSessao.findMany({
+      where: {
+        sessaoId,
+        cenaId,
+        personagemSessaoId,
+        estado: 'ATIVO',
+        incompleto: true,
+      },
+      select: {
+        id: true,
+        nome: true,
+        atributoEpifania: true,
+        bonusDadosEfeito: true,
+      },
+    });
+    const codigo = periciaCodigo?.trim().toUpperCase();
+    const atributo = atributoBase?.trim().toUpperCase();
+    let bonusPericia = 0;
+    let bonusDadosAtributo = 0;
+    let bonusDadosEfeito = 0;
+    const ajustes: Array<Record<string, unknown>> = [];
+    for (const dominio of dominios) {
+      const aplicaPericia = codigo === 'JUJUTSU' || codigo === 'LUTA';
+      const aplicaAtributo = dominio.atributoEpifania === atributo;
+      const dadosEfeito = Math.max(0, dominio.bonusDadosEfeito ?? 0);
+      if (aplicaPericia) bonusPericia += 5;
+      if (aplicaAtributo) bonusDadosAtributo += 1;
+      bonusDadosEfeito += dadosEfeito;
+      ajustes.push({
+        tipo: 'DOMINIO_INCOMPLETO',
+        dominioId: dominio.id,
+        dominioNome: dominio.nome,
+        bonusPericia: aplicaPericia ? 5 : 0,
+        bonusDadosAtributo: aplicaAtributo ? 1 : 0,
+        bonusDadosEfeito: dadosEfeito,
+      });
+    }
+    return { bonusPericia, bonusDadosAtributo, bonusDadosEfeito, ajustes };
   }
 
   private obterAtributoPersonagemPorBase(
@@ -13994,6 +14135,125 @@ export class SessaoService {
             fonteCodigo: condicao.fonteCodigo,
             acumulos: condicao.acumulos,
             motivo: args.motivo,
+          }),
+        },
+      });
+    }
+  }
+
+  private async processarConcentracaoAoReceberDanoTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      campanhaId: number;
+      sessaoId: number;
+      personagemSessaoId: number;
+      cenaId: number | null;
+      danoRecebido: number;
+    },
+  ): Promise<void> {
+    const sustentacoes = await tx.personagemSessaoHabilidadeSustentada.findMany(
+      {
+        where: {
+          sessaoId: args.sessaoId,
+          personagemSessaoId: args.personagemSessaoId,
+          ativa: true,
+          requerConcentracao: true,
+        },
+        select: {
+          id: true,
+          habilidadeTecnicaId: true,
+          variacaoHabilidadeId: true,
+          nomeHabilidade: true,
+          nomeVariacao: true,
+          acumulos: true,
+        },
+      },
+    );
+    if (sustentacoes.length === 0) return;
+
+    const pericia = await this.resolverPericiaAutoritativaTx(
+      tx,
+      args.campanhaId,
+      args.sessaoId,
+      args.personagemSessaoId,
+      'VONTADE',
+    );
+    const dt = 15 + 3 * Math.floor(args.danoRecebido / 10);
+    const payload = rolarDadosServidor({
+      quantidade: pericia.quantidadeDados,
+      faces: 20,
+      modificador: Math.abs(pericia.bonusTotal),
+      operador: pericia.bonusTotal < 0 ? '-' : '+',
+      aplicarModificadorPorDado: false,
+      keepMode: pericia.keepMode,
+      label: `${pericia.personagemNome} · Concentração`.slice(
+        0,
+        LIMITES_DICE_SESSAO.label,
+      ),
+    });
+    const resultado = calcularResultadoDiceServidor(payload);
+    const cenaId =
+      args.cenaId ?? (await this.obterCenaAtualSessaoTx(tx, args.sessaoId)).id;
+    await tx.eventoSessao.create({
+      data: {
+        sessaoId: args.sessaoId,
+        cenaId,
+        personagemAtorId: args.personagemSessaoId,
+        tipoEvento: 'CONCENTRACAO_TESTADA',
+        dados: this.jsonParaPersistencia({
+          danoRecebido: args.danoRecebido,
+          dt,
+          periciaCodigo: 'VONTADE',
+          formulaResolvida: formatarExpressaoDiceServidor(payload),
+          payloads: [payload],
+          resultado: resultado.total,
+          sucesso: resultado.total >= dt,
+          sustentacoesAfetadas: sustentacoes.map((item) => item.id),
+          ajustesAplicados: pericia.ajustesAtivos,
+        }),
+      },
+    });
+    if (resultado.total >= dt) return;
+
+    const motivo = `Concentração perdida após ${args.danoRecebido} de dano (DT ${dt}).`;
+    for (const sustentacao of sustentacoes) {
+      await tx.personagemSessaoHabilidadeSustentada.update({
+        where: { id: sustentacao.id },
+        data: {
+          ativa: false,
+          desativadaEm: new Date(),
+          desativadaPorUsuarioId: null,
+          motivoDesativacao: motivo,
+        },
+      });
+      await this.desativarCondicoesDaSustentacaoTx(tx, {
+        sessaoId: args.sessaoId,
+        cenaId,
+        personagemSessaoId: args.personagemSessaoId,
+        sustentacaoId: sustentacao.id,
+        motivo,
+      });
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId: args.sessaoId,
+          cenaId,
+          personagemAtorId: args.personagemSessaoId,
+          tipoEvento: 'HABILIDADE_SUSTENTADA_ENCERRADA',
+          dados: this.jsonParaPersistencia({
+            sustentacaoId: sustentacao.id,
+            habilidadeTecnicaId: sustentacao.habilidadeTecnicaId,
+            variacaoHabilidadeId: sustentacao.variacaoHabilidadeId,
+            habilidadeNome: sustentacao.nomeHabilidade,
+            variacaoNome: sustentacao.nomeVariacao,
+            acumulos: sustentacao.acumulos,
+            encerradaPorId: null,
+            motivo: null,
+            motivoSistema: motivo,
+            concentracao: {
+              danoRecebido: args.danoRecebido,
+              dt,
+              resultado: resultado.total,
+            },
           }),
         },
       });
@@ -16491,6 +16751,11 @@ export class SessaoService {
       normalizado.includes('SUSTAIN') ||
       normalizado.includes('CONCENTRACAO')
     );
+  }
+
+  private custoRequerConcentracao(custo: CustoHabilidadeResolvido): boolean {
+    const mecanica = this.extrairRegistro(custo.mecanicasSessao);
+    return mecanica.requerConcentracao === true;
   }
 
   private sustentacaoPermiteAcumulos(sustentacao: {

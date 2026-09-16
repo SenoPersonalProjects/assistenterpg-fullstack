@@ -1042,6 +1042,7 @@ export type SustentacaoAtivaSessaoCampanha = {
   nomeVariacao: string | null;
   custoSustentacaoEA: number;
   custoSustentacaoPE: number;
+  requerConcentracao?: boolean;
   acumulos: number;
   permiteAcumulos?: boolean;
   ativadaNaRodada: number;

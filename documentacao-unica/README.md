@@ -52,6 +52,7 @@ Para reduzir ambiguidade e facilitar manutenção, este README permanece como vi
 - smoke autenticado de rolagens autoritativas: [`GUIA-SMOKE-ROLAGENS-AUTORITATIVAS.md`](./GUIA-SMOKE-ROLAGENS-AUTORITATIVAS.md)
 - política de compatibilidade de sessão: [`POLITICA-COMPATIBILIDADE-SESSAO.md`](./POLITICA-COMPATIBILIDADE-SESSAO.md)
 - acompanhamento de Epifania e Domínio Incompleto: [`EPIFANIA-DOMINIO-INCOMPLETO-ACOMPANHAMENTO.md`](./EPIFANIA-DOMINIO-INCOMPLETO-ACOMPANHAMENTO.md)
+- acompanhamento de Concentração e bônus ativos: [`CONCENTRACAO-E-BONUS-ATIVOS-ACOMPANHAMENTO.md`](./CONCENTRACAO-E-BONUS-ATIVOS-ACOMPANHAMENTO.md)
 
 ## 2. Arquitetura
 

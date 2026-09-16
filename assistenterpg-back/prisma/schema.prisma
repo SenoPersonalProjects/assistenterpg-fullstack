@@ -1753,6 +1753,7 @@ model PersonagemSessaoHabilidadeSustentada {
   nomeVariacao           String?
   custoSustentacaoEA     Int       @default(1)
   custoSustentacaoPE     Int       @default(0)
+  requerConcentracao     Boolean   @default(false)
   acumulos               Int       @default(1)
   ativadaNaRodada        Int       @default(1)
   ultimaCobrancaRodada   Int       @default(1)

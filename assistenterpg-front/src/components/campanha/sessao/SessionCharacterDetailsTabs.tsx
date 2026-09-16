@@ -1,45 +1,51 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import type { ReactNode } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { SessionTabs, type SessionTabItem } from '@/components/campanha/sessao/SessionTabs';
-import { SessionTechniqueBlock } from '@/components/campanha/sessao/SessionTechniqueBlock';
-import { SessionCharacterInventoryTab } from '@/components/campanha/sessao/SessionCharacterInventoryTab';
+import { useState } from "react";
+import type { ReactNode } from "react";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import {
+  SessionTabs,
+  type SessionTabItem,
+} from "@/components/campanha/sessao/SessionTabs";
+import { SessionTechniqueBlock } from "@/components/campanha/sessao/SessionTechniqueBlock";
+import { SessionCharacterInventoryTab } from "@/components/campanha/sessao/SessionCharacterInventoryTab";
 import {
   SessionCharacterMacrosTab,
   type SolicitacaoMacroArma,
   type SolicitacaoMacroPersonalizada,
-} from '@/components/campanha/sessao/SessionCharacterMacrosTab';
-import { Icon } from '@/components/ui/Icon';
-import type { CondicaoAtivaSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
-import { textoSeguro } from '@/lib/campanha/sessao-formatters';
+} from "@/components/campanha/sessao/SessionCharacterMacrosTab";
+import { Icon } from "@/components/ui/Icon";
+import type {
+  CondicaoAtivaSessaoCampanha,
+  SessaoCampanhaDetalhe,
+} from "@/lib/types";
+import { textoSeguro } from "@/lib/campanha/sessao-formatters";
 import {
   formatarBuffsAprimoradoAtivos,
   formatarTipoGrauAprimorado,
-} from '@/lib/campanha/sessao-aprimoramentos';
+} from "@/lib/campanha/sessao-aprimoramentos";
 import type {
   AbaDetalheCard,
   PreferenciaMacroArmaSessao,
   PreferenciaMacroPersonalizadaSessao,
-} from '@/lib/campanha/sessao-preferencias';
+} from "@/lib/campanha/sessao-preferencias";
 import type {
   RolagemDanoHabilidadeSessaoPayload,
   RolagemPericiaSessaoPayload,
   RolagemTesteHabilidadeSessaoPayload,
-} from '@/components/campanha/sessao/types';
+} from "@/components/campanha/sessao/types";
 import {
   calcularDadosPericiaPorAtributo,
   resolverValorAtributoBase,
   type AtributoBaseCodigo,
-} from '@/lib/utils/pericias';
+} from "@/lib/utils/pericias";
 import {
   entidadeVinculadaAtivaNestaSessao,
   podeInvocarEntidadeVinculada,
-} from '@/lib/campanha/entidades-vinculadas';
-import { periciaPermiteAtaquePersonagem } from '@/lib/campanha/sessao-rolagem-pericia';
+} from "@/lib/campanha/entidades-vinculadas";
+import { periciaPermiteAtaquePersonagem } from "@/lib/campanha/sessao-rolagem-pericia";
 
 type AprimoradoModalState = {
   habilidadeId: number;
@@ -51,7 +57,7 @@ type AprimoradoModalState = {
 };
 
 type SessionCharacterDetailsTabsProps = {
-  card: SessaoCampanhaDetalhe['cards'][number];
+  card: SessaoCampanhaDetalhe["cards"][number];
   campanhaId: number;
   sessaoId: number;
   iniciativaValor: number | null;
@@ -66,7 +72,7 @@ type SessionCharacterDetailsTabsProps = {
   onAjustarInspiracao?: (delta: number) => void;
   onGastarInspiracao?: (gasto: {
     custo: 1 | 2 | 3;
-    efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO';
+    efeito: "BONUS_5" | "MAXIMIZAR" | "CRITICO";
     label: string;
   }) => void;
   mostrarSomenteSustentadasAtivas: boolean;
@@ -104,7 +110,10 @@ type SessionCharacterDetailsTabsProps = {
   onAbrirEdicaoPersonagem?: () => void;
   onAbrirFichaCompleta?: () => void;
   onInvocarVinculado?: (vinculadoId: number) => void;
-  onEncerrarSustentacao: (personagemSessaoId: number, sustentacaoId: number) => void;
+  onEncerrarSustentacao: (
+    personagemSessaoId: number,
+    sustentacaoId: number,
+  ) => void;
   formatarCustos: (custoEA: number, custoPE: number) => string;
   limitesCategoriaAtivo?: boolean;
   consumirComCalmaAtivo?: boolean;
@@ -119,13 +128,15 @@ type SessionCharacterDetailsTabsProps = {
   }>;
   onConsumirItem?: (payload: {
     itemInventarioCampanhaId: number;
-    modo: 'NORMAL' | 'COM_CALMA' | 'MANUAL';
-    alvoTipo?: 'PERSONAGEM' | 'NPC';
+    modo: "NORMAL" | "COM_CALMA" | "MANUAL";
+    alvoTipo?: "PERSONAGEM" | "NPC";
     alvoId?: number;
     observacao?: string;
   }) => Promise<void>;
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
-  onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
+  onRolarTesteHabilidade: (
+    payload: RolagemTesteHabilidadeSessaoPayload,
+  ) => void;
   onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
   preferenciasMacrosArmas: Record<string, PreferenciaMacroArmaSessao>;
   onAtualizarPreferenciasMacrosArmas: (
@@ -136,17 +147,26 @@ type SessionCharacterDetailsTabsProps = {
         ) => Record<string, PreferenciaMacroArmaSessao>),
   ) => void;
   onRolarMacroArma: (solicitacao: SolicitacaoMacroArma) => Promise<void>;
-  preferenciasMacrosPersonalizadas: Record<string, PreferenciaMacroPersonalizadaSessao>;
+  preferenciasMacrosPersonalizadas: Record<
+    string,
+    PreferenciaMacroPersonalizadaSessao
+  >;
   onAtualizarPreferenciasMacrosPersonalizadas: (
-    atualizacao: Record<string, PreferenciaMacroPersonalizadaSessao> | ((estado: Record<string, PreferenciaMacroPersonalizadaSessao>) => Record<string, PreferenciaMacroPersonalizadaSessao>),
+    atualizacao:
+      | Record<string, PreferenciaMacroPersonalizadaSessao>
+      | ((
+          estado: Record<string, PreferenciaMacroPersonalizadaSessao>,
+        ) => Record<string, PreferenciaMacroPersonalizadaSessao>),
   ) => void;
-  onRolarMacroPersonalizada: (solicitacao: SolicitacaoMacroPersonalizada) => Promise<void>;
+  onRolarMacroPersonalizada: (
+    solicitacao: SolicitacaoMacroPersonalizada,
+  ) => Promise<void>;
   renderPainelCondicoes: (
-    alvoTipo: 'PERSONAGEM' | 'NPC',
+    alvoTipo: "PERSONAGEM" | "NPC",
     alvoId: number,
     nomeAlvo: string,
     condicoesAtivas: CondicaoAtivaSessaoCampanha[],
-    modo?: 'inline' | 'accordion',
+    modo?: "inline" | "accordion",
   ) => ReactNode;
   mostrarAcoesResumo?: boolean;
 };
@@ -162,33 +182,33 @@ function montarChaveSustentacaoAtiva(
   habilidadeTecnicaId: number,
   variacaoHabilidadeId?: number | null,
 ): string {
-  return `${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
+  return `${habilidadeTecnicaId}:${variacaoHabilidadeId ?? "base"}`;
 }
 
 function formatarBonus(valor: number): string {
-  if (!valor) return '--';
+  if (!valor) return "--";
   return valor > 0 ? `+${valor}` : String(valor);
 }
 
 function formatarNumeroSessao(valor?: number | null): string {
-  return typeof valor === 'number' && Number.isFinite(valor)
+  return typeof valor === "number" && Number.isFinite(valor)
     ? String(Math.trunc(valor))
-    : '--';
+    : "--";
 }
 
 function formatarTextoFicha(valor?: string | null): string {
-  const texto = typeof valor === 'string' ? valor.trim() : '';
-  return texto || '--';
+  const texto = typeof valor === "string" ? valor.trim() : "";
+  return texto || "--";
 }
 
 function formatarVersaoHabilidadeClasse(
-  tipo: SessaoCampanhaDetalhe['cards'][number]['habilidadesClasse'][number]['tipo'],
-  versao: SessaoCampanhaDetalhe['cards'][number]['habilidadesClasse'][number]['versoesDisponiveis'][number],
+  tipo: SessaoCampanhaDetalhe["cards"][number]["habilidadesClasse"][number]["tipo"],
+  versao: SessaoCampanhaDetalhe["cards"][number]["habilidadesClasse"][number]["versoesDisponiveis"][number],
 ): string {
-  if (tipo === 'PERITO') {
+  if (tipo === "PERITO") {
     return `${versao.custoPE} PE | +1d${versao.dadoFaces ?? 6}`;
   }
-  if (tipo === 'ATAQUE_ESPECIAL') {
+  if (tipo === "ATAQUE_ESPECIAL") {
     return `${versao.custoPE} PE | +${versao.bonus ?? 0}`;
   }
   return `${versao.custoPE} PE | +${versao.graus ?? 0} grau(s)`;
@@ -196,9 +216,9 @@ function formatarVersaoHabilidadeClasse(
 
 function formatarTipoVinculado(tipo: string): string {
   const labels: Record<string, string> = {
-    SHIKIGAMI: 'Shikigami',
-    CORPO_AMALDICOADO: 'Corpo',
-    MALDICAO_CONTROLADA: 'Maldicao',
+    SHIKIGAMI: "Shikigami",
+    CORPO_AMALDICOADO: "Corpo",
+    MALDICAO_CONTROLADA: "Maldicao",
   };
   return labels[tipo] ?? tipo;
 }
@@ -253,8 +273,10 @@ export function SessionCharacterDetailsTabs({
   renderPainelCondicoes,
   mostrarAcoesResumo = true,
 }: SessionCharacterDetailsTabsProps) {
-  const [mostrarSomentePericiasBonificadas, setMostrarSomentePericiasBonificadas] =
-    useState(false);
+  const [
+    mostrarSomentePericiasBonificadas,
+    setMostrarSomentePericiasBonificadas,
+  ] = useState(false);
   const [aprimoradoModal, setAprimoradoModal] =
     useState<AprimoradoModalState | null>(null);
   const recursos = card.recursos;
@@ -263,7 +285,7 @@ export function SessionCharacterDetailsTabs({
 
   const resumoTecnica = card.tecnicaInata?.nome
     ? textoSeguro(card.tecnicaInata.nome)
-    : 'Sem técnica inata';
+    : "Sem técnica inata";
   const mapaSustentacoes = new Map<string, number>();
   for (const sustentacao of card.sustentacoesAtivas) {
     const chave = montarChaveSustentacaoAtiva(
@@ -276,7 +298,7 @@ export function SessionCharacterDetailsTabs({
     card.tecnicaInata,
     ...card.tecnicasNaoInatas,
   ].filter(Boolean) as Array<
-    NonNullable<SessaoCampanhaDetalhe['cards'][number]['tecnicaInata']>
+    NonNullable<SessaoCampanhaDetalhe["cards"][number]["tecnicaInata"]>
   >;
   let totalHabilidades = 0;
   let totalHabilidadesSustentadas = 0;
@@ -327,28 +349,30 @@ export function SessionCharacterDetailsTabs({
   const totalGrausAprimorado = aprimoradoModal
     ? Object.values(aprimoradoModal.distribuicao).reduce((acc, valor) => {
         const numero = Number(valor);
-        return acc + (Number.isFinite(numero) ? Math.max(0, Math.trunc(numero)) : 0);
+        return (
+          acc + (Number.isFinite(numero) ? Math.max(0, Math.trunc(numero)) : 0)
+        );
       }, 0)
     : 0;
 
   const periciasOrdenadas = [...(card.pericias ?? [])].sort((a, b) =>
-    a.nome.localeCompare(b.nome, 'pt-BR'),
+    a.nome.localeCompare(b.nome, "pt-BR"),
   );
   const periciasFiltradas = mostrarSomentePericiasBonificadas
     ? periciasOrdenadas.filter((pericia) => pericia.bonusTotal > 0)
     : periciasOrdenadas;
   const atributos = card.atributos;
   const listaAtributos = [
-    { codigo: 'AGI', label: 'Agilidade', valor: atributos?.agilidade },
-    { codigo: 'FOR', label: 'Forca', valor: atributos?.forca },
-    { codigo: 'INT', label: 'Intelecto', valor: atributos?.intelecto },
-    { codigo: 'PRE', label: 'Presenca', valor: atributos?.presenca },
-    { codigo: 'VIG', label: 'Vigor', valor: atributos?.vigor },
+    { codigo: "AGI", label: "Agilidade", valor: atributos?.agilidade },
+    { codigo: "FOR", label: "Forca", valor: atributos?.forca },
+    { codigo: "INT", label: "Intelecto", valor: atributos?.intelecto },
+    { codigo: "PRE", label: "Presenca", valor: atributos?.presenca },
+    { codigo: "VIG", label: "Vigor", valor: atributos?.vigor },
   ];
 
   const handleRolarPericia = (
     pericia: (typeof periciasOrdenadas)[number],
-    tipoRolagem: 'PERICIA' | 'ATAQUE' = 'PERICIA',
+    tipoRolagem: "PERICIA" | "ATAQUE" = "PERICIA",
   ) => {
     if (!card.atributos) return;
     const atributoCodigo = pericia.atributoBase as AtributoBaseCodigo;
@@ -356,7 +380,7 @@ export function SessionCharacterDetailsTabs({
       resolverValorAtributoBase(card.atributos, atributoCodigo) ?? 0;
     const { dados, keepMode } = calcularDadosPericiaPorAtributo(valorAtributo);
     onRolarPericia({
-      alvoTipo: 'PERSONAGEM',
+      alvoTipo: "PERSONAGEM",
       tipoRolagem,
       alvoNome: card.nomePersonagem,
       personagemSessaoId: card.personagemSessaoId,
@@ -381,8 +405,8 @@ export function SessionCharacterDetailsTabs({
   };
 
   const abrirModalAprimorado = (
-    habilidade: SessaoCampanhaDetalhe['cards'][number]['habilidadesClasse'][number],
-    versao: SessaoCampanhaDetalhe['cards'][number]['habilidadesClasse'][number]['versoesDisponiveis'][number],
+    habilidade: SessaoCampanhaDetalhe["cards"][number]["habilidadesClasse"][number],
+    versao: SessaoCampanhaDetalhe["cards"][number]["habilidadesClasse"][number]["versoesDisponiveis"][number],
   ) => {
     setAprimoradoModal({
       habilidadeId: habilidade.id,
@@ -414,7 +438,9 @@ export function SessionCharacterDetailsTabs({
       .map((opcao) => {
         const chave = `${opcao.tecnicaId}:${opcao.tipoGrauCodigo}`;
         const valor = Number(aprimoradoModal.distribuicao[chave] ?? 0);
-        const graus = Number.isFinite(valor) ? Math.max(0, Math.trunc(valor)) : 0;
+        const graus = Number.isFinite(valor)
+          ? Math.max(0, Math.trunc(valor))
+          : 0;
         return graus > 0
           ? {
               tecnicaId: opcao.tecnicaId,
@@ -441,45 +467,45 @@ export function SessionCharacterDetailsTabs({
   };
 
   const tabs: SessionTabItem[] = [
-    { id: 'RESUMO', label: 'Resumo', icon: 'chart' },
-    { id: 'FICHA', label: 'Ficha', icon: 'id' },
-    { id: 'ATRIBUTOS', label: 'Atributos', icon: 'strength' },
+    { id: "RESUMO", label: "Resumo", icon: "chart" },
+    { id: "FICHA", label: "Ficha", icon: "id" },
+    { id: "ATRIBUTOS", label: "Atributos", icon: "strength" },
     {
-      id: 'PERICIAS',
-      label: 'Perícias',
-      icon: 'skills',
+      id: "PERICIAS",
+      label: "Perícias",
+      icon: "skills",
       count: periciasOrdenadas.length,
     },
   ];
   if (card.podeEditar) {
-    tabs.push({ id: 'INVENTARIO', label: 'Inventário', icon: 'inventory' });
-    tabs.push({ id: 'MACROS', label: 'Macros', icon: 'dice' });
+    tabs.push({ id: "INVENTARIO", label: "Inventário", icon: "inventory" });
+    tabs.push({ id: "MACROS", label: "Macros", icon: "dice" });
   }
   tabs.push(
     {
-      id: 'TECNICAS',
-      label: 'Habilidades',
-      icon: 'technique',
+      id: "TECNICAS",
+      label: "Habilidades",
+      icon: "technique",
       count: totalHabilidadesAba,
     },
     {
-      id: 'SUSTENTACOES',
-      label: 'Sustentações',
-      icon: 'energy',
+      id: "SUSTENTACOES",
+      label: "Sustentações",
+      icon: "energy",
       count: totalSustentacoesAtivasCard,
     },
     {
-      id: 'CONDICOES',
-      label: 'Condições',
-      icon: 'status',
+      id: "CONDICOES",
+      label: "Condições",
+      icon: "status",
       count: totalCondicoesAtivasCard,
     },
   );
   if (inspiracaoAtiva) {
     tabs.push({
-      id: 'INSPIRACAO',
-      label: 'Inspiração',
-      icon: 'sparkles',
+      id: "INSPIRACAO",
+      label: "Inspiração",
+      icon: "sparkles",
       count: Math.max(0, Math.min(3, pontosInspiracao)),
     });
   }
@@ -493,7 +519,7 @@ export function SessionCharacterDetailsTabs({
         variant="compact"
       />
 
-      {abaDetalheCard === 'RESUMO' ? (
+      {abaDetalheCard === "RESUMO" ? (
         <div className="space-y-2 rounded border border-app-border p-2">
           <p className="text-xs text-app-muted">
             Resumo rápido do personagem na sessão.
@@ -505,7 +531,8 @@ export function SessionCharacterDetailsTabs({
               </p>
               <div className="session-chip-row">
                 <span className="session-chip">
-                  INI {typeof iniciativaValor === 'number' ? iniciativaValor : '--'}
+                  INI{" "}
+                  {typeof iniciativaValor === "number" ? iniciativaValor : "--"}
                 </span>
                 <span className="session-chip">
                   DEF {formatarNumeroSessao(ficha?.defesaTotal)}
@@ -570,13 +597,13 @@ export function SessionCharacterDetailsTabs({
                           {vinculado.nome}
                         </p>
                         <p className="session-text-xxs text-app-muted">
-                          {formatarTipoVinculado(vinculado.tipo)} -{' '}
-                          {ativoNestaSessao ? 'ATIVO' : vinculado.estado} - PV{' '}
+                          {formatarTipoVinculado(vinculado.tipo)} -{" "}
+                          {ativoNestaSessao ? "ATIVO" : vinculado.estado} - PV{" "}
                           {vinculado.pontosVidaAtual}/{vinculado.pontosVidaMax}
                         </p>
                       </div>
                       {card.podeEditar &&
-                      vinculado.estado !== 'ARQUIVADO' &&
+                      vinculado.estado !== "ARQUIVADO" &&
                       onInvocarVinculado ? (
                         <Button
                           type="button"
@@ -585,7 +612,7 @@ export function SessionCharacterDetailsTabs({
                           disabled={!podeInvocar}
                           onClick={() => onInvocarVinculado(vinculado.id)}
                         >
-                          {ativoNestaSessao ? 'Ativo' : 'Invocar'}
+                          {ativoNestaSessao ? "Ativo" : "Invocar"}
                         </Button>
                       ) : null}
                     </div>
@@ -607,7 +634,11 @@ export function SessionCharacterDetailsTabs({
                 </Button>
               ) : null}
               {onAbrirFichaCompleta ? (
-                <Button variant="ghost" size="sm" onClick={onAbrirFichaCompleta}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onAbrirFichaCompleta}
+                >
                   Abrir ficha completa
                 </Button>
               ) : null}
@@ -616,7 +647,7 @@ export function SessionCharacterDetailsTabs({
         </div>
       ) : null}
 
-      {abaDetalheCard === 'FICHA' ? (
+      {abaDetalheCard === "FICHA" ? (
         ficha ? (
           <div className="space-y-3 rounded border border-app-border p-2">
             <p className="text-xs text-app-muted">
@@ -703,7 +734,7 @@ export function SessionCharacterDetailsTabs({
                   {ficha.grausAprimoramento.map((grau) => (
                     <span key={grau.tipoGrauCodigo} className="session-chip">
                       {grau.tipoGrauNome ||
-                        formatarTipoGrauAprimorado(grau.tipoGrauCodigo)}{' '}
+                        formatarTipoGrauAprimorado(grau.tipoGrauCodigo)}{" "}
                       {grau.valor}
                     </span>
                   ))}
@@ -745,17 +776,21 @@ export function SessionCharacterDetailsTabs({
         )
       ) : null}
 
-      {abaDetalheCard === 'ATRIBUTOS' ? (
+      {abaDetalheCard === "ATRIBUTOS" ? (
         atributos ? (
           <div className="session-atributos-grid">
             {listaAtributos.map((atributo) => (
               <div key={atributo.codigo} className="session-atributo-card">
                 <div className="session-atributo-card__meta">
-                  <span className="session-atributo-card__code">{atributo.codigo}</span>
-                  <span className="session-atributo-card__label">{atributo.label}</span>
+                  <span className="session-atributo-card__code">
+                    {atributo.codigo}
+                  </span>
+                  <span className="session-atributo-card__label">
+                    {atributo.label}
+                  </span>
                 </div>
                 <span className="session-atributo-card__value">
-                  {atributo.valor ?? '--'}
+                  {atributo.valor ?? "--"}
                 </span>
               </div>
             ))}
@@ -771,7 +806,7 @@ export function SessionCharacterDetailsTabs({
         )
       ) : null}
 
-      {abaDetalheCard === 'PERICIAS' ? (
+      {abaDetalheCard === "PERICIAS" ? (
         periciasOrdenadas.length === 0 ? (
           <EmptyState
             variant="session"
@@ -787,8 +822,8 @@ export function SessionCharacterDetailsTabs({
                 <p className="session-pericias-header__title">Perícias</p>
                 <p className="session-pericias-header__subtitle">
                   {mostrarSomentePericiasBonificadas
-                    ? 'Exibindo somente perícias com bônus positivo.'
-                    : 'Resumo dos bônus aplicados por treino, equipamento e outros.'}
+                    ? "Exibindo somente perícias com bônus positivo."
+                    : "Resumo dos bônus aplicados por treino, equipamento e outros."}
                 </p>
               </div>
               <div className="session-pericias-header__actions">
@@ -798,7 +833,7 @@ export function SessionCharacterDetailsTabs({
                 <Button
                   size="xs"
                   variant={
-                    mostrarSomentePericiasBonificadas ? 'secondary' : 'ghost'
+                    mostrarSomentePericiasBonificadas ? "secondary" : "ghost"
                   }
                   onClick={() =>
                     setMostrarSomentePericiasBonificadas((estado) => !estado)
@@ -806,8 +841,8 @@ export function SessionCharacterDetailsTabs({
                   disabled={periciasOrdenadas.length === 0}
                 >
                   {mostrarSomentePericiasBonificadas
-                    ? 'Mostrar todas'
-                    : 'Somente com bônus'}
+                    ? "Mostrar todas"
+                    : "Somente com bônus"}
                 </Button>
               </div>
             </div>
@@ -852,13 +887,15 @@ export function SessionCharacterDetailsTabs({
                               >
                                 <Icon name="dice" className="h-3.5 w-3.5" />
                               </Button>
-                              {periciaPermiteAtaquePersonagem(pericia.codigo) ? (
+                              {periciaPermiteAtaquePersonagem(
+                                pericia.codigo,
+                              ) ? (
                                 <Button
                                   size="xs"
                                   variant="ghost"
                                   className="session-pericia-card__roll"
                                   onClick={() =>
-                                    handleRolarPericia(pericia, 'ATAQUE')
+                                    handleRolarPericia(pericia, "ATAQUE")
                                   }
                                   title={`Rolar ataque com ${pericia.nome}`}
                                   aria-label={`Rolar ataque com ${pericia.nome}`}
@@ -905,13 +942,13 @@ export function SessionCharacterDetailsTabs({
         )
       ) : null}
 
-      {abaDetalheCard === 'INVENTARIO' && card.podeEditar ? (
+      {abaDetalheCard === "INVENTARIO" && card.podeEditar ? (
         <SessionCharacterInventoryTab
           campanhaId={campanhaId}
           personagemCampanhaId={card.personagemCampanhaId}
           personagemSessaoId={card.personagemSessaoId}
           podeEditar={card.podeEditar}
-          ativo={abaDetalheCard === 'INVENTARIO'}
+          ativo={abaDetalheCard === "INVENTARIO"}
           limitesCategoriaAtivo={limitesCategoriaAtivo}
           sessaoEncerrada={sessaoEncerrada}
           consumirComCalmaAtivo={consumirComCalmaAtivo}
@@ -921,23 +958,25 @@ export function SessionCharacterDetailsTabs({
         />
       ) : null}
 
-      {abaDetalheCard === 'MACROS' && card.podeEditar ? (
+      {abaDetalheCard === "MACROS" && card.podeEditar ? (
         <SessionCharacterMacrosTab
           campanhaId={campanhaId}
           sessaoId={sessaoId}
           personagemSessaoId={card.personagemSessaoId}
-          ativo={abaDetalheCard === 'MACROS'}
+          ativo={abaDetalheCard === "MACROS"}
           sessaoEncerrada={sessaoEncerrada}
           preferencias={preferenciasMacrosArmas}
           onAtualizarPreferencias={onAtualizarPreferenciasMacrosArmas}
           onRolarMacro={onRolarMacroArma}
           preferenciasPersonalizadas={preferenciasMacrosPersonalizadas}
-          onAtualizarPreferenciasPersonalizadas={onAtualizarPreferenciasMacrosPersonalizadas}
+          onAtualizarPreferenciasPersonalizadas={
+            onAtualizarPreferenciasMacrosPersonalizadas
+          }
           onRolarMacroPersonalizada={onRolarMacroPersonalizada}
         />
       ) : null}
 
-      {abaDetalheCard === 'INSPIRACAO' && inspiracaoAtiva ? (
+      {abaDetalheCard === "INSPIRACAO" && inspiracaoAtiva ? (
         <div className="session-inspiration-panel">
           <div className="session-inspiration-panel__head">
             <div>
@@ -952,9 +991,17 @@ export function SessionCharacterDetailsTabs({
           </div>
           <div className="session-inspiration-panel__actions">
             {[
-              { custo: 1 as const, efeito: 'BONUS_5' as const, label: '+5' },
-              { custo: 2 as const, efeito: 'MAXIMIZAR' as const, label: 'Maximizar' },
-              { custo: 3 as const, efeito: 'CRITICO' as const, label: 'Crítico' },
+              { custo: 1 as const, efeito: "BONUS_5" as const, label: "+5" },
+              {
+                custo: 2 as const,
+                efeito: "MAXIMIZAR" as const,
+                label: "Maximizar",
+              },
+              {
+                custo: 3 as const,
+                efeito: "CRITICO" as const,
+                label: "Crítico",
+              },
             ].map((gasto) => (
               <Button
                 key={gasto.efeito}
@@ -977,7 +1024,11 @@ export function SessionCharacterDetailsTabs({
               <Button
                 size="xs"
                 variant="ghost"
-                disabled={sessaoEncerrada || atualizandoInspiracao || pontosInspiracao <= 0}
+                disabled={
+                  sessaoEncerrada ||
+                  atualizandoInspiracao ||
+                  pontosInspiracao <= 0
+                }
                 onClick={() => onAjustarInspiracao?.(-1)}
               >
                 -1
@@ -985,7 +1036,11 @@ export function SessionCharacterDetailsTabs({
               <Button
                 size="xs"
                 variant="ghost"
-                disabled={sessaoEncerrada || atualizandoInspiracao || pontosInspiracao >= 3}
+                disabled={
+                  sessaoEncerrada ||
+                  atualizandoInspiracao ||
+                  pontosInspiracao >= 3
+                }
                 onClick={() => onAjustarInspiracao?.(1)}
               >
                 +1
@@ -993,7 +1048,11 @@ export function SessionCharacterDetailsTabs({
               <Button
                 size="xs"
                 variant="ghost"
-                disabled={sessaoEncerrada || atualizandoInspiracao || pontosInspiracao <= 0}
+                disabled={
+                  sessaoEncerrada ||
+                  atualizandoInspiracao ||
+                  pontosInspiracao <= 0
+                }
                 onClick={() => onAjustarInspiracao?.(-pontosInspiracao)}
               >
                 Zerar
@@ -1003,17 +1062,17 @@ export function SessionCharacterDetailsTabs({
         </div>
       ) : null}
 
-      {abaDetalheCard === 'CONDICOES'
+      {abaDetalheCard === "CONDICOES"
         ? renderPainelCondicoes(
-            'PERSONAGEM',
+            "PERSONAGEM",
             card.personagemSessaoId,
             card.nomePersonagem,
             card.condicoesAtivas ?? [],
-            'inline',
+            "inline",
           )
         : null}
 
-      {abaDetalheCard === 'TECNICAS' ? (
+      {abaDetalheCard === "TECNICAS" ? (
         <div className="space-y-2">
           <details className="rounded border border-app-border p-2" open>
             <summary className="cursor-pointer text-xs font-semibold text-app-fg">
@@ -1058,8 +1117,8 @@ export function SessionCharacterDetailsTabs({
                             usando ||
                             semPE ||
                             Boolean(
-                              habilidade.tipo === 'PERITO' &&
-                                habilidade.efeitoPendente,
+                              habilidade.tipo === "PERITO" &&
+                              habilidade.efeitoPendente,
                             );
                           return (
                             <Button
@@ -1068,7 +1127,7 @@ export function SessionCharacterDetailsTabs({
                               variant="secondary"
                               disabled={disabled}
                               onClick={() =>
-                                habilidade.tipo === 'APRIMORADO'
+                                habilidade.tipo === "APRIMORADO"
                                   ? abrirModalAprimorado(habilidade, versao)
                                   : usarHabilidadeClasseSimples(
                                       habilidade.id,
@@ -1077,7 +1136,7 @@ export function SessionCharacterDetailsTabs({
                               }
                             >
                               {usando
-                                ? 'Aplicando...'
+                                ? "Aplicando..."
                                 : formatarVersaoHabilidadeClasse(
                                     habilidade.tipo,
                                     versao,
@@ -1107,12 +1166,12 @@ export function SessionCharacterDetailsTabs({
                       >
                         <span className="font-semibold text-app-fg">
                           {buff.fonte}:
-                        </span>{' '}
+                        </span>{" "}
                         <span>{buff.tecnicaNome}</span>
-                        <span> · {buff.grauLabel}</span>{' '}
+                        <span> · {buff.grauLabel}</span>{" "}
                         <Badge size="sm" color="purple">
                           {buff.bonusLabel}
-                        </Badge>{' '}
+                        </Badge>{" "}
                         <span>· {buff.duracao}</span>
                       </div>
                     ))}
@@ -1149,14 +1208,16 @@ export function SessionCharacterDetailsTabs({
                 size="xs"
                 variant="ghost"
                 onClick={() => {
-                  const proximo = !(tecnicaInataAberta && tecnicasNaoInatasAbertas);
+                  const proximo = !(
+                    tecnicaInataAberta && tecnicasNaoInatasAbertas
+                  );
                   onToggleTecnicaInata(proximo);
                   onToggleTecnicasNaoInatas(proximo);
                 }}
               >
                 {tecnicaInataAberta && tecnicasNaoInatasAbertas
-                  ? 'Recolher tudo'
-                  : 'Expandir tudo'}
+                  ? "Recolher tudo"
+                  : "Expandir tudo"}
               </Button>
             </div>
           </div>
@@ -1178,7 +1239,9 @@ export function SessionCharacterDetailsTabs({
                 <SessionTechniqueBlock
                   card={card}
                   tecnica={card.tecnicaInata}
-                  mostrarSomenteSustentadasAtivas={mostrarSomenteSustentadasAtivas}
+                  mostrarSomenteSustentadasAtivas={
+                    mostrarSomenteSustentadasAtivas
+                  }
                   obterQtdSustentacaoAtiva={obterQtdSustentacaoAtiva}
                   acumulosHabilidade={acumulosHabilidade}
                   onAtualizarAcumulosHabilidade={onAtualizarAcumulosHabilidade}
@@ -1204,26 +1267,30 @@ export function SessionCharacterDetailsTabs({
             }
           >
             <summary className="cursor-pointer text-xs font-semibold text-app-fg">
-              Técnicas não inatas ({card.tecnicasNaoInatas.length} técnica(s) |{' '}
+              Técnicas não inatas ({card.tecnicasNaoInatas.length} técnica(s) |{" "}
               {totalHabilidadesNaoInatas} habilidade(s))
             </summary>
             <div className="mt-2 space-y-2">
               {card.tecnicasNaoInatas.length > 0 ? (
                 card.tecnicasNaoInatas.map((tecnica) => (
-                    <SessionTechniqueBlock
-                      key={`tecnica-${tecnica.id}`}
-                      card={card}
-                      tecnica={tecnica}
-                      mostrarSomenteSustentadasAtivas={mostrarSomenteSustentadasAtivas}
-                      obterQtdSustentacaoAtiva={obterQtdSustentacaoAtiva}
-                      acumulosHabilidade={acumulosHabilidade}
-                      onAtualizarAcumulosHabilidade={onAtualizarAcumulosHabilidade}
-                      sessaoEncerrada={sessaoEncerrada}
-                      acaoHabilidadePendente={acaoHabilidadePendente}
-                      onUsarHabilidade={onUsarHabilidade}
-                      onRolarTesteHabilidade={onRolarTesteHabilidade}
-                      onRolarDanoHabilidade={onRolarDanoHabilidade}
-                    />
+                  <SessionTechniqueBlock
+                    key={`tecnica-${tecnica.id}`}
+                    card={card}
+                    tecnica={tecnica}
+                    mostrarSomenteSustentadasAtivas={
+                      mostrarSomenteSustentadasAtivas
+                    }
+                    obterQtdSustentacaoAtiva={obterQtdSustentacaoAtiva}
+                    acumulosHabilidade={acumulosHabilidade}
+                    onAtualizarAcumulosHabilidade={
+                      onAtualizarAcumulosHabilidade
+                    }
+                    sessaoEncerrada={sessaoEncerrada}
+                    acaoHabilidadePendente={acaoHabilidadePendente}
+                    onUsarHabilidade={onUsarHabilidade}
+                    onRolarTesteHabilidade={onRolarTesteHabilidade}
+                    onRolarDanoHabilidade={onRolarDanoHabilidade}
+                  />
                 ))
               ) : (
                 <p className="session-text-xxs text-app-muted">
@@ -1269,7 +1336,7 @@ export function SessionCharacterDetailsTabs({
         </div>
       ) : null}
 
-      {abaDetalheCard === 'SUSTENTACOES' ? (
+      {abaDetalheCard === "SUSTENTACOES" ? (
         <div className="rounded border border-app-border p-2 space-y-1.5">
           <p className="text-xs font-semibold text-app-fg">
             Sustentacoes ativas ({card.sustentacoesAtivas.length})
@@ -1288,10 +1355,10 @@ export function SessionCharacterDetailsTabs({
                 sustentacao.custoSustentacaoEA + sustentacao.custoSustentacaoPE;
               const custoBadgeColor =
                 custoTotal >= 4 || sustentacao.custoSustentacaoPE > 0
-                  ? 'orange'
+                  ? "orange"
                   : custoTotal >= 2
-                    ? 'yellow'
-                    : 'blue';
+                    ? "yellow"
+                    : "blue";
               return (
                 <div
                   key={`sustentacao-${sustentacao.id}`}
@@ -1302,26 +1369,30 @@ export function SessionCharacterDetailsTabs({
                       <p className="text-xs font-semibold text-app-fg">
                         {sustentacao.nomeHabilidade}
                         {sustentacao.acumulos &&
-                        (sustentacao.acumulos > 1 || sustentacao.permiteAcumulos)
+                        (sustentacao.acumulos > 1 ||
+                          sustentacao.permiteAcumulos)
                           ? ` ${sustentacao.acumulos}`
-                          : ''}
+                          : ""}
                         {sustentacao.nomeVariacao
                           ? ` (${sustentacao.nomeVariacao})`
-                          : ''}
+                          : ""}
                       </p>
                       <p className="session-text-xxs text-app-muted">
                         Ativa desde rodada {sustentacao.ativadaNaRodada}
+                        {sustentacao.requerConcentracao
+                          ? " · requer Concentração"
+                          : ""}
                       </p>
                     </div>
                     <Badge
                       color={custoBadgeColor}
                       size="sm"
                       title={
-                        custoBadgeColor === 'orange'
-                          ? 'Custo alto por rodada'
-                          : custoBadgeColor === 'yellow'
-                            ? 'Custo moderado por rodada'
-                            : 'Custo por rodada'
+                        custoBadgeColor === "orange"
+                          ? "Custo alto por rodada"
+                          : custoBadgeColor === "yellow"
+                            ? "Custo moderado por rodada"
+                            : "Custo por rodada"
                       }
                     >
                       {formatarCustos(
@@ -1348,8 +1419,8 @@ export function SessionCharacterDetailsTabs({
                         }
                       >
                         {acaoHabilidadePendente === chaveEncerrar
-                          ? 'Encerrando...'
-                          : 'Encerrar'}
+                          ? "Encerrando..."
+                          : "Encerrar"}
                       </Button>
                     </div>
                   ) : null}
@@ -1389,7 +1460,7 @@ export function SessionCharacterDetailsTabs({
             <div className="mt-3 max-h-[55vh] space-y-2 overflow-auto pr-1">
               {opcoesAprimoramentoTecnicasCard.map((opcao) => {
                 const chave = `${opcao.tecnicaId}:${opcao.tipoGrauCodigo}`;
-                const valor = aprimoradoModal.distribuicao[chave] ?? '';
+                const valor = aprimoradoModal.distribuicao[chave] ?? "";
                 return (
                   <label
                     key={chave}
@@ -1411,7 +1482,10 @@ export function SessionCharacterDetailsTabs({
                       value={valor}
                       disabled={opcao.limiteTemporarioRestante <= 0}
                       onChange={(event) =>
-                        atualizarDistribuicaoAprimorado(chave, event.target.value)
+                        atualizarDistribuicaoAprimorado(
+                          chave,
+                          event.target.value,
+                        )
                       }
                       className="w-20 rounded border border-app-border bg-app-bg px-2 py-1 text-sm text-app-fg"
                     />
@@ -1425,8 +1499,8 @@ export function SessionCharacterDetailsTabs({
                 size="sm"
                 color={
                   totalGrausAprimorado === aprimoradoModal.grausTotal
-                    ? 'green'
-                    : 'yellow'
+                    ? "green"
+                    : "yellow"
                 }
               >
                 {totalGrausAprimorado}/{aprimoradoModal.grausTotal} graus

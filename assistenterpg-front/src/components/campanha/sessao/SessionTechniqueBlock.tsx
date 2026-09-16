@@ -1,11 +1,11 @@
-﻿'use client';
+﻿"use client";
 
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Icon } from '@/components/ui/Icon';
-import type React from 'react';
-import type { SessaoCampanhaDetalhe } from '@/lib/types';
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Icon } from "@/components/ui/Icon";
+import type React from "react";
+import type { SessaoCampanhaDetalhe } from "@/lib/types";
 import {
   normalizarDadosDano,
   normalizarEscalonamentoDano,
@@ -14,18 +14,18 @@ import {
   formatarCustos,
   resolverCustoExibicaoSessao as resolverCustoExibicao,
   resolverTesteHabilidade,
-} from '@/lib/campanha/sessao-habilidades';
-import { textoSeguro } from '@/lib/campanha/sessao-formatters';
-import { TIPO_EXECUCAO_LABELS, TipoExecucao } from '@/lib/types/homebrew-enums';
+} from "@/lib/campanha/sessao-habilidades";
+import { textoSeguro } from "@/lib/campanha/sessao-formatters";
+import { TIPO_EXECUCAO_LABELS, TipoExecucao } from "@/lib/types/homebrew-enums";
 import type {
   HabilidadeRollContext,
   RolagemDanoHabilidadeSessaoPayload,
   RolagemTesteHabilidadeSessaoPayload,
-} from '@/components/campanha/sessao/types';
+} from "@/components/campanha/sessao/types";
 
 type SessionTechniqueBlockProps = {
-  card: SessaoCampanhaDetalhe['cards'][number];
-  tecnica: NonNullable<SessaoCampanhaDetalhe['cards'][number]['tecnicaInata']>;
+  card: SessaoCampanhaDetalhe["cards"][number];
+  tecnica: NonNullable<SessaoCampanhaDetalhe["cards"][number]["tecnicaInata"]>;
   mostrarSomenteSustentadasAtivas: boolean;
   obterQtdSustentacaoAtiva: (
     habilidadeTecnicaId: number,
@@ -44,7 +44,9 @@ type SessionTechniqueBlockProps = {
     condicaoSessaoId?: number,
     ignorarSobrecarga?: boolean,
   ) => void;
-  onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
+  onRolarTesteHabilidade: (
+    payload: RolagemTesteHabilidadeSessaoPayload,
+  ) => void;
   onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
 };
 
@@ -53,7 +55,7 @@ function montarChaveUsoHabilidade(
   habilidadeTecnicaId: number,
   variacaoHabilidadeId?: number,
 ): string {
-  return `usar:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
+  return `usar:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? "base"}`;
 }
 
 function montarChaveAcumuloHabilidade(
@@ -61,7 +63,7 @@ function montarChaveAcumuloHabilidade(
   habilidadeTecnicaId: number,
   variacaoHabilidadeId?: number,
 ): string {
-  return `acumulo:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
+  return `acumulo:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? "base"}`;
 }
 
 function montarChaveGastoPEHabilidade(
@@ -69,22 +71,31 @@ function montarChaveGastoPEHabilidade(
   habilidadeTecnicaId: number,
   variacaoHabilidadeId?: number,
 ): string {
-  return `gasto-pe:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
+  return `gasto-pe:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? "base"}`;
 }
 
 function ehConversaoPeEmEa(mecanicasSessao: unknown): boolean {
   return (
-    typeof mecanicasSessao === 'object' &&
+    typeof mecanicasSessao === "object" &&
     mecanicasSessao !== null &&
-    (mecanicasSessao as { tipo?: unknown }).tipo === 'CONVERTER_PE_EM_EA'
+    (mecanicasSessao as { tipo?: unknown }).tipo === "CONVERTER_PE_EM_EA"
   );
 }
 
 function ehRecuperacaoNeural(mecanicasSessao: unknown): boolean {
   return (
-    typeof mecanicasSessao === 'object' &&
+    typeof mecanicasSessao === "object" &&
     mecanicasSessao !== null &&
-    (mecanicasSessao as { tipo?: unknown }).tipo === 'RECUPERACAO_NEURAL'
+    (mecanicasSessao as { tipo?: unknown }).tipo === "RECUPERACAO_NEURAL"
+  );
+}
+
+function requerConcentracao(mecanicasSessao: unknown): boolean {
+  return (
+    typeof mecanicasSessao === "object" &&
+    mecanicasSessao !== null &&
+    (mecanicasSessao as { requerConcentracao?: unknown }).requerConcentracao ===
+      true
   );
 }
 
@@ -93,7 +104,7 @@ function montarChaveCondicaoHabilidade(
   habilidadeTecnicaId: number,
   variacaoHabilidadeId?: number,
 ): string {
-  return `condicao:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
+  return `condicao:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? "base"}`;
 }
 
 function parseAcumulos(
@@ -124,15 +135,15 @@ function montarMetadadosHabilidade({
 }): MetaItem[] {
   const itens: MetaItem[] = [];
   if (execucao)
-    itens.push({ label: 'Execucao', value: formatExecucao(execucao) });
-  if (alcance) itens.push({ label: 'Alcance', value: textoSeguro(alcance) });
-  if (alvo) itens.push({ label: 'Alvo', value: textoSeguro(alvo) });
-  if (duracao) itens.push({ label: 'Duração', value: textoSeguro(duracao) });
+    itens.push({ label: "Execucao", value: formatExecucao(execucao) });
+  if (alcance) itens.push({ label: "Alcance", value: textoSeguro(alcance) });
+  if (alvo) itens.push({ label: "Alvo", value: textoSeguro(alvo) });
+  if (duracao) itens.push({ label: "Duração", value: textoSeguro(duracao) });
   return itens;
 }
 
 function formatExecucao(value: string | null | undefined): string {
-  if (!value) return '';
+  if (!value) return "";
   const key = value as TipoExecucao;
   const label = TIPO_EXECUCAO_LABELS[key] ?? value;
   return textoSeguro(label);
@@ -142,34 +153,50 @@ function renderCustoBadges({
   prefix,
   custoEA,
   custoPE,
-  color = 'gray',
-  variant = 'soft',
+  color = "gray",
+  variant = "soft",
 }: {
   prefix?: string;
   custoEA: number;
   custoPE: number;
-  color?: 'gray' | 'green' | 'red' | 'blue' | 'yellow' | 'purple' | 'orange' | 'cyan';
-  variant?: 'soft' | 'outline' | 'solid';
+  color?:
+    "gray" | "green" | "red" | "blue" | "yellow" | "purple" | "orange" | "cyan";
+  variant?: "soft" | "outline" | "solid";
 }) {
   const badges: React.ReactNode[] = [];
   if (custoEA > 0) {
     badges.push(
-      <Badge key={`${prefix ?? ''}-ea`} size="sm" color={color} variant={variant}>
-        {prefix ? `${prefix} ` : ''}EA {custoEA}
+      <Badge
+        key={`${prefix ?? ""}-ea`}
+        size="sm"
+        color={color}
+        variant={variant}
+      >
+        {prefix ? `${prefix} ` : ""}EA {custoEA}
       </Badge>,
     );
   }
   if (custoPE > 0) {
     badges.push(
-      <Badge key={`${prefix ?? ''}-pe`} size="sm" color={color} variant={variant}>
-        {prefix ? `${prefix} ` : ''}PE {custoPE}
+      <Badge
+        key={`${prefix ?? ""}-pe`}
+        size="sm"
+        color={color}
+        variant={variant}
+      >
+        {prefix ? `${prefix} ` : ""}PE {custoPE}
       </Badge>,
     );
   }
   if (badges.length === 0) {
     badges.push(
-      <Badge key={`${prefix ?? ''}-zero`} size="sm" color="gray" variant={variant}>
-        {prefix ? `${prefix} ` : ''}Sem custo
+      <Badge
+        key={`${prefix ?? ""}-zero`}
+        size="sm"
+        color="gray"
+        variant={variant}
+      >
+        {prefix ? `${prefix} ` : ""}Sem custo
       </Badge>,
     );
   }
@@ -267,7 +294,8 @@ export function SessionTechniqueBlock({
     ? tecnica.habilidades.filter((habilidade) => {
         const baseAtiva = obterQtdSustentacaoAtiva(habilidade.id) > 0;
         const variacaoAtiva = habilidade.variacoes.some(
-          (variacao) => obterQtdSustentacaoAtiva(habilidade.id, variacao.id) > 0,
+          (variacao) =>
+            obterQtdSustentacaoAtiva(habilidade.id, variacao.id) > 0,
         );
         return baseAtiva || variacaoAtiva;
       })
@@ -306,8 +334,8 @@ export function SessionTechniqueBlock({
           title="Sem habilidades visíveis"
           description={
             mostrarSomenteSustentadasAtivas
-              ? 'Nenhuma habilidade desta técnica esta atualmente sustentada.'
-              : 'Nenhuma habilidade desta técnica esta liberada pelos graus atuais.'
+              ? "Nenhuma habilidade desta técnica esta atualmente sustentada."
+              : "Nenhuma habilidade desta técnica esta liberada pelos graus atuais."
           }
         />
       ) : (
@@ -340,9 +368,11 @@ export function SessionTechniqueBlock({
               : 0;
             const acumulosBaseExtras = Math.max(0, acumulosBase - 1);
             const custoBaseTotalEA =
-              custoBase.custoEA + custoBase.escalonamentoCustoEA * acumulosBaseExtras;
+              custoBase.custoEA +
+              custoBase.escalonamentoCustoEA * acumulosBaseExtras;
             const custoBaseTotalPE =
-              custoBase.custoPE + custoBase.escalonamentoCustoPE * acumulosBaseExtras;
+              custoBase.custoPE +
+              custoBase.escalonamentoCustoPE * acumulosBaseExtras;
             const custoBaseTotalEfetivo = aplicarDescontoRitualPredileto(
               custoBaseTotalEA,
               custoBaseTotalPE,
@@ -374,18 +404,18 @@ export function SessionTechniqueBlock({
             );
             const esgotamentosAtivos = (card.condicoesAtivas ?? []).filter(
               (condicao) =>
-                condicao.nome === 'Esgotamento da Técnica' ||
-                condicao.nome === 'Esgotamento de Domínio',
+                condicao.nome === "Esgotamento da Técnica" ||
+                condicao.nome === "Esgotamento de Domínio",
             );
             const condicaoRecuperacaoNeuralId = Math.trunc(
               Number(acumulosHabilidade[chaveCondicaoBase]) || 0,
             );
             const chaveIgnorarSobrecargaBase = `ignorar-sobrecarga:${chaveCondicaoBase}`;
             const possuiToleranciaNeural = card.outrasHabilidades.some(
-              (outraHabilidade) => outraHabilidade.nome === 'Tolerância Neural',
+              (outraHabilidade) => outraHabilidade.nome === "Tolerância Neural",
             );
             const ignorarSobrecargaBase =
-              acumulosHabilidade[chaveIgnorarSobrecargaBase] === '1';
+              acumulosHabilidade[chaveIgnorarSobrecargaBase] === "1";
             const gastoPEBase = Math.max(
               2,
               Math.trunc(Number(acumulosHabilidade[chaveGastoPEBase]) || 2),
@@ -400,7 +430,9 @@ export function SessionTechniqueBlock({
               habilidade.escalonamentoDano,
             );
             const danoFlatBase =
-              typeof habilidade.danoFlat === 'number' ? habilidade.danoFlat : null;
+              typeof habilidade.danoFlat === "number"
+                ? habilidade.danoFlat
+                : null;
             const danoBaseDisponivel =
               dadosDanoBase.length > 0 || (danoFlatBase ?? 0) > 0;
             const acumulosBaseAplicados = custoBase.escalonavel
@@ -424,7 +456,9 @@ export function SessionTechniqueBlock({
                   }
                 : null,
             };
-            const qtdSustentacaoBaseAtiva = obterQtdSustentacaoAtiva(habilidade.id);
+            const qtdSustentacaoBaseAtiva = obterQtdSustentacaoAtiva(
+              habilidade.id,
+            );
             const variacoesVisiveis = mostrarSomenteSustentadasAtivas
               ? habilidade.variacoes.filter(
                   (variacao) =>
@@ -445,6 +479,12 @@ export function SessionTechniqueBlock({
               alvo: habilidade.alvo,
               duracao: custoBase.duracao ?? habilidade.duracao ?? null,
             });
+            if (requerConcentracao(custoBase.mecanicasSessao)) {
+              metaBase.push({
+                label: "Concentração",
+                value: "Teste de Vontade ao sofrer dano",
+              });
+            }
 
             return (
               <details
@@ -462,23 +502,31 @@ export function SessionTechniqueBlock({
                         {renderCustoBadges({
                           custoEA: custoBaseEfetivo.custoEA,
                           custoPE: custoBaseEfetivo.custoPE,
-                          color: 'blue',
-                          variant: 'soft',
+                          color: "blue",
+                          variant: "soft",
                         })}
                         {custoBase.sustentada
                           ? renderCustoBadges({
-                              prefix: 'Sust.',
+                              prefix: "Sust.",
                               custoEA: custoBaseSustentacaoEA,
                               custoPE: custoBaseSustentacaoPE,
-                              color: 'cyan',
-                              variant: 'outline',
+                              color: "cyan",
+                              variant: "outline",
                             })
                           : null}
                         {descontosRitualPredileto > 0 &&
                         (custoBase.custoEA > 0 || custoBase.custoPE > 0) ? (
                           <span className="text-[10px] text-app-muted">
-                            Ritual Predileto: {formatarCustos(custoBase.custoEA, custoBase.custoPE)} →{' '}
-                            {formatarCustos(custoBaseEfetivo.custoEA, custoBaseEfetivo.custoPE)}
+                            Ritual Predileto:{" "}
+                            {formatarCustos(
+                              custoBase.custoEA,
+                              custoBase.custoPE,
+                            )}{" "}
+                            →{" "}
+                            {formatarCustos(
+                              custoBaseEfetivo.custoEA,
+                              custoBaseEfetivo.custoPE,
+                            )}
                           </span>
                         ) : null}
                       </div>
@@ -535,7 +583,10 @@ export function SessionTechniqueBlock({
                   ) : null}
                   {conversaoInstantaneaBase ? (
                     <div className="rounded border border-app-border bg-app-bg/80 p-2 space-y-1">
-                      <label className="text-xs font-semibold text-app-fg" htmlFor={chaveGastoPEBase}>
+                      <label
+                        className="text-xs font-semibold text-app-fg"
+                        htmlFor={chaveGastoPEBase}
+                      >
                         PE para converter (valor par)
                       </label>
                       <div className="flex items-center gap-2">
@@ -549,26 +600,43 @@ export function SessionTechniqueBlock({
                           onChange={(event) =>
                             onAtualizarAcumulosHabilidade(
                               chaveGastoPEBase,
-                              String(Math.max(2, Math.trunc(Number(event.target.value) || 2))),
+                              String(
+                                Math.max(
+                                  2,
+                                  Math.trunc(Number(event.target.value) || 2),
+                                ),
+                              ),
                             )
                           }
                           className="h-8 w-20 rounded border border-app-border bg-app-surface px-2 text-center text-xs text-app-fg"
                         />
-                        <span className="text-xs text-app-muted">Recebe {Math.floor(gastoPEBase / 2)} EA.</span>
+                        <span className="text-xs text-app-muted">
+                          Recebe {Math.floor(gastoPEBase / 2)} EA.
+                        </span>
                       </div>
                     </div>
                   ) : null}
                   {recuperacaoNeuralBase ? (
                     <div className="rounded border border-app-border bg-app-bg/80 p-2 space-y-1">
-                      <label className="text-xs font-semibold text-app-fg" htmlFor={chaveCondicaoBase}>
+                      <label
+                        className="text-xs font-semibold text-app-fg"
+                        htmlFor={chaveCondicaoBase}
+                      >
                         Esgotamento a remover
                       </label>
                       <select
                         id={chaveCondicaoBase}
-                        value={condicaoRecuperacaoNeuralId || ''}
-                        disabled={!card.podeEditar || sessaoEncerrada || esgotamentosAtivos.length === 0}
+                        value={condicaoRecuperacaoNeuralId || ""}
+                        disabled={
+                          !card.podeEditar ||
+                          sessaoEncerrada ||
+                          esgotamentosAtivos.length === 0
+                        }
                         onChange={(event) =>
-                          onAtualizarAcumulosHabilidade(chaveCondicaoBase, event.target.value)
+                          onAtualizarAcumulosHabilidade(
+                            chaveCondicaoBase,
+                            event.target.value,
+                          )
                         }
                         className="h-8 w-full rounded border border-app-border bg-app-surface px-2 text-xs text-app-fg"
                       >
@@ -591,16 +659,18 @@ export function SessionTechniqueBlock({
                             onChange={(event) =>
                               onAtualizarAcumulosHabilidade(
                                 chaveIgnorarSobrecargaBase,
-                                event.target.checked ? '1' : '',
+                                event.target.checked ? "1" : "",
                               )
                             }
                           />
-                          Usar Tolerância Neural para ignorar esta Sobrecarga (1 vez por cena).
+                          Usar Tolerância Neural para ignorar esta Sobrecarga (1
+                          vez por cena).
                         </label>
                       ) : null}
                     </div>
                   ) : null}
-                  {card.podeEditar && (testesBaseResolvidos || danoBaseDisponivel) ? (
+                  {card.podeEditar &&
+                  (testesBaseResolvidos || danoBaseDisponivel) ? (
                     <div className="flex flex-wrap items-center gap-1.5">
                       {testesBaseResolvidos ? (
                         <Button
@@ -608,9 +678,10 @@ export function SessionTechniqueBlock({
                           variant="ghost"
                           onClick={() =>
                             onRolarTesteHabilidade({
-                              alvoTipo: 'PERSONAGEM',
+                              alvoTipo: "PERSONAGEM",
                               alvoNome: card.nomePersonagem,
-                              periciaNome: testesBaseResolvidos.periciaNomeExibida,
+                              periciaNome:
+                                testesBaseResolvidos.periciaNomeExibida,
                               atributoBase: testesBaseResolvidos.atributoBase,
                               dados: testesBaseResolvidos.dados,
                               bonus: testesBaseResolvidos.bonus,
@@ -631,7 +702,7 @@ export function SessionTechniqueBlock({
                           variant="ghost"
                           onClick={() =>
                             onRolarDanoHabilidade({
-                              alvoTipo: 'PERSONAGEM',
+                              alvoTipo: "PERSONAGEM",
                               alvoNome: card.nomePersonagem,
                               habilidade: habilidadeContextBase,
                             })
@@ -648,11 +719,11 @@ export function SessionTechniqueBlock({
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-app-border/60 pt-2">
                     <div className="flex flex-wrap items-center gap-1.5">
                       {renderCustoBadges({
-                        prefix: 'Total',
+                        prefix: "Total",
                         custoEA: custoBaseTotalEfetivo.custoEA,
                         custoPE: custoBaseTotalEfetivo.custoPE,
-                        color: 'orange',
-                        variant: 'solid',
+                        color: "orange",
+                        variant: "solid",
                       })}
                     </div>
                     {card.podeEditar ? (
@@ -677,12 +748,13 @@ export function SessionTechniqueBlock({
                         disabled={
                           sessaoEncerrada ||
                           acaoHabilidadePendente === chaveBase ||
-                          (recuperacaoNeuralBase && !condicaoRecuperacaoNeuralId)
+                          (recuperacaoNeuralBase &&
+                            !condicaoRecuperacaoNeuralId)
                         }
                       >
                         {acaoHabilidadePendente === chaveBase
-                          ? 'Aplicando...'
-                          : 'Usar base'}
+                          ? "Aplicando..."
+                          : "Usar base"}
                       </Button>
                     ) : null}
                   </div>
@@ -694,11 +766,12 @@ export function SessionTechniqueBlock({
                           habilidade,
                           variacao,
                         );
-                        const custoVariacaoEfetivo = aplicarDescontoRitualPredileto(
-                          custoVariacao.custoEA,
-                          custoVariacao.custoPE,
-                          descontosRitualPredileto,
-                        );
+                        const custoVariacaoEfetivo =
+                          aplicarDescontoRitualPredileto(
+                            custoVariacao.custoEA,
+                            custoVariacao.custoPE,
+                            descontosRitualPredileto,
+                          );
                         const execucaoVariacao =
                           variacao.execucao ?? habilidade.execucao;
                         const alcanceVariacao =
@@ -706,11 +779,12 @@ export function SessionTechniqueBlock({
                         const alvoVariacao = variacao.alvo ?? habilidade.alvo;
                         const duracaoVariacao =
                           variacao.duracao ?? custoVariacao.duracao;
-                        const chaveAcumuloVariacao = montarChaveAcumuloHabilidade(
-                          card.personagemSessaoId,
-                          habilidade.id,
-                          variacao.id,
-                        );
+                        const chaveAcumuloVariacao =
+                          montarChaveAcumuloHabilidade(
+                            card.personagemSessaoId,
+                            habilidade.id,
+                            variacao.id,
+                          );
                         const maxAcumulosVariacao = Math.max(
                           1,
                           Math.min(custoVariacao.acumulosMaximos, 5),
@@ -722,18 +796,24 @@ export function SessionTechniqueBlock({
                               1,
                             )
                           : 0;
-                        const acumulosVariacaoExtras = Math.max(0, acumulosVariacao - 1);
+                        const acumulosVariacaoExtras = Math.max(
+                          0,
+                          acumulosVariacao - 1,
+                        );
                         const custoVariacaoTotalEA =
                           custoVariacao.custoEA +
-                          custoVariacao.escalonamentoCustoEA * acumulosVariacaoExtras;
+                          custoVariacao.escalonamentoCustoEA *
+                            acumulosVariacaoExtras;
                         const custoVariacaoTotalPE =
                           custoVariacao.custoPE +
-                          custoVariacao.escalonamentoCustoPE * acumulosVariacaoExtras;
-                        const custoVariacaoTotalEfetivo = aplicarDescontoRitualPredileto(
-                          custoVariacaoTotalEA,
-                          custoVariacaoTotalPE,
-                          descontosRitualPredileto,
-                        );
+                          custoVariacao.escalonamentoCustoPE *
+                            acumulosVariacaoExtras;
+                        const custoVariacaoTotalEfetivo =
+                          aplicarDescontoRitualPredileto(
+                            custoVariacaoTotalEA,
+                            custoVariacaoTotalPE,
+                            descontosRitualPredileto,
+                          );
                         const custoVariacaoSustentacaoEA =
                           (custoVariacao.custoSustentacaoEA ?? 0) +
                           custoVariacao.escalonamentoCustoSustentacaoEA *
@@ -742,67 +822,77 @@ export function SessionTechniqueBlock({
                           (custoVariacao.custoSustentacaoPE ?? 0) +
                           custoVariacao.escalonamentoCustoSustentacaoPE *
                             acumulosVariacaoExtras;
-                        const testesVariacaoResolvidos = resolverTesteHabilidade(
-                          habilidade.testesExigidos,
-                          card.pericias ?? [],
-                          card.atributos,
-                        );
+                        const testesVariacaoResolvidos =
+                          resolverTesteHabilidade(
+                            habilidade.testesExigidos,
+                            card.pericias ?? [],
+                            card.atributos,
+                          );
                         const dadosDanoVariacao = normalizarDadosDano(
                           variacao.dadosDano ?? habilidade.dadosDano,
                         );
-                        const escalonamentoDanoVariacao = normalizarEscalonamentoDano(
-                          variacao.escalonamentoDano ?? habilidade.escalonamentoDano,
-                        );
+                        const escalonamentoDanoVariacao =
+                          normalizarEscalonamentoDano(
+                            variacao.escalonamentoDano ??
+                              habilidade.escalonamentoDano,
+                          );
                         const danoFlatVariacao =
-                          typeof variacao.danoFlat === 'number'
+                          typeof variacao.danoFlat === "number"
                             ? variacao.danoFlat
                             : habilidade.danoFlat;
                         const danoVariacaoDisponivel =
                           dadosDanoVariacao.length > 0 ||
                           (danoFlatVariacao ?? 0) > 0;
-                        const acumulosVariacaoAplicados = custoVariacao.escalonavel
-                          ? Math.max(1, acumulosVariacao)
-                          : 1;
-                        const habilidadeContextVariacao: HabilidadeRollContext = {
-                          personagemSessaoId: card.personagemSessaoId,
-                          habilidadeTecnicaId: habilidade.id,
-                          variacaoHabilidadeId: variacao.id,
-                          habilidadeNome: habilidade.nome,
-                          variacaoNome: variacao.nome,
-                          criticoValor:
-                            variacao.criticoValor ?? habilidade.criticoValor ?? null,
-                          criticoMultiplicador:
-                            variacao.criticoMultiplicador ??
-                            habilidade.criticoMultiplicador ??
-                            null,
-                          dano: danoVariacaoDisponivel
-                            ? {
-                                dadosDano: dadosDanoVariacao,
-                                danoFlat: danoFlatVariacao,
-                                danoFlatTipo:
-                                  variacao.danoFlatTipo ?? habilidade.danoFlatTipo,
-                                escalonamentoDano: escalonamentoDanoVariacao,
-                                acumulos: acumulosVariacaoAplicados,
-                              }
-                            : null,
-                        };
+                        const acumulosVariacaoAplicados =
+                          custoVariacao.escalonavel
+                            ? Math.max(1, acumulosVariacao)
+                            : 1;
+                        const habilidadeContextVariacao: HabilidadeRollContext =
+                          {
+                            personagemSessaoId: card.personagemSessaoId,
+                            habilidadeTecnicaId: habilidade.id,
+                            variacaoHabilidadeId: variacao.id,
+                            habilidadeNome: habilidade.nome,
+                            variacaoNome: variacao.nome,
+                            criticoValor:
+                              variacao.criticoValor ??
+                              habilidade.criticoValor ??
+                              null,
+                            criticoMultiplicador:
+                              variacao.criticoMultiplicador ??
+                              habilidade.criticoMultiplicador ??
+                              null,
+                            dano: danoVariacaoDisponivel
+                              ? {
+                                  dadosDano: dadosDanoVariacao,
+                                  danoFlat: danoFlatVariacao,
+                                  danoFlatTipo:
+                                    variacao.danoFlatTipo ??
+                                    habilidade.danoFlatTipo,
+                                  escalonamentoDano: escalonamentoDanoVariacao,
+                                  acumulos: acumulosVariacaoAplicados,
+                                }
+                              : null,
+                          };
                         const chaveVariacao = montarChaveUsoHabilidade(
                           card.personagemSessaoId,
                           habilidade.id,
                           variacao.id,
                         );
-                        const chaveGastoPEVariacao = montarChaveGastoPEHabilidade(
-                          card.personagemSessaoId,
-                          habilidade.id,
-                          variacao.id,
-                        );
+                        const chaveGastoPEVariacao =
+                          montarChaveGastoPEHabilidade(
+                            card.personagemSessaoId,
+                            habilidade.id,
+                            variacao.id,
+                          );
                         const conversaoInstantaneaVariacao = ehConversaoPeEmEa(
                           custoVariacao.mecanicasSessao,
                         );
                         const gastoPEVariacao = Math.max(
                           2,
                           Math.trunc(
-                            Number(acumulosHabilidade[chaveGastoPEVariacao]) || 2,
+                            Number(acumulosHabilidade[chaveGastoPEVariacao]) ||
+                              2,
                           ),
                         );
                         const qtdSustentacaoVariacaoAtiva =
@@ -816,6 +906,12 @@ export function SessionTechniqueBlock({
                           alvo: alvoVariacao,
                           duracao: duracaoVariacao ?? null,
                         });
+                        if (requerConcentracao(custoVariacao.mecanicasSessao)) {
+                          metaVariacao.push({
+                            label: "Concentração",
+                            value: "Teste de Vontade ao sofrer dano",
+                          });
+                        }
 
                         return (
                           <details
@@ -833,30 +929,43 @@ export function SessionTechniqueBlock({
                                     {renderCustoBadges({
                                       custoEA: custoVariacaoEfetivo.custoEA,
                                       custoPE: custoVariacaoEfetivo.custoPE,
-                                      color: 'purple',
-                                      variant: 'soft',
+                                      color: "purple",
+                                      variant: "soft",
                                     })}
                                     {custoVariacao.sustentada
                                       ? renderCustoBadges({
-                                          prefix: 'Sust.',
+                                          prefix: "Sust.",
                                           custoEA: custoVariacaoSustentacaoEA,
                                           custoPE: custoVariacaoSustentacaoPE,
-                                          color: 'cyan',
-                                          variant: 'outline',
+                                          color: "cyan",
+                                          variant: "outline",
                                         })
                                       : null}
                                     {descontosRitualPredileto > 0 &&
-                                    (custoVariacao.custoEA > 0 || custoVariacao.custoPE > 0) ? (
+                                    (custoVariacao.custoEA > 0 ||
+                                      custoVariacao.custoPE > 0) ? (
                                       <span className="text-[10px] text-app-muted">
-                                        Ritual Predileto: {formatarCustos(custoVariacao.custoEA, custoVariacao.custoPE)} →{' '}
-                                        {formatarCustos(custoVariacaoEfetivo.custoEA, custoVariacaoEfetivo.custoPE)}
+                                        Ritual Predileto:{" "}
+                                        {formatarCustos(
+                                          custoVariacao.custoEA,
+                                          custoVariacao.custoPE,
+                                        )}{" "}
+                                        →{" "}
+                                        {formatarCustos(
+                                          custoVariacaoEfetivo.custoEA,
+                                          custoVariacaoEfetivo.custoPE,
+                                        )}
                                       </span>
                                     ) : null}
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   {qtdSustentacaoVariacaoAtiva > 0 ? (
-                                    <Badge size="sm" color="green" variant="solid">
+                                    <Badge
+                                      size="sm"
+                                      color="green"
+                                      variant="solid"
+                                    >
                                       Sustentada x{qtdSustentacaoVariacaoAtiva}
                                     </Badge>
                                   ) : null}
@@ -912,7 +1021,10 @@ export function SessionTechniqueBlock({
                               ) : null}
                               {conversaoInstantaneaVariacao ? (
                                 <div className="rounded border border-app-border bg-app-bg/80 p-2 space-y-1">
-                                  <label className="text-xs font-semibold text-app-fg" htmlFor={chaveGastoPEVariacao}>
+                                  <label
+                                    className="text-xs font-semibold text-app-fg"
+                                    htmlFor={chaveGastoPEVariacao}
+                                  >
                                     PE para converter (valor par)
                                   </label>
                                   <div className="flex items-center gap-2">
@@ -922,21 +1034,34 @@ export function SessionTechniqueBlock({
                                       min={2}
                                       step={2}
                                       value={gastoPEVariacao}
-                                      disabled={!card.podeEditar || sessaoEncerrada}
+                                      disabled={
+                                        !card.podeEditar || sessaoEncerrada
+                                      }
                                       onChange={(event) =>
                                         onAtualizarAcumulosHabilidade(
                                           chaveGastoPEVariacao,
-                                          String(Math.max(2, Math.trunc(Number(event.target.value) || 2))),
+                                          String(
+                                            Math.max(
+                                              2,
+                                              Math.trunc(
+                                                Number(event.target.value) || 2,
+                                              ),
+                                            ),
+                                          ),
                                         )
                                       }
                                       className="h-8 w-20 rounded border border-app-border bg-app-surface px-2 text-center text-xs text-app-fg"
                                     />
-                                    <span className="text-xs text-app-muted">Recebe {Math.floor(gastoPEVariacao / 2)} EA.</span>
+                                    <span className="text-xs text-app-muted">
+                                      Recebe {Math.floor(gastoPEVariacao / 2)}{" "}
+                                      EA.
+                                    </span>
                                   </div>
                                 </div>
                               ) : null}
                               {card.podeEditar &&
-                              (testesVariacaoResolvidos || danoVariacaoDisponivel) ? (
+                              (testesVariacaoResolvidos ||
+                                danoVariacaoDisponivel) ? (
                                 <div className="flex flex-wrap items-center gap-1.5">
                                   {testesVariacaoResolvidos ? (
                                     <Button
@@ -944,7 +1069,7 @@ export function SessionTechniqueBlock({
                                       variant="ghost"
                                       onClick={() =>
                                         onRolarTesteHabilidade({
-                                          alvoTipo: 'PERSONAGEM',
+                                          alvoTipo: "PERSONAGEM",
                                           alvoNome: card.nomePersonagem,
                                           periciaNome:
                                             testesVariacaoResolvidos.periciaNomeExibida,
@@ -952,7 +1077,8 @@ export function SessionTechniqueBlock({
                                             testesVariacaoResolvidos.atributoBase,
                                           dados: testesVariacaoResolvidos.dados,
                                           bonus: testesVariacaoResolvidos.bonus,
-                                          keepMode: testesVariacaoResolvidos.keepMode,
+                                          keepMode:
+                                            testesVariacaoResolvidos.keepMode,
                                           habilidade: habilidadeContextVariacao,
                                         })
                                       }
@@ -969,7 +1095,7 @@ export function SessionTechniqueBlock({
                                       variant="ghost"
                                       onClick={() =>
                                         onRolarDanoHabilidade({
-                                          alvoTipo: 'PERSONAGEM',
+                                          alvoTipo: "PERSONAGEM",
                                           alvoNome: card.nomePersonagem,
                                           habilidade: habilidadeContextVariacao,
                                         })
@@ -977,7 +1103,10 @@ export function SessionTechniqueBlock({
                                       disabled={sessaoEncerrada}
                                       title="Rolar dano/efeito da habilidade"
                                     >
-                                      <Icon name="sparkles" className="h-3 w-3" />
+                                      <Icon
+                                        name="sparkles"
+                                        className="h-3 w-3"
+                                      />
                                       Rolar dano/efeito
                                     </Button>
                                   ) : null}
@@ -986,11 +1115,11 @@ export function SessionTechniqueBlock({
                               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-app-border/60 pt-2">
                                 <div className="flex flex-wrap items-center gap-1.5">
                                   {renderCustoBadges({
-                                    prefix: 'Total',
+                                    prefix: "Total",
                                     custoEA: custoVariacaoTotalEfetivo.custoEA,
                                     custoPE: custoVariacaoTotalEfetivo.custoPE,
-                                    color: 'orange',
-                                    variant: 'solid',
+                                    color: "orange",
+                                    variant: "solid",
                                   })}
                                 </div>
                                 <Button
@@ -1000,11 +1129,11 @@ export function SessionTechniqueBlock({
                                     void onUsarHabilidade(
                                       card.personagemSessaoId,
                                       habilidade.id,
-                                    variacao.id,
-                                    acumulosVariacao,
-                                    conversaoInstantaneaVariacao
-                                      ? gastoPEVariacao
-                                      : undefined,
+                                      variacao.id,
+                                      acumulosVariacao,
+                                      conversaoInstantaneaVariacao
+                                        ? gastoPEVariacao
+                                        : undefined,
                                     )
                                   }
                                   disabled={
@@ -1014,8 +1143,8 @@ export function SessionTechniqueBlock({
                                   }
                                 >
                                   {acaoHabilidadePendente === chaveVariacao
-                                    ? 'Aplicando...'
-                                    : 'Usar variação'}
+                                    ? "Aplicando..."
+                                    : "Usar variação"}
                                 </Button>
                               </div>
                             </div>

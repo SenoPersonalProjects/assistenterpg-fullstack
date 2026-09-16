@@ -323,7 +323,9 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
-        escalonamentoEfeito: { descricaoPorAcumulo: '+1 EA produzido por turno' },
+        escalonamentoEfeito: {
+          descricaoPorAcumulo: '+1 EA produzido por turno',
+        },
         mecanicasSessao: {
           tipo: 'CONDICAO_SUSTENTADA',
           condicaoCodigo: 'PRODUCAO_ACELERADA',
@@ -342,16 +344,21 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
             custoSustentacaoPE: 2,
             escalonamentoCustoSustentacaoPE: 3,
             requisitos: {
-              graus: [{ tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 3 }],
+              graus: [
+                { tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 3 },
+              ],
             },
             escalonaPorGrau: true,
             escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
-            escalonamentoEfeito: { descricaoPorAcumulo: '+2 EA produzidos por turno' },
+            escalonamentoEfeito: {
+              descricaoPorAcumulo: '+2 EA produzidos por turno',
+            },
             mecanicasSessao: {
               tipo: 'CONDICAO_SUSTENTADA',
               condicaoCodigo: 'PRODUCAO_ACELERADA',
               fonteCodigo: 'PRODUCAO_ENERGIA_AMALDICOADA_CONCENTRADA',
               multiplicadorAcumulos: 2,
+              requerConcentracao: true,
             },
             ordem: 10,
           },
@@ -720,8 +727,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         variacoes: [
           {
             nome: 'Cura Sustentada',
-            descricao:
-              'Mantem fluxo de energia reversa para cura recorrente.',
+            descricao: 'Mantem fluxo de energia reversa para cura recorrente.',
             substituiCustos: true,
             execucao: TipoExecucao.ACAO_PADRAO,
             duracao: 'Sustentada (por rodada)',
@@ -735,8 +741,9 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
               dado: 'd8',
               tipo: 'PV',
             },
+            mecanicasSessao: { requerConcentracao: true },
             efeitoAdicional:
-        'Cura 5 + 1d8 PV por rodada enquanto mantiver concentração. Acumulável até o limite do grau; cada acúmulo adicional custa +2 EA e adiciona +1d8 de cura.',
+              'Cura 5 + 1d8 PV por rodada enquanto mantiver concentração. Acumulável até o limite do grau; cada acúmulo adicional custa +2 EA e adiciona +1d8 de cura.',
             ordem: 10,
           },
           {
@@ -785,6 +792,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
               dado: 'd8',
               tipo: 'PV',
             },
+            mecanicasSessao: { requerConcentracao: true },
             efeitoAdicional:
               'Cura 5 + 1d8 PV por rodada no alvo enquanto a sustentacao for mantida. Acumulavel até o limite do grau; cada acúmulo adicional custa +2 EA e adiciona +1d8 de cura.',
             ordem: 30,
@@ -817,7 +825,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         custoEA: 3,
         custoPE: 1,
         efeito:
-        'Concede +2d8 de dano contra maldições. Acumulável até limite de grau (conforme mesa). Sustentação segue regra de revestimentos.',
+          'Concede +2d8 de dano contra maldições. Acumulável até limite de grau (conforme mesa). Sustentação segue regra de revestimentos.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_REVERSA',
         escalonamentoCustoEA: 2,
@@ -831,8 +839,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         variacoes: [
           {
             nome: 'Revestimento Ofensivo Positivo Momentaneo',
-            descricao:
-              'Aplica revestimento positivo em um unico ataque.',
+            descricao: 'Aplica revestimento positivo em um unico ataque.',
             substituiCustos: true,
             execucao: TipoExecucao.AO_ATACAR,
             duracao: 'Instantanea',
@@ -1069,8 +1076,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
 function mapHabilidadeData(
   tecnicaId: number,
   habilidade: SeedHabilidadeTecnica,
-)
-{
+) {
   const custosSustentacao = resolverCustoSustentacaoPadrao(
     habilidade.duracao ?? null,
     habilidade.custoSustentacaoEA,
@@ -1113,8 +1119,7 @@ function mapHabilidadeData(
 function mapVariacaoData(
   habilidadeTecnicaId: number,
   variacao: SeedVariacaoTecnica,
-)
-{
+) {
   const custosSustentacao = resolverCustoSustentacaoPadrao(
     variacao.duracao ?? null,
     variacao.custoSustentacaoEA,
@@ -1269,4 +1274,3 @@ export async function seedTecnicasNaoInatas(prisma: PrismaClient) {
     `OK ${tecnicasNaoInatasSeed.length} técnicas não inatas básicas cadastradas.`,
   );
 }
-
