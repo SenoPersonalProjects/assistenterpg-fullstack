@@ -20,6 +20,12 @@ Status: Em validação
 
 O mestre define quando a situação narrativa permite uma tentativa. A interface atual permite configurar nome, atributo, custos, estrutura e grau de barreira; a escolha de alvos e a descrição avançada seguem o fluxo de Domínios completo. Os bônus universais de Epifania ficam exibidos e auditáveis neste lote, mas sua aplicação automática em toda rolagem/efeito depende da unificação do resolvedor de rolagens.
 
+## Evidências automáticas
+
+- 2026-09-16 — commit `9fa8020` adicionou a neutralização de Acerto Garantido para alvos de uma disputa ativa, com teste de regressão no serviço de sessão.
+- 2026-09-16 — os workflows **Quality Gate** (`35108684993`) e **Error Code Coverage** (`35108684985`) concluíram com sucesso: lint, testes e builds de frontend/backend, Prisma e validação da documentação.
+- 2026-09-16 — TiDB remoto `test`: backup prévio gerado, migration Prisma aplicada sem pendências e seed `compendio` concluído. A validação oficial confirmou 120 tabelas, 111 migrations registradas e o conteúdo esperado do compêndio.
+
 ## Bateria manual pendente
 
 - [ ] Falhar duas vezes e confirmar DT 20 → 19 → 18 na mesma cena.
