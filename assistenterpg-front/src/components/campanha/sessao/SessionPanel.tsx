@@ -1,8 +1,10 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 
 type SessionPanelProps = {
   title: ReactNode;
@@ -13,6 +15,9 @@ type SessionPanelProps = {
   bodyClassName?: string;
   headerClassName?: string;
   stickyHeader?: boolean;
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
+  collapseLabel?: string;
   children?: ReactNode;
 };
 
@@ -25,8 +30,13 @@ export function SessionPanel({
   bodyClassName = '',
   headerClassName = '',
   stickyHeader = true,
+  collapsible = false,
+  defaultCollapsed = false,
+  collapseLabel = 'painel',
   children,
 }: SessionPanelProps) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  const bodyId = useId();
   const toneClasses = {
     main: 'border-t-2 border-t-app-primary/30',
     control: 'border-t-2 border-t-app-secondary/30',
@@ -58,10 +68,32 @@ export function SessionPanel({
               </p>
             ) : null}
           </div>
-          {right ? <div className="shrink-0 flex items-center gap-2">{right}</div> : null}
+          {right || collapsible ? (
+            <div className="shrink-0 flex items-center gap-2">
+              {right}
+              {collapsible ? (
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  className="min-h-[2rem] px-2"
+                  aria-controls={bodyId}
+                  aria-expanded={!collapsed}
+                  aria-label={`${collapsed ? 'Expandir' : 'Recolher'} ${collapseLabel}`}
+                  title={`${collapsed ? 'Expandir' : 'Recolher'} ${collapseLabel}`}
+                  onClick={() => setCollapsed((value) => !value)}
+                >
+                  <Icon
+                    name={collapsed ? 'chevron-down' : 'chevron-up'}
+                    className="h-4 w-4"
+                  />
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
-        {children ? (
-          <div className={`session-panel-body p-4 ${bodyClassName}`}>
+        {children && !collapsed ? (
+          <div id={bodyId} className={`session-panel-body p-4 ${bodyClassName}`}>
             {children}
           </div>
         ) : null}

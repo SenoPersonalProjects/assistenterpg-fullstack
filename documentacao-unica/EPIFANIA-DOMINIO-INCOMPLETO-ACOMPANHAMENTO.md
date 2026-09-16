@@ -12,13 +12,19 @@ Status: Em validação
 - [x] Exibir o estado e abrir o fluxo guiado de Epifania no painel de Domínios do mestre.
 - [x] Permitir que o mestre configure custos, estrutura e grau de barreira antes da rolagem, com validação local e no servidor.
 - [x] Neutralizar Acerto Garantido dos Domínios participantes para os alvos explicitamente incluídos em uma disputa ativa.
-- [ ] Integrar os bônus de atributo, Jujutsu/Luta e dados de efeito ao resolvedor universal de rolagens/efeitos.
+- [x] Integrar os bônus de atributo, Jujutsu/Luta e dados de efeito ao resolvedor universal de rolagens/efeitos de Técnica Inata.
 - [x] Validações automáticas de tipo, compilação, Prisma e documentação registradas.
 - [ ] Bateria manual.
 
 ## Limites deliberados
 
-O mestre define quando a situação narrativa permite uma tentativa. A interface atual permite configurar nome, atributo, custos, estrutura e grau de barreira; a escolha de alvos e a descrição avançada seguem o fluxo de Domínios completo. Os bônus universais de Epifania ficam exibidos e auditáveis neste lote, mas sua aplicação automática em toda rolagem/efeito depende da unificação do resolvedor de rolagens.
+O mestre define quando a situação narrativa permite uma tentativa. A interface atual permite configurar nome, atributo, custos, estrutura e grau de barreira; a escolha de alvos e a descrição avançada seguem o fluxo de Domínios completo. Os bônus universais são calculados pelo servidor enquanto o Domínio Incompleto estiver ativo: `+5` em Jujutsu/Luta, `+1d20` no atributo escolhido e `+1` ou `+2` dados nos efeitos estruturados de dano ou cura da Técnica Inata.
+
+## Pontos ainda parciais da regra 1.4
+
+- [ ] O Refinamento precisa migrar para uma rolagem estruturada para aplicar literalmente os `-2d20` de Domínio Incompleto; o resolvedor atual de disputa ainda usa valores técnicos agregados.
+- [ ] Quando existir uma Expansão completa cadastrada na ficha, a Epifania deve herdar automaticamente seu custo-base. Enquanto esse vínculo não existe, o mestre informa os custos antes da rolagem.
+- [ ] A Epifania manifesta o Domínio diretamente quando obtém sucesso; ainda não há uma janela própria de abertura/interrupção entre a rolagem e a formação para aplicar o caso específico de interrupção antecipada.
 
 ## Evidências automáticas
 

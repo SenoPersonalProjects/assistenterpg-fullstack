@@ -61,6 +61,8 @@ export function SessionRosterControlPanel({
         title="Elenco e controle"
         subtitle="Defina quem opera cada participante nesta sessão."
         tone="control"
+        collapsible
+        collapseLabel="Elenco e controle"
         right={
           <Button
             size="sm"

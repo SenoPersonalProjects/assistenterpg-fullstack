@@ -131,6 +131,8 @@ export function SessionDomainsPanel({
       title="Domínios e barreiras"
       subtitle="Abertura, integridade, disputa e Acerto Garantido auditável."
       tone="control"
+      collapsible
+      collapseLabel="Domínios e barreiras"
     >
       {erro ? <ErrorAlert message={erro} /> : null}
       {ehMestre ? (
