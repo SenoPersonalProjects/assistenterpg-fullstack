@@ -15141,9 +15141,7 @@ export class SessaoService {
         },
       });
       const integridade =
-        dto.tipo === 'FECHADO'
-          ? 4 + Math.max(0, dto.grauBarreira - 2)
-          : null;
+        dto.tipo === 'FECHADO' ? 4 + Math.max(0, dto.grauBarreira - 2) : null;
       const dominio = await tx.dominioSessao.create({
         data: {
           sessaoId,
