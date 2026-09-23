@@ -57,6 +57,14 @@ export function UserMenu() {
                 </Link>
               )}
 
+              {isAdmin && (
+                <Link href="/saude" onClick={() => setOpen(false)}>
+                  <Button variant="secondary" className="w-full justify-start">
+                    Saúde do sistema
+                  </Button>
+                </Link>
+              )}
+
               <div className="flex gap-2 items-center">
                 <Badge color="blue">Beta</Badge>
                 <span className="text-xs text-app-muted">Assistente RPG</span>

@@ -28,6 +28,12 @@ const ACOES_DOMINIO = [
 ] as const;
 const TIPOS_DEFESA = ['CESTA_OCA', 'DOMINIO_SIMPLES', 'AMPLIFICACAO'] as const;
 const ATRIBUTOS_EPIFANIA = ['FOR', 'AGI', 'VIG', 'INT', 'PRE'] as const;
+const ESCALAS_BARREIRA_NARRATIVA = [
+  'PEQUENA',
+  'MEDIA',
+  'GRANDE',
+  'MASSIVA',
+] as const;
 
 export class TentarEpifaniaDominioSessaoDto {
   @IsUUID('4')
@@ -262,4 +268,58 @@ export class CriarDefesaAntiDominioSessaoDto {
 export class DormirInterludioSessaoDto {
   @IsUUID('4')
   clientRequestId!: string;
+}
+
+export class CriarBarreiraNarrativaSessaoDto {
+  @IsUUID('4')
+  clientRequestId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  nome!: string;
+
+  @IsOptional()
+  @IsString()
+  descricao?: string;
+
+  @IsIn(ESCALAS_BARREIRA_NARRATIVA)
+  escala!: (typeof ESCALAS_BARREIRA_NARRATIVA)[number];
+
+  @IsInt()
+  @Min(1)
+  @Max(20)
+  pontosComplexidade!: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(12)
+  @IsString({ each: true })
+  regras?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  ancorada?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requerConcentracao?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  personagemSessaoId?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  npcSessaoId?: number;
+}
+
+export class EncerrarBarreiraNarrativaSessaoDto {
+  @IsUUID('4')
+  clientRequestId!: string;
+
+  @IsOptional()
+  @IsString()
+  motivo?: string;
 }

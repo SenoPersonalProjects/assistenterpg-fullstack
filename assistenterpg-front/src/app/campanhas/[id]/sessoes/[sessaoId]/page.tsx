@@ -4246,6 +4246,7 @@ export default function SessaoCampanhaPage() {
                     campanhaId={campanhaId}
                     sessaoId={sessaoId}
                     dominios={detalhe.dominios ?? []}
+                    barreirasNarrativas={detalhe.barreirasNarrativas ?? []}
                     sessaoEncerrada={sessaoEncerrada}
                     ehMestre={podeControlarSessao}
                     personagens={detalhe.cards.map((card) => ({
@@ -4540,6 +4541,7 @@ export default function SessaoCampanhaPage() {
                 campanhaId={campanhaId}
                 sessaoId={sessaoId}
                 dominios={detalhe.dominios ?? []}
+                barreirasNarrativas={detalhe.barreirasNarrativas ?? []}
                 sessaoEncerrada={sessaoEncerrada}
                 ehMestre={false}
                 onAtualizar={setDetalhe}

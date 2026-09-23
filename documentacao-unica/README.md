@@ -4,7 +4,7 @@ Atualizado em: 2026-09-14
 
 ## Referências atuais
 
-- operação, ambiente, migrations e recuperação: [`OPERACAO-E-AMBIENTE.md`](./OPERACAO-E-AMBIENTE.md)
+- operação, ambiente, migrations, recuperação e backup recorrente: [`OPERACAO-E-AMBIENTE.md`](./OPERACAO-E-AMBIENTE.md)
 - SEO, indexação pública e favicon: [`SEO-E-FAVICON.md`](./SEO-E-FAVICON.md)
 - atualização de Epifania, perfil e Refinamento: [`EPIFANIA-DOMINIO-INCOMPLETO-ATUALIZACAO-2026-09-22.md`](./EPIFANIA-DOMINIO-INCOMPLETO-ATUALIZACAO-2026-09-22.md)
 - arquitetura e contratos de fronteira: [`ARQUITETURA-E-CONTRATOS.md`](./ARQUITETURA-E-CONTRATOS.md)

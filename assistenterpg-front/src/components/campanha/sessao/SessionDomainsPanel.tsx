@@ -10,6 +10,8 @@ import { SessionPanel } from "@/components/campanha/sessao/SessionPanel";
 import { CriarDisputaDominioModal } from "@/components/campanha/sessao/modals/CriarDisputaDominioModal";
 import {
   apiCriarDisputaDominioSessaoCampanha,
+  apiCriarBarreiraNarrativaSessaoCampanha,
+  apiEncerrarBarreiraNarrativaSessaoCampanha,
   apiExecutarAcaoDominioSessaoCampanha,
   apiResolverDisputaDominioSessaoCampanha,
   apiTentarEpifaniaDominioSessaoCampanha,
@@ -20,6 +22,7 @@ type Props = {
   campanhaId: number;
   sessaoId: number;
   dominios: NonNullable<SessaoCampanhaDetalhe["dominios"]>;
+  barreirasNarrativas?: NonNullable<SessaoCampanhaDetalhe["barreirasNarrativas"]>;
   sessaoEncerrada: boolean;
   ehMestre: boolean;
   personagens?: Array<{
@@ -54,6 +57,7 @@ export function SessionDomainsPanel({
   campanhaId,
   sessaoId,
   dominios,
+  barreirasNarrativas = [],
   sessaoEncerrada,
   ehMestre,
   personagens = [],
@@ -84,6 +88,15 @@ export function SessionDomainsPanel({
   const [resultadoRuptura, setResultadoRuptura] = useState("");
   const [potenciaRuptura, setPotenciaRuptura] = useState<"NORMAL" | "POTENCIALIZADO" | "EXCEPCIONAL">("NORMAL");
   const [golpeConcentrado, setGolpeConcentrado] = useState(false);
+  const [barreiraAberta, setBarreiraAberta] = useState(false);
+  const [nomeBarreira, setNomeBarreira] = useState("");
+  const [descricaoBarreira, setDescricaoBarreira] = useState("");
+  const [escalaBarreira, setEscalaBarreira] = useState<"PEQUENA" | "MEDIA" | "GRANDE" | "MASSIVA">("PEQUENA");
+  const [complexidadeBarreira, setComplexidadeBarreira] = useState("1");
+  const [regrasBarreira, setRegrasBarreira] = useState("");
+  const [ancoradaBarreira, setAncoradaBarreira] = useState(false);
+  const [concentracaoBarreira, setConcentracaoBarreira] = useState(false);
+  const [responsavelBarreira, setResponsavelBarreira] = useState("");
   const personagemSelecionado = personagens.find(
     (personagem) => personagem.id === Number(personagemEpifaniaId),
   );
@@ -291,6 +304,74 @@ export function SessionDomainsPanel({
       setPendente(null);
     }
   }
+
+  async function criarBarreiraNarrativa() {
+    const pontosComplexidade = Number(complexidadeBarreira);
+    if (!nomeBarreira.trim() || !Number.isInteger(pontosComplexidade) || pontosComplexidade < 1) {
+      setErro("Informe nome e uma complexidade inteira positiva para a barreira.");
+      return;
+    }
+    const [tipoResponsavel, idResponsavel] = responsavelBarreira.split(":");
+    const responsavelId = Number(idResponsavel);
+    setErro(null);
+    setPendente(-2);
+    try {
+      onAtualizar(
+        await apiCriarBarreiraNarrativaSessaoCampanha(campanhaId, sessaoId, {
+          clientRequestId: crypto.randomUUID(),
+          nome: nomeBarreira.trim(),
+          descricao: descricaoBarreira.trim() || undefined,
+          escala: escalaBarreira,
+          pontosComplexidade,
+          regras: regrasBarreira
+            .split("\n")
+            .map((regra) => regra.trim())
+            .filter(Boolean),
+          ancorada: ancoradaBarreira,
+          requerConcentracao: concentracaoBarreira,
+          personagemSessaoId:
+            tipoResponsavel === "PERSONAGEM" && Number.isInteger(responsavelId)
+              ? responsavelId
+              : undefined,
+          npcSessaoId:
+            tipoResponsavel === "NPC" && Number.isInteger(responsavelId)
+              ? responsavelId
+              : undefined,
+        }),
+      );
+      setBarreiraAberta(false);
+      setNomeBarreira("");
+      setDescricaoBarreira("");
+      setRegrasBarreira("");
+      setComplexidadeBarreira("1");
+      setAncoradaBarreira(false);
+      setConcentracaoBarreira(false);
+      setResponsavelBarreira("");
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : "Não foi possível criar a barreira narrativa.");
+    } finally {
+      setPendente(null);
+    }
+  }
+
+  async function encerrarBarreiraNarrativa(barreiraId: number) {
+    setErro(null);
+    setPendente(-barreiraId - 10_000);
+    try {
+      onAtualizar(
+        await apiEncerrarBarreiraNarrativaSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          barreiraId,
+          { clientRequestId: crypto.randomUUID() },
+        ),
+      );
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : "Não foi possível encerrar a barreira narrativa.");
+    } finally {
+      setPendente(null);
+    }
+  }
   return (
     <SessionPanel
       title="Domínios e barreiras"
@@ -319,6 +400,64 @@ export function SessionDomainsPanel({
           </Button>
         </div>
       ) : null}
+      <div className="mb-3 rounded-xl border border-app-border bg-app-base/40 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold text-app-fg">Barreiras narrativas</p>
+            <p className="text-xs text-app-muted">
+              Cortinas e barreiras permanentes da cena, sem mapa tático ou efeitos inventados pelo sistema.
+            </p>
+          </div>
+          {ehMestre ? (
+            <Button
+              type="button"
+              size="xs"
+              variant="ghost"
+              onClick={() => setBarreiraAberta(true)}
+              disabled={sessaoEncerrada}
+            >
+              Nova barreira
+            </Button>
+          ) : null}
+        </div>
+        {barreirasNarrativas.length ? (
+          <div className="mt-3 space-y-2">
+            {barreirasNarrativas.map((barreira) => (
+              <article key={barreira.id} className="rounded-lg border border-app-border bg-app-surface/50 p-2">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-app-fg">{barreira.nome}</p>
+                    <p className="text-xs text-app-muted">
+                      {barreira.escala.toLowerCase()} · Complexidade {barreira.pontosComplexidade}
+                      {barreira.ancorada ? " · ancorada" : ""}
+                      {barreira.requerConcentracao ? " · requer Concentração" : ""}
+                    </p>
+                  </div>
+                  {ehMestre ? (
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => void encerrarBarreiraNarrativa(barreira.id)}
+                      disabled={sessaoEncerrada || pendente !== null}
+                    >
+                      Encerrar
+                    </Button>
+                  ) : null}
+                </div>
+                {barreira.descricao ? <p className="mt-2 text-xs text-app-muted">{barreira.descricao}</p> : null}
+                {barreira.regras.length ? (
+                  <ul className="mt-2 list-inside list-disc text-xs text-app-muted">
+                    {barreira.regras.map((regra, index) => <li key={`${barreira.id}-${index}`}>{String(regra)}</li>)}
+                  </ul>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-xs text-app-muted">Nenhuma barreira narrativa está ativa nesta cena.</p>
+        )}
+      </div>
       {ehMestre && disputasAtivas.length ? (
         <div className="mb-3 space-y-2 rounded-xl border border-app-secondary/30 bg-app-secondary/10 p-3">
           <p className="text-sm font-semibold text-app-fg">Disputas ativas</p>
@@ -772,6 +911,64 @@ export function SessionDomainsPanel({
                 {dominio.nome} · {dominio.participante.nome}
               </Button>
             ))}
+          </div>
+        </div>
+      </Modal>
+      <Modal
+        isOpen={barreiraAberta}
+        onClose={() => setBarreiraAberta(false)}
+        title="Nova barreira narrativa"
+        size="lg"
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={() => setBarreiraAberta(false)} disabled={pendente !== null}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={() => void criarBarreiraNarrativa()} disabled={pendente !== null}>
+              {pendente === -2 ? "Criando..." : "Criar barreira"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-app-muted">
+            Registre Cortinas e Barreiras Simples permanentes como contexto da cena. Sem mapa, as regras continuam narrativas e não aplicam dano, posição ou bloqueios automaticamente.
+          </p>
+          <Input label="Nome" value={nomeBarreira} onChange={(event) => setNomeBarreira(event.target.value)} placeholder="Ex.: Cortina da escola" />
+          <label className="block text-sm text-app-fg">
+            Descrição
+            <textarea className="mt-1 min-h-20 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg" value={descricaoBarreira} onChange={(event) => setDescricaoBarreira(event.target.value)} placeholder="Escopo e condição narrativa da barreira." />
+          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-sm text-app-fg">
+              Escala
+              <select className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg" value={escalaBarreira} onChange={(event) => setEscalaBarreira(event.target.value as typeof escalaBarreira)}>
+                <option value="PEQUENA">Pequena</option>
+                <option value="MEDIA">Média</option>
+                <option value="GRANDE">Grande</option>
+                <option value="MASSIVA">Massiva</option>
+              </select>
+            </label>
+            <Input label="Pontos de Complexidade" type="number" min="1" max="20" step="1" value={complexidadeBarreira} onChange={(event) => setComplexidadeBarreira(event.target.value)} helperText="Compare com o grau de Técnicas de Barreira do responsável." />
+          </div>
+          <label className="block text-sm text-app-fg">
+            Responsável (opcional)
+            <select className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg" value={responsavelBarreira} onChange={(event) => setResponsavelBarreira(event.target.value)}>
+              <option value="">Barreira ambiental ou sem responsável</option>
+              {alvos.map((alvo) => (
+                <option key={`${alvo.tipo}-${alvo.id}`} value={`${alvo.tipo}:${alvo.id}`}>
+                  {alvo.tipo === "NPC" ? "NPC" : "Personagem"}: {alvo.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm text-app-fg">
+            Regras da barreira
+            <textarea className="mt-1 min-h-24 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg" value={regrasBarreira} onChange={(event) => setRegrasBarreira(event.target.value)} placeholder="Uma regra por linha. Ex.: Impede a entrada de não-feiticeiros." />
+          </label>
+          <div className="flex flex-wrap gap-4 text-sm text-app-fg">
+            <label className="flex items-center gap-2"><input type="checkbox" checked={ancoradaBarreira} onChange={(event) => setAncoradaBarreira(event.target.checked)} /> Possui âncora ou preparação</label>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={concentracaoBarreira} onChange={(event) => setConcentracaoBarreira(event.target.checked)} /> Requer Concentração</label>
           </div>
         </div>
       </Modal>

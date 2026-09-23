@@ -53,10 +53,12 @@ import { AtualizarValorIniciativaSessaoDto } from './dto/atualizar-valor-iniciat
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
 import {
   AcaoDominioSessaoDto,
+  CriarBarreiraNarrativaSessaoDto,
   CriarDefesaAntiDominioSessaoDto,
   CriarDisputaDominioSessaoDto,
   CriarDominioNpcSessaoDto,
   DormirInterludioSessaoDto,
+  EncerrarBarreiraNarrativaSessaoDto,
   ResolverDisputaDominioSessaoDto,
   TentarEpifaniaDominioSessaoDto,
 } from './dto/dominio-sessao.dto';
@@ -1835,6 +1837,17 @@ export class SessaoService {
         },
         select: { tipo: true, personagemSessaoId: true, npcSessaoId: true },
       });
+    const barreirasNarrativasAtivas =
+      await this.prisma.barreiraNarrativaSessao.findMany({
+        where: { sessaoId, cenaId: cenaAtualId, ativa: true },
+        orderBy: { id: 'asc' },
+        include: {
+          personagemSessao: {
+            include: { personagemCampanha: { select: { nome: true } } },
+          },
+          npcSessao: { select: { nomeExibicao: true } },
+        },
+      });
     const dominios = dominiosAtivos.map((dominio) => {
       const podeControlar =
         acesso.ehMestre ||
@@ -1939,6 +1952,30 @@ export class SessaoService {
       },
       controleTurnosAtivo,
       dominios,
+      barreirasNarrativas: barreirasNarrativasAtivas.map((barreira) => ({
+        id: barreira.id,
+        nome: barreira.nome,
+        descricao: barreira.descricao,
+        escala: barreira.escala,
+        pontosComplexidade: barreira.pontosComplexidade,
+        regras: Array.isArray(barreira.regras) ? barreira.regras : [],
+        ancorada: barreira.ancorada,
+        requerConcentracao: barreira.requerConcentracao,
+        responsavel: barreira.personagemSessao
+          ? {
+              tipo: 'PERSONAGEM' as const,
+              id: barreira.personagemSessaoId,
+              nome: barreira.personagemSessao.personagemCampanha.nome,
+            }
+          : barreira.npcSessao
+            ? {
+                tipo: 'NPC' as const,
+                id: barreira.npcSessaoId,
+                nome: barreira.npcSessao.nomeExibicao,
+              }
+            : null,
+        podeEditar: acesso.ehMestre,
+      })),
       turnoAtual: personagemTurnoAtual
         ? {
             tipoParticipante: personagemTurnoAtual.tipoParticipante,
@@ -3487,6 +3524,8 @@ export class SessaoService {
               personagemSessaoId: personagemSessao.id,
               cenaId: personagemSessao.cenaId,
               danoRecebido,
+              pvMax: infoPv.pvBarraMaxAtual,
+              usuarioId,
             });
           }
 
@@ -8543,6 +8582,18 @@ export class SessaoService {
                 custo.custoEAOriginal + investimentoIntegridade * 2,
             };
           }
+          const ajustesRitualisticos = this.resolverAjustesRitualisticos(
+            dto.ajustesRitualisticos,
+            grausMapEfetivo.get('TECNICA_AMALDICOADA') ?? 0,
+          );
+          if (ajustesRitualisticos.custoEAAdicional > 0) {
+            custo = {
+              ...custo,
+              custoEA: custo.custoEA + ajustesRitualisticos.custoEAAdicional,
+              custoEAOriginal:
+                custo.custoEAOriginal + ajustesRitualisticos.custoEAAdicional,
+            };
+          }
           const ehConversaoPeEmEa =
             mecanicaSessao.tipo === 'CONVERTER_PE_EM_EA';
           if (ehConversaoPeEmEa) {
@@ -8565,6 +8616,35 @@ export class SessaoService {
               producaoEAInstantanea: Math.trunc(gastoPE / divisor),
               isUsoBaseSemEscalonamento: false,
             };
+          }
+
+          if (
+            custo.isSustentada &&
+            this.custoRequerConcentracao(custo) &&
+            mecanicaSessao.permiteMultiplasConcentracoes !== true
+          ) {
+            const concentracaoExistente =
+              await tx.personagemSessaoHabilidadeSustentada.findFirst({
+                where: {
+                  sessaoId,
+                  personagemSessaoId,
+                  ativa: true,
+                  requerConcentracao: true,
+                  NOT: {
+                    habilidadeTecnicaId: habilidade.id,
+                    variacaoHabilidadeId:
+                      custo.variacaoHabilidadeId ?? null,
+                  },
+                },
+                select: { id: true, nomeHabilidade: true, nomeVariacao: true },
+              });
+            if (concentracaoExistente) {
+              throw new BusinessException(
+                `A concentração já está sendo mantida em ${concentracaoExistente.nomeHabilidade}${concentracaoExistente.nomeVariacao ? ` (${concentracaoExistente.nomeVariacao})` : ''}.`,
+                'SESSAO_CONCENTRACAO_JA_ATIVA',
+                { sustentacaoId: concentracaoExistente.id },
+              );
+            }
           }
 
           if (custo.isSustentada) {
@@ -8869,6 +8949,10 @@ export class SessaoService {
                       : null,
                     gastoPeEaNoTurnoAposUso,
                     usadoPorId: usuarioId,
+                    ajustesRitualisticos:
+                      ajustesRitualisticos.ajustes.length > 0
+                        ? ajustesRitualisticos
+                        : null,
                   },
                   intencao,
                   dto.clientRequestId,
@@ -14205,6 +14289,79 @@ export class SessaoService {
     }
   }
 
+  private async aplicarInstabilidadeDominioTx(
+    tx: Prisma.TransactionClient,
+    dominio: {
+      id: number;
+      sessaoId: number;
+      cenaId: number;
+      estado: string;
+      incompleto: boolean;
+      personagemSessaoId: number | null;
+      npcSessaoId: number | null;
+      sustentacaoHabilidadeId: number | null;
+      instavel: boolean;
+    },
+    args: {
+      usuarioId: number;
+      motivo: string;
+      cenaId: number;
+      danoRecebido: number;
+      automatica: boolean;
+    },
+  ): Promise<void> {
+    if (dominio.estado === 'ABRINDO') {
+      await this.encerrarDominioTx(
+        tx,
+        dominio,
+        args.usuarioId,
+        'INTERRUPCAO_POR_CONCENTRACAO',
+      );
+      return;
+    }
+    if (dominio.instavel) {
+      await this.encerrarDominioTx(
+        tx,
+        dominio,
+        args.usuarioId,
+        'COLAPSO_POR_INSTABILIDADE',
+      );
+      return;
+    }
+    await tx.dominioSessao.update({
+      where: { id: dominio.id },
+      data: { instavel: true },
+    });
+    const participacoes = await tx.disputaDominioParticipante.findMany({
+      where: { dominioSessaoId: dominio.id, disputa: { estado: 'ATIVA' } },
+      select: { id: true, dominancia: true },
+    });
+    await Promise.all(
+      participacoes.map((participacao) =>
+        tx.disputaDominioParticipante.update({
+          where: { id: participacao.id },
+          data: { dominancia: Math.max(0, participacao.dominancia - 1) },
+        }),
+      ),
+    );
+    await tx.eventoSessao.create({
+      data: {
+        sessaoId: dominio.sessaoId,
+        cenaId: args.cenaId,
+        personagemAtorId: dominio.personagemSessaoId,
+        tipoEvento: 'DOMINIO_INSTABILIZADO',
+        solicitanteUsuarioId: args.usuarioId,
+        dados: this.jsonParaPersistencia({
+          dominioId: dominio.id,
+          danoRecebido: args.danoRecebido,
+          automatica: args.automatica,
+          motivo: args.motivo,
+          dominanciaReduzida: participacoes.length > 0,
+        }),
+      },
+    });
+  }
+
   private async processarConcentracaoAoReceberDanoTx(
     tx: Prisma.TransactionClient,
     args: {
@@ -14213,6 +14370,8 @@ export class SessaoService {
       personagemSessaoId: number;
       cenaId: number | null;
       danoRecebido: number;
+      pvMax: number;
+      usuarioId: number;
     },
   ): Promise<void> {
     const sustentacoes = await tx.personagemSessaoHabilidadeSustentada.findMany(
@@ -14233,7 +14392,49 @@ export class SessaoService {
         },
       },
     );
-    if (sustentacoes.length === 0) return;
+    const dominiosAtivos = await tx.dominioSessao.findMany({
+      where: {
+        sessaoId: args.sessaoId,
+        personagemSessaoId: args.personagemSessaoId,
+        estado: { in: ['ABRINDO', 'ATIVO'] },
+      },
+      select: {
+        id: true,
+        sessaoId: true,
+        cenaId: true,
+        estado: true,
+        incompleto: true,
+        personagemSessaoId: true,
+        npcSessaoId: true,
+        sustentacaoHabilidadeId: true,
+        instavel: true,
+      },
+    });
+    if (sustentacoes.length === 0 && dominiosAtivos.length === 0) return;
+    const cenaId =
+      args.cenaId ?? (await this.obterCenaAtualSessaoTx(tx, args.sessaoId)).id;
+    const sustentacaoDominioIds = new Set(
+      dominiosAtivos
+        .map((dominio) => dominio.sustentacaoHabilidadeId)
+        .filter((id): id is number => id !== null),
+    );
+    const sustentacoesComuns = sustentacoes.filter(
+      (sustentacao) => !sustentacaoDominioIds.has(sustentacao.id),
+    );
+    const danoDevastador =
+      args.pvMax > 0 && args.danoRecebido >= Math.ceil(args.pvMax / 2);
+    if (danoDevastador) {
+      for (const dominio of dominiosAtivos) {
+        await this.aplicarInstabilidadeDominioTx(tx, dominio, {
+          usuarioId: args.usuarioId,
+          motivo: `Dano devastador de ${args.danoRecebido} PV.`,
+          cenaId,
+          danoRecebido: args.danoRecebido,
+          automatica: true,
+        });
+      }
+    }
+    if (sustentacoesComuns.length === 0) return;
 
     const pericia = await this.resolverPericiaAutoritativaTx(
       tx,
@@ -14256,8 +14457,6 @@ export class SessaoService {
       ),
     });
     const resultado = calcularResultadoDiceServidor(payload);
-    const cenaId =
-      args.cenaId ?? (await this.obterCenaAtualSessaoTx(tx, args.sessaoId)).id;
     await tx.eventoSessao.create({
       data: {
         sessaoId: args.sessaoId,
@@ -14272,7 +14471,10 @@ export class SessaoService {
           payloads: [payload],
           resultado: resultado.total,
           sucesso: resultado.total >= dt,
-          sustentacoesAfetadas: sustentacoes.map((item) => item.id),
+          sustentacoesAfetadas: sustentacoesComuns.map((item) => item.id),
+          dominiosAfetados: danoDevastador
+            ? dominiosAtivos.map((item) => item.id)
+            : [],
           ajustesAplicados: pericia.ajustesAtivos,
         }),
       },
@@ -14280,7 +14482,18 @@ export class SessaoService {
     if (resultado.total >= dt) return;
 
     const motivo = `Concentração perdida após ${args.danoRecebido} de dano (DT ${dt}).`;
-    for (const sustentacao of sustentacoes) {
+    if (!danoDevastador) {
+      for (const dominio of dominiosAtivos) {
+        await this.aplicarInstabilidadeDominioTx(tx, dominio, {
+          usuarioId: args.usuarioId,
+          motivo,
+          cenaId,
+          danoRecebido: args.danoRecebido,
+          automatica: false,
+        });
+      }
+    }
+    for (const sustentacao of sustentacoesComuns) {
       await tx.personagemSessaoHabilidadeSustentada.update({
         where: { id: sustentacao.id },
         data: {
@@ -15366,6 +15579,150 @@ export class SessaoService {
       dominio,
       detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
     };
+  }
+
+  async criarBarreiraNarrativaSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: CriarBarreiraNarrativaSessaoDto,
+  ) {
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'criar barreira narrativa',
+    );
+    this.assertMestre(acesso, 'criar barreira narrativa');
+    const cena = await this.obterCenaAtualSessaoTx(this.prisma, sessaoId);
+    const regras = [...new Set((dto.regras ?? []).map((regra) => regra.trim()).filter(Boolean))]
+      .slice(0, 12);
+    const nome = dto.nome.trim();
+    if (!nome) {
+      throw new BusinessException(
+        'Informe um nome para a barreira narrativa.',
+        'BARREIRA_NARRATIVA_NOME_INVALIDO',
+      );
+    }
+    if (dto.personagemSessaoId && dto.npcSessaoId) {
+      throw new BusinessException(
+        'Uma barreira narrativa pode ter somente um responsável direto.',
+        'BARREIRA_NARRATIVA_RESPONSAVEL_INVALIDO',
+      );
+    }
+    await this.prisma.$transaction(async (tx) => {
+      if (dto.personagemSessaoId) {
+        const personagem = await tx.personagemSessao.findFirst({
+          where: { id: dto.personagemSessaoId, sessaoId, cenaId: cena.id },
+          select: { id: true },
+        });
+        if (!personagem) {
+          throw new BusinessException(
+            'O responsável escolhido não está na cena atual.',
+            'BARREIRA_NARRATIVA_RESPONSAVEL_INVALIDO',
+          );
+        }
+      }
+      if (dto.npcSessaoId) {
+        const npc = await tx.npcAmeacaSessao.findFirst({
+          where: { id: dto.npcSessaoId, sessaoId, cenaId: cena.id },
+          select: { id: true },
+        });
+        if (!npc) {
+          throw new BusinessException(
+            'O responsável escolhido não está na cena atual.',
+            'BARREIRA_NARRATIVA_RESPONSAVEL_INVALIDO',
+          );
+        }
+      }
+      const barreira = await tx.barreiraNarrativaSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cena.id,
+          personagemSessaoId: dto.personagemSessaoId ?? null,
+          npcSessaoId: dto.npcSessaoId ?? null,
+          nome,
+          descricao: dto.descricao?.trim() || null,
+          escala: dto.escala,
+          pontosComplexidade: dto.pontosComplexidade,
+          regras: regras.length ? regras : Prisma.JsonNull,
+          ancorada: dto.ancorada === true,
+          requerConcentracao: dto.requerConcentracao === true,
+          criadoPorUsuarioId: usuarioId,
+        },
+      });
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cena.id,
+          tipoEvento: 'BARREIRA_NARRATIVA_CRIADA',
+          solicitanteUsuarioId: usuarioId,
+          clientRequestId: dto.clientRequestId,
+          dados: this.jsonParaPersistencia({
+            barreiraNarrativaId: barreira.id,
+            nome: barreira.nome,
+            escala: barreira.escala,
+            pontosComplexidade: barreira.pontosComplexidade,
+            ancorada: barreira.ancorada,
+            requerConcentracao: barreira.requerConcentracao,
+            regras,
+          }),
+        },
+      });
+    });
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async encerrarBarreiraNarrativaSessao(
+    campanhaId: number,
+    sessaoId: number,
+    barreiraId: number,
+    usuarioId: number,
+    dto: EncerrarBarreiraNarrativaSessaoDto,
+  ) {
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'encerrar barreira narrativa',
+    );
+    this.assertMestre(acesso, 'encerrar barreira narrativa');
+    await this.prisma.$transaction(async (tx) => {
+      const barreira = await tx.barreiraNarrativaSessao.findFirst({
+        where: { id: barreiraId, sessaoId, ativa: true },
+      });
+      if (!barreira) {
+        throw new BusinessException(
+          'Barreira narrativa ativa não encontrada nesta sessão.',
+          'BARREIRA_NARRATIVA_NAO_ENCONTRADA',
+        );
+      }
+      const motivo = dto.motivo?.trim() || 'Encerrada pelo mestre.';
+      await tx.barreiraNarrativaSessao.update({
+        where: { id: barreira.id },
+        data: {
+          ativa: false,
+          encerradaEm: new Date(),
+          encerradaPorUsuarioId: usuarioId,
+          motivoEncerramento: motivo,
+        },
+      });
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: barreira.cenaId,
+          tipoEvento: 'BARREIRA_NARRATIVA_ENCERRADA',
+          solicitanteUsuarioId: usuarioId,
+          clientRequestId: dto.clientRequestId,
+          dados: this.jsonParaPersistencia({
+            barreiraNarrativaId: barreira.id,
+            nome: barreira.nome,
+            motivo,
+          }),
+        },
+      });
+    });
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
   }
 
   async tentarEpifaniaDominioSessao(
@@ -16719,8 +17076,11 @@ export class SessaoService {
       personagemSessaoId: args.personagemSessaoId ?? undefined,
       npcSessaoId: args.npcSessaoId ?? undefined,
     };
-    const turnosTecnica =
-      args.motivo === 'INTERRUPCAO' ? 1 : args.incompleto ? 4 : 2;
+    const turnosTecnica = args.motivo.startsWith('INTERRUPCAO')
+      ? 1
+      : args.incompleto
+        ? 4
+        : 2;
     await Promise.all([
       tx.condicaoPersonagemSessao.updateMany({
         where: {
@@ -17190,7 +17550,91 @@ export class SessaoService {
 
   private custoRequerConcentracao(custo: CustoHabilidadeResolvido): boolean {
     const mecanica = this.extrairRegistro(custo.mecanicasSessao);
+    if (mecanica.tipo === 'EXPANSAO_DOMINIO') return true;
+    if (mecanica.tipo === 'DEFESA_ANTI_DOMINIO') {
+      const defesa = this.extrairRegistro(
+        mecanica.defesa as Prisma.JsonValue,
+      );
+      return defesa.tipo === 'DOMINIO_SIMPLES' || mecanica.requerConcentracao === true;
+    }
     return mecanica.requerConcentracao === true;
+  }
+
+  private resolverAjustesRitualisticos(
+    ajustes: UsarHabilidadeSessaoDto['ajustesRitualisticos'],
+    grauTecnica: number,
+  ): {
+    ajustes: Array<{ tipo: string; efeito: string; pontos: number; descricao: string | null }>;
+    custoEAAdicional: number;
+    requerResolucaoNarrativa: boolean;
+  } {
+    const lista = ajustes ?? [];
+    if (lista.length === 0) {
+      return {
+        ajustes: [],
+        custoEAAdicional: 0,
+        requerResolucaoNarrativa: false,
+      };
+    }
+    const limite = Math.max(0, Math.trunc(grauTecnica));
+    if (limite === 0 || lista.length > limite) {
+      throw new BusinessException(
+        `Esta Técnica admite até ${limite} Ajuste(s) Ritualístico(s) simultâneo(s).`,
+        'SESSAO_AJUSTE_RITUALISTICO_LIMITE',
+        { grauTecnica: limite, quantidade: lista.length },
+      );
+    }
+
+    const efeitosSubtracao = new Set([
+      'REDUZIR_EFEITO',
+      'REDUZIR_ALCANCE',
+      'REDUZIR_AREA',
+      'REDUZIR_DT',
+      'PENALIDADE_TESTE',
+      'CUSTO_EA',
+      'PERDER_EFEITO_SECUNDARIO',
+      'MELHORAR_ACAO',
+    ]);
+    const efeitosAdicao = new Set([
+      'AUMENTAR_ALCANCE',
+      'AUMENTAR_DT',
+      'BONUS_TESTE',
+      'AUMENTAR_EFEITO',
+      'MELHORAR_ACAO',
+    ]);
+    let custoEAAdicional = 0;
+    const normalizados = lista.map((ajuste) => {
+      const pontos = Math.trunc(ajuste.pontos);
+      const valido =
+        pontos >= 1 &&
+        pontos <= 2 &&
+        (ajuste.tipo === 'SUBTRACAO'
+          ? efeitosSubtracao.has(ajuste.efeito)
+          : efeitosAdicao.has(ajuste.efeito));
+      if (!valido || (ajuste.efeito === 'MELHORAR_ACAO' && pontos < 2)) {
+        throw new BusinessException(
+          'Ajuste Ritualístico inválido para a regra de Adição/Subtração.',
+          'SESSAO_AJUSTE_RITUALISTICO_INVALIDO',
+          { ajuste },
+        );
+      }
+      if (ajuste.tipo === 'SUBTRACAO' && ajuste.efeito === 'CUSTO_EA') {
+        custoEAAdicional += pontos * 2;
+      }
+      return {
+        tipo: ajuste.tipo,
+        efeito: ajuste.efeito,
+        pontos,
+        descricao: ajuste.descricao?.trim() || null,
+      };
+    });
+    return {
+      ajustes: normalizados,
+      custoEAAdicional,
+      requerResolucaoNarrativa: normalizados.some(
+        (ajuste) => ajuste.efeito !== 'CUSTO_EA',
+      ),
+    };
   }
 
   private sustentacaoPermiteAcumulos(sustentacao: {
@@ -21269,7 +21713,11 @@ export class SessaoService {
   private categoriaEventoSessao(
     tipoEvento: string,
   ): EventoSessaoContextoMapeado['categoria'] {
-    if (tipoEvento.startsWith('DOMINIO_')) return 'DOMINIO';
+    if (
+      tipoEvento.startsWith('DOMINIO_') ||
+      tipoEvento.startsWith('BARREIRA_NARRATIVA_')
+    )
+      return 'DOMINIO';
     if (tipoEvento.startsWith('RECURSO_')) return 'RECURSO';
     if (tipoEvento.startsWith('CONDICAO_')) return 'CONDICAO';
     if (tipoEvento.startsWith('CENA_') || tipoEvento.startsWith('TURNO_'))
@@ -21455,6 +21903,8 @@ export class SessaoService {
       }
       case 'DOMINIO_ESTABILIZAR':
         return `Domínio estabilizado${nomeOuPadrao}`;
+      case 'DOMINIO_INSTABILIZADO':
+        return `Domínio instabilizado${nomeOuPadrao}`;
       case 'DOMINIO_REFORCAR':
         return `Barreira reforçada${nomeOuPadrao} (EA -1)`;
       case 'DOMINIO_RECONFIGURAR':
@@ -21496,6 +21946,10 @@ export class SessaoService {
         return `Acerto Garantido acionado${nomeOuPadrao}`;
       case 'DOMINIO_DEFESA_ATIVADA':
         return `Defesa anti-Domínio ativada${this.lerTextoOpcionalRegistro(dados, 'tipo') ? `: ${this.lerTextoOpcionalRegistro(dados, 'tipo')}` : ''}`;
+      case 'BARREIRA_NARRATIVA_CRIADA':
+        return `Barreira narrativa criada${this.lerTextoOpcionalRegistro(dados, 'nome') ? `: ${this.lerTextoOpcionalRegistro(dados, 'nome')}` : ''}`;
+      case 'BARREIRA_NARRATIVA_ENCERRADA':
+        return `Barreira narrativa encerrada${this.lerTextoOpcionalRegistro(dados, 'nome') ? `: ${this.lerTextoOpcionalRegistro(dados, 'nome')}` : ''}`;
       case 'SESSAO_INICIADA':
         return 'Sessão iniciada';
       case 'SESSAO_ENCERRADA':

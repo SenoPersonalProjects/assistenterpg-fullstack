@@ -38,4 +38,4 @@ Status: Em validação
 - Builds de backend e frontend executados localmente; o build do frontend concluiu sem erros de TypeScript.
 - A bateria manual acima continua acumulada para a validação final em sessão autenticada.
 
-Concentração é processada no ponto autoritativo de ajuste de PV do personagem. Integrações futuras de dano automático que alterem PV diretamente devem reutilizar esse mesmo fluxo, em vez de atualizar o recurso fora da sessão. Instabilidade automática de Domínios por dano de 50% dos PV máximos permanece no próximo lote de aperfeiçoamento de Domínios.
+Concentração é processada no ponto autoritativo de ajuste de PV do personagem. Integrações futuras de dano automático que alterem PV diretamente devem reutilizar esse mesmo fluxo, em vez de atualizar o recurso fora da sessão. Dano de uma única ação igual ou superior a 50% dos PV máximos agora torna um Domínio Instável automaticamente; se ele já estiver Instável, colapsa.

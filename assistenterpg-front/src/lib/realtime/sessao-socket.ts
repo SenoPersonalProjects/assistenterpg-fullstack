@@ -26,6 +26,7 @@ export type EventoSessaoAtualizadaTipo =
   | 'ESCALADA_DADOS_ATUALIZADA'
   | 'INICIATIVA_ALTERNADA_ATUALIZADA'
   | 'CONSUMIVEL_USADO'
+  | 'BARREIRA_NARRATIVA_ATUALIZADA'
   | 'CONDICAO_RECUPERACAO_AUTOMATICA';
 
 export type EventoSessaoAtualizada = {

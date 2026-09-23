@@ -5,6 +5,7 @@ import {
   apiUsarHabilidadeSessaoCampanha,
   criarErroUsuario,
   type UsarHabilidadeClasseSessaoCampanhaPayload,
+  type AjusteRitualisticoSessaoPayload,
 } from '@/lib/api';
 import type { SessaoCampanhaDetalhe, UserErrorState } from '@/lib/types';
 import { calcularRestanteCooldown } from '@/lib/campanha/sessao-utils';
@@ -30,6 +31,7 @@ type UseSessaoHabilidadesReturn = {
     gastoPE?: number,
     condicaoSessaoId?: number,
     ignorarSobrecarga?: boolean,
+    ajustesRitualisticos?: AjusteRitualisticoSessaoPayload[],
   ) => Promise<void>;
   handleUsarHabilidadeClasse: (
     personagemSessaoId: number,
@@ -83,6 +85,7 @@ export function useSessaoHabilidades({
       gastoPE?: number,
       condicaoSessaoId?: number,
       ignorarSobrecarga?: boolean,
+      ajustesRitualisticos?: AjusteRitualisticoSessaoPayload[],
     ) => {
       if (sessaoEncerrada || acaoHabilidadePendente) return;
 
@@ -138,6 +141,10 @@ export function useSessaoHabilidades({
               return Math.max(1, Math.trunc(condicaoSessaoId));
             })(),
             ignorarSobrecarga: ignorarSobrecarga || undefined,
+            ajustesRitualisticos:
+              ajustesRitualisticos && ajustesRitualisticos.length > 0
+                ? ajustesRitualisticos
+                : undefined,
           },
         );
         setDetalhe(atualizado);

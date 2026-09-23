@@ -1,0 +1,43 @@
+CREATE TABLE `BarreiraNarrativaSessao` (
+  `id` INTEGER NOT NULL AUTO_INCREMENT,
+  `sessaoId` INTEGER NOT NULL,
+  `cenaId` INTEGER NOT NULL,
+  `personagemSessaoId` INTEGER NULL,
+  `npcSessaoId` INTEGER NULL,
+  `nome` VARCHAR(160) NOT NULL,
+  `descricao` TEXT NULL,
+  `escala` VARCHAR(24) NOT NULL DEFAULT 'PEQUENA',
+  `pontosComplexidade` INTEGER NOT NULL DEFAULT 1,
+  `regras` JSON NULL,
+  `ancorada` BOOLEAN NOT NULL DEFAULT false,
+  `requerConcentracao` BOOLEAN NOT NULL DEFAULT false,
+  `ativa` BOOLEAN NOT NULL DEFAULT true,
+  `criadoPorUsuarioId` INTEGER NOT NULL,
+  `criadoEm` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `encerradaEm` DATETIME(3) NULL,
+  `encerradaPorUsuarioId` INTEGER NULL,
+  `motivoEncerramento` TEXT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `BarreiraNarrativaSessao_sessaoId_cenaId_ativa_idx` (`sessaoId`, `cenaId`, `ativa`),
+  INDEX `BarreiraNarrativaSessao_personagemSessaoId_ativa_idx` (`personagemSessaoId`, `ativa`),
+  INDEX `BarreiraNarrativaSessao_npcSessaoId_ativa_idx` (`npcSessaoId`, `ativa`),
+  CONSTRAINT `BarreiraNarrativaSessao_sessaoId_fkey` FOREIGN KEY (`sessaoId`) REFERENCES `Sessao` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `BarreiraNarrativaSessao_cenaId_fkey` FOREIGN KEY (`cenaId`) REFERENCES `Cena` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `BarreiraNarrativaSessao_personagemSessaoId_fkey` FOREIGN KEY (`personagemSessaoId`) REFERENCES `PersonagemSessao` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `BarreiraNarrativaSessao_npcSessaoId_fkey` FOREIGN KEY (`npcSessaoId`) REFERENCES `NpcAmeacaSessao` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE `RegistroBackupOperacional` (
+  `id` INTEGER NOT NULL AUTO_INCREMENT,
+  `banco` VARCHAR(120) NOT NULL,
+  `arquivo` VARCHAR(255) NOT NULL,
+  `tamanhoBytes` BIGINT NOT NULL,
+  `sha256` VARCHAR(64) NOT NULL,
+  `sucesso` BOOLEAN NOT NULL DEFAULT true,
+  `executadoEm` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `retencao` INTEGER NOT NULL DEFAULT 1,
+  `origem` VARCHAR(40) NOT NULL DEFAULT 'AGENDADO',
+  `observacao` TEXT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `RegistroBackupOperacional_banco_executadoEm_idx` (`banco`, `executadoEm`)
+);

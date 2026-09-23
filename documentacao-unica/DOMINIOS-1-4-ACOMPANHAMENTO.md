@@ -56,6 +56,23 @@ O núcleo foi publicado no commit `53fba4b`. Antes de encerrar o lote, concluir 
 - [ ] Ativar Cesta Oca, Domínio Simples e Amplificação; verificar recursos, substituição da defesa e permissão de mestre/controlador/terceiro.
 - [ ] Repetir uma ação com a mesma requisição no navegador/rede e confirmar que o histórico e os recursos não são duplicados.
 
+## Concentração e barreiras narrativas — 2026-09-23
+
+- [x] Um dano de uma única ação igual ou superior a 50% dos PV máximos torna o
+  Domínio Instável automaticamente; um Domínio já Instável colapsa. A disputa
+  perde Dominância apenas uma vez por essa mesma ocorrência.
+- [x] A sessão mantém uma única Concentração importante por personagem, salvo
+  metadado explícito da própria habilidade. Domínio e Domínio Simples usam essa
+  regra geral.
+- [x] Barreiras permanentes são entidades narrativas de cena com escala,
+  complexidade, regras, âncora, Concentração e responsável opcional. Não há
+  posição, mapa, dano ou bloqueio automático inventado pelo sistema.
+- [ ] Validar no navegador a criação e o encerramento de uma barreira narrativa
+  com e sem responsável, e a Instabilidade automática após dano devastador.
+- [x] O uso de habilidade aceita Ajustes Ritualísticos estruturados. O servidor
+  limita a quantidade pelo grau da Técnica, aplica o custo de `+2 EA` quando
+  selecionado e registra os demais efeitos para resolução narrativa auditável.
+
 ## UX operacional de Domínios — 2026-09-23
 
 - [x] O mestre cria disputa sem IDs: escolhe dois ou mais Domínios ativos e,

@@ -6008,4 +6008,35 @@ describe('SessaoService', () => {
     );
     expect(tx.eventoSessao.create).not.toHaveBeenCalled();
   });
+  describe('Ajustes Ritualisticos', () => {
+    it('limita ajustes simultaneos ao grau da Tecnica e calcula custo de EA', () => {
+      const resolver = (service as unknown as {
+        resolverAjustesRitualisticos: (
+          ajustes: unknown,
+          grau: number,
+        ) => { custoEAAdicional: number; requerResolucaoNarrativa: boolean };
+      }).resolverAjustesRitualisticos.bind(service);
+
+      expect(
+        resolver(
+          [{ tipo: 'SUBTRACAO', efeito: 'CUSTO_EA', pontos: 2 }],
+          1,
+        ),
+      ).toEqual(
+        expect.objectContaining({
+          custoEAAdicional: 4,
+          requerResolucaoNarrativa: false,
+        }),
+      );
+      expect(() =>
+        resolver(
+          [
+            { tipo: 'ADICAO', efeito: 'AUMENTAR_EFEITO', pontos: 1 },
+            { tipo: 'ADICAO', efeito: 'AUMENTAR_DT', pontos: 1 },
+          ],
+          1,
+        ),
+      ).toThrow(BusinessException);
+    });
+  });
 });

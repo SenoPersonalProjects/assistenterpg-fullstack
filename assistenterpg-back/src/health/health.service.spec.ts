@@ -3,10 +3,16 @@ import { HealthService } from './health.service';
 
 describe('HealthService', () => {
   const queryRaw = jest.fn();
-  const service = new HealthService({ $queryRaw: queryRaw } as never);
+  const registroBackupOperacional = { findFirst: jest.fn(), create: jest.fn() };
+  const service = new HealthService({
+    $queryRaw: queryRaw,
+    registroBackupOperacional,
+  } as never);
 
   beforeEach(() => {
     queryRaw.mockReset();
+    registroBackupOperacional.findFirst.mockReset();
+    registroBackupOperacional.create.mockReset();
   });
 
   it('informa vida sem depender do banco', () => {
@@ -29,5 +35,26 @@ describe('HealthService', () => {
     await expect(service.ready()).rejects.toBeInstanceOf(
       ServiceUnavailableException,
     );
+  });
+  it('registra metadados quando o token de backup e valido', async () => {
+    const anterior = process.env.BACKUP_STATUS_TOKEN;
+    process.env.BACKUP_STATUS_TOKEN = 'token-de-teste';
+    registroBackupOperacional.create.mockResolvedValue({ id: 1 });
+
+    await expect(
+      service.registrarBackup('token-de-teste', {
+        banco: 'test',
+        arquivo: 'tidb_test.sql',
+        tamanhoBytes: 10,
+        sha256: 'a'.repeat(64),
+      }),
+    ).resolves.toEqual({ id: 1 });
+    expect(registroBackupOperacional.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ tamanhoBytes: BigInt(10) }),
+      }),
+    );
+    if (anterior === undefined) delete process.env.BACKUP_STATUS_TOKEN;
+    else process.env.BACKUP_STATUS_TOKEN = anterior;
   });
 });

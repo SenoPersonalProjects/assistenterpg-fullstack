@@ -53,6 +53,25 @@ export type AtualizarOrdemIniciativaSessaoCampanhaPayload = {
   indiceTurnoAtual?: number;
 };
 
+export type AjusteRitualisticoSessaoPayload = {
+  tipo: "ADICAO" | "SUBTRACAO";
+  efeito:
+    | "REDUZIR_EFEITO"
+    | "REDUZIR_ALCANCE"
+    | "REDUZIR_AREA"
+    | "REDUZIR_DT"
+    | "PENALIDADE_TESTE"
+    | "CUSTO_EA"
+    | "PERDER_EFEITO_SECUNDARIO"
+    | "MELHORAR_ACAO"
+    | "AUMENTAR_ALCANCE"
+    | "AUMENTAR_DT"
+    | "BONUS_TESTE"
+    | "AUMENTAR_EFEITO";
+  pontos: number;
+  descricao?: string;
+};
+
 export type UsarHabilidadeSessaoCampanhaPayload = {
   clientRequestId?: string;
   habilidadeTecnicaId: number;
@@ -64,6 +83,7 @@ export type UsarHabilidadeSessaoCampanhaPayload = {
   investimentoIntegridade?: number;
   alvosPersonagemSessaoIds?: number[];
   alvosNpcSessaoIds?: number[];
+  ajustesRitualisticos?: AjusteRitualisticoSessaoPayload[];
 };
 
 export type AcaoDominioSessaoPayload = {
@@ -92,6 +112,19 @@ export type CriarDisputaDominioSessaoPayload = {
   dominioIds: number[];
   alvosPersonagemSessaoIds?: number[];
   alvosNpcSessaoIds?: number[];
+};
+
+export type CriarBarreiraNarrativaSessaoPayload = {
+  clientRequestId: string;
+  nome: string;
+  descricao?: string;
+  escala: "PEQUENA" | "MEDIA" | "GRANDE" | "MASSIVA";
+  pontosComplexidade: number;
+  regras?: string[];
+  ancorada?: boolean;
+  requerConcentracao?: boolean;
+  personagemSessaoId?: number;
+  npcSessaoId?: number;
 };
 
 export type TentarEpifaniaDominioSessaoPayload = {
@@ -1237,6 +1270,31 @@ export async function apiCriarDisputaDominioSessaoCampanha(
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/disputas-dominios`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiCriarBarreiraNarrativaSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: CriarBarreiraNarrativaSessaoPayload,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/barreiras-narrativas`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiEncerrarBarreiraNarrativaSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  barreiraId: number,
+  payload: { clientRequestId: string; motivo?: string },
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/barreiras-narrativas/${barreiraId}/encerrar`,
     payload,
   );
   return data;

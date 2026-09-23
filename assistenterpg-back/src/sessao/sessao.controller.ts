@@ -29,10 +29,12 @@ import { AtualizarValorIniciativaSessaoDto } from './dto/atualizar-valor-iniciat
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
 import {
   AcaoDominioSessaoDto,
+  CriarBarreiraNarrativaSessaoDto,
   CriarDefesaAntiDominioSessaoDto,
   CriarDisputaDominioSessaoDto,
   CriarDominioNpcSessaoDto,
   DormirInterludioSessaoDto,
+  EncerrarBarreiraNarrativaSessaoDto,
   ResolverDisputaDominioSessaoDto,
   TentarEpifaniaDominioSessaoDto,
 } from './dto/dominio-sessao.dto';
@@ -296,6 +298,50 @@ export class SessaoController {
       campanhaId,
       sessaoId,
       'DOMINIO_ATUALIZADO',
+    );
+    return detalhe;
+  }
+
+  @Post(':sessaoId/barreiras-narrativas')
+  async criarBarreiraNarrativaSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: CriarBarreiraNarrativaSessaoDto,
+  ) {
+    const detalhe = await this.sessaoService.criarBarreiraNarrativaSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'BARREIRA_NARRATIVA_ATUALIZADA',
+    );
+    return detalhe;
+  }
+
+  @Post(':sessaoId/barreiras-narrativas/:barreiraId/encerrar')
+  async encerrarBarreiraNarrativaSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('barreiraId', ParseIntPipe) barreiraId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: EncerrarBarreiraNarrativaSessaoDto,
+  ) {
+    const detalhe = await this.sessaoService.encerrarBarreiraNarrativaSessao(
+      campanhaId,
+      sessaoId,
+      barreiraId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'BARREIRA_NARRATIVA_ATUALIZADA',
     );
     return detalhe;
   }

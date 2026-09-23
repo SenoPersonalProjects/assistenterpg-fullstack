@@ -45,6 +45,32 @@ Para investigar uma falha, preserve o `traceId` ou `x-request-id` retornado
 pela API e relacione-o ao commit/deploy. Não inclua cookies, tokens, bodies de
 autenticação ou `DATABASE_URL` em relatórios.
 
+## Backup recorrente do TiDB
+
+O backup agendado usa o mesmo procedimento seguro de `update-tidb.ps1` e só
+remove dumps anteriores depois que o novo arquivo é criado, não está vazio e
+teve seu SHA-256 calculado. A retenção padrão é **uma cópia**.
+
+1. Defina as variáveis persistentes do usuário que executará a tarefa:
+   `ASSISTENTERPG_API_URL` (URL do backend Render) e
+   `ASSISTENTERPG_BACKUP_STATUS_TOKEN` (o mesmo segredo configurado no Render
+   como `BACKUP_STATUS_TOKEN`).
+2. Confirme que o `PRIVATE-OPS.md` local está preenchido e não versionado.
+3. Registre a tarefa diária, que por padrão roda às 03:10:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File documentacao-unica\registrar-tarefa-backup-tidb.ps1
+```
+
+4. Execute uma vez manualmente para validar credenciais e o registro no painel:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File documentacao-unica\backup-tidb-agendado.ps1
+```
+
+Use `-Retencao 2` somente se duas cópias forem realmente necessárias. Em caso
+de falha, a rotina aborta sem apagar os backups existentes.
+
 ## Migrations e TiDB
 
 O Quality Gate sobe um MySQL 8 descartável e executa, antes de testes e build:

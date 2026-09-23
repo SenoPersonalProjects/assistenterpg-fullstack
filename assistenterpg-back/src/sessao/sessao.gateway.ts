@@ -69,6 +69,7 @@ type EventoSessaoAtualizada = {
     | 'DOMINIO_ATUALIZADO'
     | 'DOMINIO_DISPUTA_ATUALIZADA'
     | 'DOMINIO_DEFESA_ATUALIZADA'
+    | 'BARREIRA_NARRATIVA_ATUALIZADA'
     | 'DOMINIO_INTERLUDIO_DESCANSO';
   em: string;
   atualizacao?: AtualizacaoIncrementalSessao;

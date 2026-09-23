@@ -1097,6 +1097,22 @@ export type SessaoCampanhaDetalhe = {
       rodadaProximaResolucao: number;
     }>;
   }>;
+  barreirasNarrativas?: Array<{
+    id: number;
+    nome: string;
+    descricao: string | null;
+    escala: "PEQUENA" | "MEDIA" | "GRANDE" | "MASSIVA" | string;
+    pontosComplexidade: number;
+    regras: unknown[];
+    ancorada: boolean;
+    requerConcentracao: boolean;
+    responsavel: {
+      tipo: "PERSONAGEM" | "NPC";
+      id: number | null;
+      nome: string;
+    } | null;
+    podeEditar: boolean;
+  }>;
   cenaAtual: {
     id: number | null;
     tipo: TipoCenaSessaoCampanha | string;

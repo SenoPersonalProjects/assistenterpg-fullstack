@@ -1261,6 +1261,7 @@ model Sessao {
   epifaniasDominios      EpifaniaDominioSessao[]
   disputasDominios       DisputaDominioSessao[]
   defesasAntiDominio     DefesaAntiDominioSessao[]
+  barreirasNarrativas    BarreiraNarrativaSessao[]
   condicoes              CondicaoPersonagemSessao[]
   eventos                EventoSessao[]
   anotacoes              Anotacao[]
@@ -1396,6 +1397,7 @@ model Cena {
   epifaniasDominios  EpifaniaDominioSessao[]
   disputasDominios   DisputaDominioSessao[]
   defesasAntiDominio DefesaAntiDominioSessao[]
+  barreirasNarrativas BarreiraNarrativaSessao[]
 }
 
 model PersonagemCampanhaEntidadeVinculada {
@@ -1536,6 +1538,7 @@ model NpcAmeacaSessao {
   alvosDeDominios                  DominioSessaoAlvo[]
   alvosDeDisputas                  DisputaDominioAlvo[]
   defesasAntiDominio               DefesaAntiDominioSessao[]
+  barreirasNarrativas              BarreiraNarrativaSessao[]
 
   @@index([sessaoId])
   @@index([cenaId])
@@ -1571,6 +1574,7 @@ model PersonagemSessao {
   alvosDeDominios        DominioSessaoAlvo[]                    @relation("DominioSessaoAlvoPersonagem")
   alvosDeDisputas        DisputaDominioAlvo[]
   defesasAntiDominio     DefesaAntiDominioSessao[]              @relation("DefesaAntiDominioPersonagem")
+  barreirasNarrativas    BarreiraNarrativaSessao[]
 
   @@index([controladorUsuarioId])
 }
@@ -1743,6 +1747,56 @@ model DefesaAntiDominioSessao {
   @@index([personagemSessaoId, ativa])
   @@index([npcSessaoId, ativa])
   @@index([sustentacaoHabilidadeId])
+}
+
+/// Barreira de cena sem representação espacial. Suas regras são sempre
+/// narrativas: o mestre decide a aplicação concreta sem o sistema inventar
+/// alcance, posição ou efeitos de mapa.
+model BarreiraNarrativaSessao {
+  id                   Int      @id @default(autoincrement())
+  sessaoId             Int
+  cenaId               Int
+  personagemSessaoId   Int?
+  npcSessaoId          Int?
+  nome                 String   @db.VarChar(160)
+  descricao            String?  @db.Text
+  escala               String   @default("PEQUENA") @db.VarChar(24)
+  pontosComplexidade   Int      @default(1)
+  regras               Json?
+  ancorada             Boolean  @default(false)
+  requerConcentracao   Boolean  @default(false)
+  ativa                Boolean  @default(true)
+  criadoPorUsuarioId   Int
+  criadoEm             DateTime @default(now())
+  encerradaEm          DateTime?
+  encerradaPorUsuarioId Int?
+  motivoEncerramento   String?  @db.Text
+
+  sessao           Sessao           @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  cena             Cena             @relation(fields: [cenaId], references: [id], onDelete: Cascade)
+  personagemSessao PersonagemSessao? @relation(fields: [personagemSessaoId], references: [id], onDelete: Cascade)
+  npcSessao        NpcAmeacaSessao? @relation(fields: [npcSessaoId], references: [id], onDelete: Cascade)
+
+  @@index([sessaoId, cenaId, ativa])
+  @@index([personagemSessaoId, ativa])
+  @@index([npcSessaoId, ativa])
+}
+
+/// Metadados de backups executados fora do Render. Não armazena dump, segredo
+/// ou caminho local; serve apenas para saúde operacional e auditoria.
+model RegistroBackupOperacional {
+  id             Int      @id @default(autoincrement())
+  banco          String   @db.VarChar(120)
+  arquivo        String   @db.VarChar(255)
+  tamanhoBytes   BigInt
+  sha256         String   @db.VarChar(64)
+  sucesso        Boolean  @default(true)
+  executadoEm    DateTime @default(now())
+  retencao       Int      @default(1)
+  origem         String   @default("AGENDADO") @db.VarChar(40)
+  observacao     String?  @db.Text
+
+  @@index([banco, executadoEm])
 }
 
 model PersonagemSessaoHabilidadeSustentada {

@@ -34,3 +34,4 @@ export * from './homebrews';
 export * from './amizades';
 export * from './chat-amigos';
 export * from './observabilidade';
+export * from './saude';
