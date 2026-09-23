@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -55,10 +55,6 @@ export function RitualAdjustmentsModal({
   onConfirmar,
 }: Props) {
   const [rascunho, setRascunho] = useState<AjusteRitualisticoSessaoPayload[]>(ajustes);
-
-  useEffect(() => {
-    if (isOpen) setRascunho(ajustes);
-  }, [ajustes, isOpen]);
 
   const podeAdicionar = rascunho.length < limite;
   const custoEaAdicional = useMemo(
