@@ -14391,24 +14391,28 @@ export class SessaoService {
         },
       },
     );
-    const dominiosAtivos = await tx.dominioSessao.findMany({
-      where: {
-        sessaoId: args.sessaoId,
-        personagemSessaoId: args.personagemSessaoId,
-        estado: { in: ['ABRINDO', 'ATIVO'] },
-      },
-      select: {
-        id: true,
-        sessaoId: true,
-        cenaId: true,
-        estado: true,
-        incompleto: true,
-        personagemSessaoId: true,
-        npcSessaoId: true,
-        sustentacaoHabilidadeId: true,
-        instavel: true,
-      },
-    });
+    const dominioDelegate = (tx as Partial<Prisma.TransactionClient>)
+      .dominioSessao;
+    const dominiosAtivos = dominioDelegate
+      ? await dominioDelegate.findMany({
+          where: {
+            sessaoId: args.sessaoId,
+            personagemSessaoId: args.personagemSessaoId,
+            estado: { in: ['ABRINDO', 'ATIVO'] },
+          },
+          select: {
+            id: true,
+            sessaoId: true,
+            cenaId: true,
+            estado: true,
+            incompleto: true,
+            personagemSessaoId: true,
+            npcSessaoId: true,
+            sustentacaoHabilidadeId: true,
+            instavel: true,
+          },
+        })
+      : [];
     if (sustentacoes.length === 0 && dominiosAtivos.length === 0) return;
     const cenaId =
       args.cenaId ?? (await this.obterCenaAtualSessaoTx(tx, args.sessaoId)).id;
