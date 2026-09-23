@@ -72,7 +72,7 @@ export function SessionDomainsPanel({
   );
   const possuiPerfilNarrativo = Boolean(
     personagemSelecionado?.perfilEpifaniaDominio &&
-      typeof personagemSelecionado.perfilEpifaniaDominio === "object",
+    typeof personagemSelecionado.perfilEpifaniaDominio === "object",
   );
   const usarPerfilNarrativo =
     possuiPerfilNarrativo && !editarPerfilNarrativo && !expansaoSelecionada;
@@ -220,12 +220,17 @@ export function SessionDomainsPanel({
                   <select
                     className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg"
                     value={expansaoEpifaniaId}
-                    onChange={(event) => setExpansaoEpifaniaId(event.target.value)}
+                    onChange={(event) =>
+                      setExpansaoEpifaniaId(event.target.value)
+                    }
                   >
-                    <option value="">Usar perfil narrativo salvo/configurar outro</option>
+                    <option value="">
+                      Usar perfil narrativo salvo/configurar outro
+                    </option>
                     {personagemSelecionado.expansoes.map((expansao) => (
                       <option key={expansao.id} value={expansao.id}>
-                        {expansao.nome} (EA {expansao.custoEA}, PE {expansao.custoPE})
+                        {expansao.nome} (EA {expansao.custoEA}, PE{" "}
+                        {expansao.custoPE})
                       </option>
                     ))}
                   </select>
@@ -242,7 +247,9 @@ export function SessionDomainsPanel({
                     size="xs"
                     type="button"
                     variant="ghost"
-                    onClick={() => setEditarPerfilNarrativo((editar) => !editar)}
+                    onClick={() =>
+                      setEditarPerfilNarrativo((editar) => !editar)
+                    }
                   >
                     {editarPerfilNarrativo
                       ? "Usar perfil salvo"

@@ -15444,7 +15444,9 @@ export class SessaoService {
       const tecnicaInataEfetiva =
         personagem.personagemCampanha.tecnicaInataPropria ??
         personagem.personagemCampanha.tecnicaInata;
-      const expansoesCompletas = (tecnicaInataEfetiva?.habilidades ?? []).filter(
+      const expansoesCompletas = (
+        tecnicaInataEfetiva?.habilidades ?? []
+      ).filter(
         (habilidade) =>
           this.extrairRegistro(habilidade.mecanicasSessao).tipo ===
           'EXPANSAO_DOMINIO',
@@ -15496,15 +15498,17 @@ export class SessaoService {
             ? perfilSalvo.descricao
             : null
           : dto.descricao?.trim() || null;
-      const tipo = (expansaoSelecionada
-        ? estruturaExpansao?.tipo
-        : usarPerfilSalvo
-          ? perfilSalvo.tipo
-          : dto.tipo) as string;
+      const tipo = (
+        expansaoSelecionada
+          ? estruturaExpansao?.tipo
+          : usarPerfilSalvo
+            ? perfilSalvo.tipo
+            : dto.tipo
+      ) as string;
       const grauBarreira = Math.trunc(
         Number(
           expansaoSelecionada
-            ? estruturaExpansao?.grauBarreira ?? 2
+            ? (estruturaExpansao?.grauBarreira ?? 2)
             : usarPerfilSalvo
               ? perfilSalvo.grauBarreira
               : dto.grauBarreira,
@@ -15534,7 +15538,11 @@ export class SessaoService {
           ),
         ),
       );
-      if (!['FECHADO', 'ABERTO'].includes(tipo) || grauBarreira < 2 || grauBarreira > 5)
+      if (
+        !['FECHADO', 'ABERTO'].includes(tipo) ||
+        grauBarreira < 2 ||
+        grauBarreira > 5
+      )
         throw new BusinessException(
           'O perfil da Epifania possui estrutura de Dominio invalida.',
           'DOMINIO_EPIFANIA_PERFIL_INVALIDO',
@@ -15647,8 +15655,15 @@ export class SessaoService {
             rolagem,
             expressao: formatarExpressaoDiceServidor(rolagem),
             perfil: expansaoSelecionada
-              ? { origem: 'EXPANSAO_CADASTRADA', habilidadeTecnicaId: expansaoSelecionada.id }
-              : { origem: usarPerfilSalvo ? 'PERFIL_NARRATIVO_SALVO' : 'PERFIL_NARRATIVO' },
+              ? {
+                  origem: 'EXPANSAO_CADASTRADA',
+                  habilidadeTecnicaId: expansaoSelecionada.id,
+                }
+              : {
+                  origem: usarPerfilSalvo
+                    ? 'PERFIL_NARRATIVO_SALVO'
+                    : 'PERFIL_NARRATIVO',
+                },
           }),
         },
       });
@@ -16109,7 +16124,10 @@ export class SessaoService {
       dadosExtra += 1;
       ajustes.push('Forcar Dominio: +1d20');
     }
-    if (participante.expansaoReativa && participante.primeiraResolucaoPendente) {
+    if (
+      participante.expansaoReativa &&
+      participante.primeiraResolucaoPendente
+    ) {
       dadosExtra -= 1;
       bonus -= 5;
       ajustes.push('Expansao reativa: -1d20 e -5');
@@ -16152,7 +16170,7 @@ export class SessaoService {
         label: 'Refinamento de Dominio',
       });
       return {
-      valor: calcularResultadoDiceServidor(rolagem).total,
+        valor: calcularResultadoDiceServidor(rolagem).total,
         rolagem,
         expressao: formatarExpressaoDiceServidor(rolagem),
         ajustes,
@@ -16169,10 +16187,7 @@ export class SessaoService {
         })
       : null;
     const rolagem = rolarDadosServidor({
-      quantidade: Math.max(
-        1,
-        (npc?.npcAmeaca?.jujutsuDados ?? 1) + dadosExtra,
-      ),
+      quantidade: Math.max(1, (npc?.npcAmeaca?.jujutsuDados ?? 1) + dadosExtra),
       faces: 20,
       modificador: (npc?.jujutsu ?? 0) + bonus,
       operador: '+',
