@@ -4251,6 +4251,24 @@ export default function SessaoCampanhaPage() {
                     personagens={detalhe.cards.map((card) => ({
                       id: card.personagemSessaoId,
                       nome: card.nomePersonagem,
+                      perfilEpifaniaDominio: card.perfilEpifaniaDominio,
+                      expansoes: (card.tecnicaInata?.habilidades ?? [])
+                        .filter((habilidade) => {
+                          const mecanica = habilidade.mecanicasSessao;
+                          return (
+                            typeof mecanica === "object" &&
+                            mecanica !== null &&
+                            "tipo" in mecanica &&
+                            mecanica.tipo === "EXPANSAO_DOMINIO"
+                          );
+                        })
+                        .map((habilidade) => ({
+                          id: habilidade.id,
+                          nome: habilidade.nome,
+                          descricao: habilidade.descricao,
+                          custoEA: habilidade.custoEA,
+                          custoPE: habilidade.custoPE,
+                        })),
                     }))}
                     onAtualizar={setDetalhe}
                   />

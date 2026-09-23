@@ -16,7 +16,18 @@ type Props = {
   dominios: NonNullable<SessaoCampanhaDetalhe["dominios"]>;
   sessaoEncerrada: boolean;
   ehMestre: boolean;
-  personagens?: Array<{ id: number; nome: string }>;
+  personagens?: Array<{
+    id: number;
+    nome: string;
+    perfilEpifaniaDominio?: unknown;
+    expansoes?: Array<{
+      id: number;
+      nome: string;
+      descricao: string;
+      custoEA: number;
+      custoPE: number;
+    }>;
+  }>;
   onAtualizar: (detalhe: SessaoCampanhaDetalhe) => void;
 };
 
@@ -41,6 +52,8 @@ export function SessionDomainsPanel({
   const [erro, setErro] = useState<string | null>(null);
   const [epifaniaAberta, setEpifaniaAberta] = useState(false);
   const [personagemEpifaniaId, setPersonagemEpifaniaId] = useState("");
+  const [expansaoEpifaniaId, setExpansaoEpifaniaId] = useState("");
+  const [editarPerfilNarrativo, setEditarPerfilNarrativo] = useState(false);
   const [nomeEpifania, setNomeEpifania] = useState("");
   const [atributoEpifania, setAtributoEpifania] = useState<
     "FOR" | "AGI" | "VIG" | "INT" | "PRE"
@@ -51,6 +64,18 @@ export function SessionDomainsPanel({
   const [grauBarreiraEpifania, setGrauBarreiraEpifania] = useState("2");
   const [custoEaEpifania, setCustoEaEpifania] = useState("0");
   const [custoPeEpifania, setCustoPeEpifania] = useState("0");
+  const personagemSelecionado = personagens.find(
+    (personagem) => personagem.id === Number(personagemEpifaniaId),
+  );
+  const expansaoSelecionada = personagemSelecionado?.expansoes?.find(
+    (expansao) => expansao.id === Number(expansaoEpifaniaId),
+  );
+  const possuiPerfilNarrativo = Boolean(
+    personagemSelecionado?.perfilEpifaniaDominio &&
+      typeof personagemSelecionado.perfilEpifaniaDominio === "object",
+  );
+  const usarPerfilNarrativo =
+    possuiPerfilNarrativo && !editarPerfilNarrativo && !expansaoSelecionada;
   async function executar(
     dominioId: number,
     acao: Parameters<typeof apiExecutarAcaoDominioSessaoCampanha>[3]["acao"],
@@ -81,7 +106,10 @@ export function SessionDomainsPanel({
     const grauBarreira = Number(grauBarreiraEpifania);
     const custoEA = Number(custoEaEpifania);
     const custoPE = Number(custoPeEpifania);
-    if (!personagemSessaoId || !nomeEpifania.trim()) {
+    if (
+      !personagemSessaoId ||
+      (!expansaoSelecionada && !usarPerfilNarrativo && !nomeEpifania.trim())
+    ) {
       setErro("Escolha o personagem e informe o nome do Domínio Incompleto.");
       return;
     }
@@ -106,12 +134,25 @@ export function SessionDomainsPanel({
         await apiTentarEpifaniaDominioSessaoCampanha(campanhaId, sessaoId, {
           clientRequestId: crypto.randomUUID(),
           personagemSessaoId,
-          nomeDominio: nomeEpifania.trim(),
+          habilidadeTecnicaId: expansaoSelecionada?.id,
+          nomeDominio:
+            expansaoSelecionada || usarPerfilNarrativo
+              ? undefined
+              : nomeEpifania.trim(),
           atributo: atributoEpifania,
-          tipo: tipoEpifania,
-          grauBarreira,
-          custoEA,
-          custoPE,
+          tipo:
+            expansaoSelecionada || usarPerfilNarrativo
+              ? undefined
+              : tipoEpifania,
+          grauBarreira:
+            expansaoSelecionada || usarPerfilNarrativo
+              ? undefined
+              : grauBarreira,
+          custoEA:
+            expansaoSelecionada || usarPerfilNarrativo ? undefined : custoEA,
+          custoPE:
+            expansaoSelecionada || usarPerfilNarrativo ? undefined : custoPE,
+          salvarPerfilNarrativo: !expansaoSelecionada,
         }),
       );
       setEpifaniaAberta(false);
@@ -160,9 +201,10 @@ export function SessionDomainsPanel({
                 <select
                   className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg"
                   value={personagemEpifaniaId}
-                  onChange={(event) =>
-                    setPersonagemEpifaniaId(event.target.value)
-                  }
+                  onChange={(event) => {
+                    setPersonagemEpifaniaId(event.target.value);
+                    setExpansaoEpifaniaId("");
+                  }}
                 >
                   <option value="">Selecione</option>
                   {personagens.map((personagem) => (
@@ -172,6 +214,42 @@ export function SessionDomainsPanel({
                   ))}
                 </select>
               </label>
+              {personagemSelecionado?.expansoes?.length ? (
+                <label className="text-xs text-app-muted md:col-span-2">
+                  Expansao completa cadastrada
+                  <select
+                    className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg"
+                    value={expansaoEpifaniaId}
+                    onChange={(event) => setExpansaoEpifaniaId(event.target.value)}
+                  >
+                    <option value="">Usar perfil narrativo salvo/configurar outro</option>
+                    {personagemSelecionado.expansoes.map((expansao) => (
+                      <option key={expansao.id} value={expansao.id}>
+                        {expansao.nome} (EA {expansao.custoEA}, PE {expansao.custoPE})
+                      </option>
+                    ))}
+                  </select>
+                  {expansaoSelecionada ? (
+                    <span className="mt-1 block text-app-fg">
+                      {expansaoSelecionada.descricao}
+                    </span>
+                  ) : null}
+                </label>
+              ) : null}
+              {possuiPerfilNarrativo && !expansaoSelecionada ? (
+                <div className="flex items-end">
+                  <Button
+                    size="xs"
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setEditarPerfilNarrativo((editar) => !editar)}
+                  >
+                    {editarPerfilNarrativo
+                      ? "Usar perfil salvo"
+                      : "Editar perfil narrativo"}
+                  </Button>
+                </div>
+              ) : null}
               <label className="text-xs text-app-muted">
                 Nome do Domínio Incompleto
                 <input

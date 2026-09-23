@@ -1136,6 +1136,7 @@ export type SessaoCampanhaDetalhe = {
     controlador?: { id: number; apelido: string } | null;
     nomeJogador: string;
     nomePersonagem: string;
+    perfilEpifaniaDominio?: unknown;
     podeEditar: boolean;
     visibilidade: "completa" | "resumida";
     turnosMorrendo?: number;

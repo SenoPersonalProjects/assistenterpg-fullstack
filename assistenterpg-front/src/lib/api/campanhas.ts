@@ -90,13 +90,15 @@ export type AcaoDominioSessaoPayload = {
 export type TentarEpifaniaDominioSessaoPayload = {
   clientRequestId: string;
   personagemSessaoId: number;
-  nomeDominio: string;
+  habilidadeTecnicaId?: number;
+  nomeDominio?: string;
   descricao?: string;
   atributo: "FOR" | "AGI" | "VIG" | "INT" | "PRE";
-  tipo: "FECHADO" | "ABERTO";
-  grauBarreira: number;
-  custoEA: number;
-  custoPE: number;
+  tipo?: "FECHADO" | "ABERTO";
+  grauBarreira?: number;
+  custoEA?: number;
+  custoPE?: number;
+  salvarPerfilNarrativo?: boolean;
   alvosPersonagemSessaoIds?: number[];
   alvosNpcSessaoIds?: number[];
 };

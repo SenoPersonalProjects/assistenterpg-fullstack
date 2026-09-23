@@ -451,7 +451,14 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Dormir para recuperar o Domínio exige uma cena livre.",
   DOMINIO_EPIFANIA_JA_MANIFESTADA:
     "Este personagem já manifestou uma Epifania nesta cena.",
-  DOMINIO_EPIFANIA_NOME_INVALIDO: "Informe um nome para o Domínio Incompleto.",
+  DOMINIO_EPIFANIA_EXPANSAO_INVALIDA:
+    "A Expansao escolhida nao pertence a Tecnica Inata deste personagem.",
+  DOMINIO_EPIFANIA_PERFIL_AUSENTE:
+    "Escolha uma Expansao cadastrada ou configure o perfil da Epifania.",
+  DOMINIO_EPIFANIA_PERFIL_INVALIDO:
+    "O perfil da Epifania possui estrutura de Dominio invalida.",
+  DOMINIO_FORCAR_LIMITE_RODADA:
+    "Forcar Dominio so pode ser usado uma vez por rodada.",
   SESSAO_RECURSOS_DESATUALIZADOS:
     "Os recursos mudaram em outra tela. Sincronize a sessão e tente novamente.",
   SESSAO_LIMITE_PEEA_EXCEDIDO: "Limite de PE/EA por turno excedido.",
