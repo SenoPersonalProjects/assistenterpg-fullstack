@@ -37,9 +37,17 @@ export class TentarEpifaniaDominioSessaoDto {
   @Min(1)
   personagemSessaoId!: number;
 
+  /** Expansao completa da Tecnica Inata usada como perfil autoritativo. */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  habilidadeTecnicaId?: number;
+
+  /** Campos narrativos sao exigidos somente quando nao ha uma Expansao cadastrada. */
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  nomeDominio!: string;
+  nomeDominio?: string;
 
   @IsOptional()
   @IsString()
@@ -48,21 +56,30 @@ export class TentarEpifaniaDominioSessaoDto {
   @IsIn(ATRIBUTOS_EPIFANIA)
   atributo!: (typeof ATRIBUTOS_EPIFANIA)[number];
 
+  @IsOptional()
   @IsIn(TIPOS_DOMINIO)
-  tipo!: (typeof TIPOS_DOMINIO)[number];
+  tipo?: (typeof TIPOS_DOMINIO)[number];
 
+  @IsOptional()
   @IsInt()
   @Min(2)
   @Max(5)
-  grauBarreira!: number;
+  grauBarreira?: number;
 
+  @IsOptional()
   @IsInt()
   @Min(0)
-  custoEA!: number;
+  custoEA?: number;
 
+  @IsOptional()
   @IsInt()
   @Min(0)
-  custoPE!: number;
+  custoPE?: number;
+
+  /** Salva/atualiza o perfil narrativo da ficha quando ele for utilizado. */
+  @IsOptional()
+  @IsBoolean()
+  salvarPerfilNarrativo?: boolean;
 
   @IsOptional()
   @IsArray()

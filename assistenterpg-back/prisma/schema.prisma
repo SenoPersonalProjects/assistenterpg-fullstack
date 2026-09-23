@@ -1110,6 +1110,9 @@ model PersonagemCampanha {
   tecnicaInataPropriaId      Int?                @unique
   tecnicaInataPropria        TecnicaAmaldicoada? @relation("TecnicaInataPropriaPersonagemCampanha", fields: [tecnicaInataPropriaId], references: [id])
   tecnicaInataSincronizaBase Boolean             @default(false)
+  // Perfil persistente usado pela Epifania quando a ficha ainda nao possui
+  // uma Expansao completa catalogada. Nunca substitui uma habilidade real.
+  perfilEpifaniaDominio     Json?
 
   campanha       Campanha       @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
   personagemBase PersonagemBase @relation(fields: [personagemBaseId], references: [id], onDelete: Cascade)

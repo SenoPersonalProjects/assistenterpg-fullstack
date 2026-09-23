@@ -1123,6 +1123,7 @@ export class SessaoService {
                 esquiva: true,
                 bloqueio: true,
                 deslocamento: true,
+                perfilEpifaniaDominio: true,
                 turnosMorrendo: true, // ← adicionar
                 turnosEnlouquecendo: true, // ← adicionar
                 classe: {
@@ -2106,6 +2107,12 @@ export class SessaoService {
             : null,
           nomeJogador: personagem.personagemCampanha.dono.apelido,
           nomePersonagem: personagem.personagemCampanha.nome,
+          ...(visibilidade === 'completa'
+            ? {
+                perfilEpifaniaDominio:
+                  personagem.personagemCampanha.perfilEpifaniaDominio,
+              }
+            : {}),
           podeEditar,
           visibilidade,
           turnosMorrendo: personagem.personagemCampanha.turnosMorrendo,
@@ -15317,28 +15324,55 @@ export class SessaoService {
       'resolver Epifania de Dominio',
     );
     this.assertMestre(acesso, 'resolver Epifania de Dominio');
-    const nomeDominio = dto.nomeDominio.trim();
-    if (!nomeDominio)
-      throw new BusinessException(
-        'Informe o nome do Dominio Incompleto.',
-        'DOMINIO_EPIFANIA_NOME_INVALIDO',
-      );
     const cena = await this.obterCenaAtualSessaoTx(this.prisma, sessaoId);
-    const personagem = await this.prisma.personagemSessao.findFirst({
-      where: { id: dto.personagemSessaoId, sessaoId, cenaId: cena.id },
-      select: {
-        id: true,
-        personagemCampanhaId: true,
-        personagemCampanha: { select: { eaAtual: true, peAtual: true } },
-      },
-    });
-    if (!personagem)
-      throw new BusinessException(
-        'Personagem da Epifania nao esta na cena atual.',
-        'DOMINIO_PARTICIPANTE_INVALIDO',
-      );
-    const resultado = Math.floor(Math.random() * 20) + 1;
     await this.prisma.$transaction(async (tx) => {
+      const personagem = await tx.personagemSessao.findFirst({
+        where: { id: dto.personagemSessaoId, sessaoId, cenaId: cena.id },
+        select: {
+          id: true,
+          personagemCampanhaId: true,
+          personagemCampanha: {
+            select: {
+              eaAtual: true,
+              peAtual: true,
+              perfilEpifaniaDominio: true,
+              tecnicaInata: {
+                select: {
+                  habilidades: {
+                    select: {
+                      id: true,
+                      nome: true,
+                      descricao: true,
+                      custoEA: true,
+                      custoPE: true,
+                      mecanicasSessao: true,
+                    },
+                  },
+                },
+              },
+              tecnicaInataPropria: {
+                select: {
+                  habilidades: {
+                    select: {
+                      id: true,
+                      nome: true,
+                      descricao: true,
+                      custoEA: true,
+                      custoPE: true,
+                      mecanicasSessao: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      if (!personagem)
+        throw new BusinessException(
+          'Personagem da Epifania nao esta na cena atual.',
+          'DOMINIO_PARTICIPANTE_INVALIDO',
+        );
       const epifania = await tx.epifaniaDominioSessao.findUnique({
         where: {
           sessaoId_cenaId_personagemSessaoId: {
@@ -15353,6 +15387,16 @@ export class SessaoService {
           'Este personagem ja manifestou uma Epifania nesta cena.',
           'DOMINIO_EPIFANIA_JA_MANIFESTADA',
         );
+      const rolagem = rolarDadosServidor({
+        quantidade: 1,
+        faces: 20,
+        modificador: 0,
+        operador: '+',
+        aplicarModificadorPorDado: false,
+        keepMode: 'SUM',
+        label: 'Epifania de Dominio',
+      });
+      const resultado = calcularResultadoDiceServidor(rolagem).total;
       const dt = Math.max(1, 20 - (epifania?.tentativasFalhas ?? 0));
       const sucesso = resultado >= dt;
       if (!sucesso) {
@@ -15386,14 +15430,118 @@ export class SessaoService {
             tipoEvento: 'DOMINIO_EPIFANIA_FALHOU',
             solicitanteUsuarioId: usuarioId,
             clientRequestId: dto.clientRequestId,
-            dados: this.jsonParaPersistencia({ resultado, dt }),
+            dados: this.jsonParaPersistencia({
+              resultado,
+              dt,
+              rolagem,
+              expressao: formatarExpressaoDiceServidor(rolagem),
+            }),
           },
         });
         return;
       }
+
+      const tecnicaInataEfetiva =
+        personagem.personagemCampanha.tecnicaInataPropria ??
+        personagem.personagemCampanha.tecnicaInata;
+      const expansoesCompletas = (tecnicaInataEfetiva?.habilidades ?? []).filter(
+        (habilidade) =>
+          this.extrairRegistro(habilidade.mecanicasSessao).tipo ===
+          'EXPANSAO_DOMINIO',
+      );
+      const expansaoSelecionada = dto.habilidadeTecnicaId
+        ? expansoesCompletas.find(
+            (habilidade) => habilidade.id === dto.habilidadeTecnicaId,
+          )
+        : null;
+      if (dto.habilidadeTecnicaId && !expansaoSelecionada)
+        throw new BusinessException(
+          'A Expansao escolhida deve pertencer a Tecnica Inata efetiva do personagem.',
+          'DOMINIO_EPIFANIA_EXPANSAO_INVALIDA',
+        );
+
+      const perfilSalvo = this.extrairRegistro(
+        personagem.personagemCampanha.perfilEpifaniaDominio,
+      );
+      const mecanicaExpansao = expansaoSelecionada
+        ? this.extrairRegistro(expansaoSelecionada.mecanicasSessao)
+        : null;
+      const estruturaExpansao = mecanicaExpansao
+        ? this.extrairRegistro(mecanicaExpansao.dominio as Prisma.JsonValue)
+        : null;
+      const nomeNarrativo = dto.nomeDominio?.trim();
+      const usarPerfilSalvo =
+        !expansaoSelecionada &&
+        !nomeNarrativo &&
+        typeof perfilSalvo.nomeDominio === 'string' &&
+        typeof perfilSalvo.tipo === 'string' &&
+        typeof perfilSalvo.grauBarreira === 'number' &&
+        typeof perfilSalvo.custoEA === 'number' &&
+        typeof perfilSalvo.custoPE === 'number';
+      if (!expansaoSelecionada && !usarPerfilSalvo && !nomeNarrativo)
+        throw new BusinessException(
+          'Escolha uma Expansao cadastrada ou configure um perfil narrativo para a Epifania.',
+          'DOMINIO_EPIFANIA_PERFIL_AUSENTE',
+        );
+
+      const nomeDominio = expansaoSelecionada
+        ? expansaoSelecionada.nome
+        : usarPerfilSalvo
+          ? String(perfilSalvo.nomeDominio)
+          : nomeNarrativo!;
+      const descricao = expansaoSelecionada
+        ? expansaoSelecionada.descricao
+        : usarPerfilSalvo
+          ? typeof perfilSalvo.descricao === 'string'
+            ? perfilSalvo.descricao
+            : null
+          : dto.descricao?.trim() || null;
+      const tipo = (expansaoSelecionada
+        ? estruturaExpansao?.tipo
+        : usarPerfilSalvo
+          ? perfilSalvo.tipo
+          : dto.tipo) as string;
+      const grauBarreira = Math.trunc(
+        Number(
+          expansaoSelecionada
+            ? estruturaExpansao?.grauBarreira ?? 2
+            : usarPerfilSalvo
+              ? perfilSalvo.grauBarreira
+              : dto.grauBarreira,
+        ),
+      );
+      const custoEA = Math.max(
+        0,
+        Math.trunc(
+          Number(
+            expansaoSelecionada
+              ? expansaoSelecionada.custoEA
+              : usarPerfilSalvo
+                ? perfilSalvo.custoEA
+                : dto.custoEA,
+          ),
+        ),
+      );
+      const custoPE = Math.max(
+        0,
+        Math.trunc(
+          Number(
+            expansaoSelecionada
+              ? expansaoSelecionada.custoPE
+              : usarPerfilSalvo
+                ? perfilSalvo.custoPE
+                : dto.custoPE,
+          ),
+        ),
+      );
+      if (!['FECHADO', 'ABERTO'].includes(tipo) || grauBarreira < 2 || grauBarreira > 5)
+        throw new BusinessException(
+          'O perfil da Epifania possui estrutura de Dominio invalida.',
+          'DOMINIO_EPIFANIA_PERFIL_INVALIDO',
+        );
       if (
-        personagem.personagemCampanha.eaAtual < dto.custoEA ||
-        personagem.personagemCampanha.peAtual < dto.custoPE
+        personagem.personagemCampanha.eaAtual < custoEA ||
+        personagem.personagemCampanha.peAtual < custoPE
       )
         throw new BusinessException(
           'Recursos insuficientes para manifestar o Dominio Incompleto.',
@@ -15402,23 +15550,41 @@ export class SessaoService {
       await tx.personagemCampanha.update({
         where: { id: personagem.personagemCampanhaId },
         data: {
-          eaAtual: { decrement: dto.custoEA },
-          peAtual: { decrement: dto.custoPE },
+          eaAtual: { decrement: custoEA },
+          peAtual: { decrement: custoPE },
         },
       });
+      if (!expansaoSelecionada && dto.salvarPerfilNarrativo !== false) {
+        await tx.personagemCampanha.update({
+          where: { id: personagem.personagemCampanhaId },
+          data: {
+            perfilEpifaniaDominio: this.jsonParaPersistencia({
+              nomeDominio,
+              descricao,
+              tipo,
+              grauBarreira,
+              custoEA,
+              custoPE,
+            }),
+          },
+        });
+      }
       const integridade =
-        dto.tipo === 'FECHADO' ? 4 + Math.max(0, dto.grauBarreira - 2) : null;
+        tipo === 'FECHADO' ? 4 + Math.max(0, grauBarreira - 2) : null;
       const dominio = await tx.dominioSessao.create({
         data: {
           sessaoId,
           cenaId: cena.id,
           personagemSessaoId: personagem.id,
+          habilidadeTecnicaId: expansaoSelecionada?.id ?? null,
           nome: nomeDominio,
-          descricaoAcertoGarantido: dto.descricao?.trim() || null,
-          tipo: dto.tipo,
-          estado: 'ATIVO',
+          descricaoAcertoGarantido: descricao,
+          tipo,
+          // A Epifania abre uma janela real para contra-acao: somente FORMAR
+          // torna os bonus do Dominio Incompleto ativos.
+          estado: 'ABRINDO',
           acertoGarantidoAtivo: false,
-          grauBarreira: dto.grauBarreira,
+          grauBarreira,
           integridadeMax: integridade,
           integridadeAtual: integridade,
           incompleto: true,
@@ -15465,7 +15631,7 @@ export class SessaoService {
           sessaoId,
           cenaId: cena.id,
           personagemAtorId: personagem.id,
-          tipoEvento: 'DOMINIO_EPIFANIA_MANIFESTADA',
+          tipoEvento: 'DOMINIO_EPIFANIA_ABRINDO',
           solicitanteUsuarioId: usuarioId,
           clientRequestId: dto.clientRequestId,
           dados: this.jsonParaPersistencia({
@@ -15476,8 +15642,13 @@ export class SessaoService {
             bonusJujutsu: 5,
             bonusLuta: 5,
             bonusDadosEfeito: resultado >= dt + 10 ? 2 : 1,
-            custoEA: dto.custoEA,
-            custoPE: dto.custoPE,
+            custoEA,
+            custoPE,
+            rolagem,
+            expressao: formatarExpressaoDiceServidor(rolagem),
+            perfil: expansaoSelecionada
+              ? { origem: 'EXPANSAO_CADASTRADA', habilidadeTecnicaId: expansaoSelecionada.id }
+              : { origem: usarPerfilSalvo ? 'PERFIL_NARRATIVO_SALVO' : 'PERFIL_NARRATIVO' },
           }),
         },
       });
@@ -15492,7 +15663,7 @@ export class SessaoService {
     usuarioId: number,
     dto: AcaoDominioSessaoDto,
   ) {
-    const { acesso } = await this.obterSessaoMutavelComAcesso(
+    const { acesso, sessao } = await this.obterSessaoMutavelComAcesso(
       campanhaId,
       sessaoId,
       usuarioId,
@@ -15631,10 +15802,15 @@ export class SessaoService {
             data: { refinado: true },
           });
         if (dto.acao === 'FORCAR') {
+          if (participante.forcarNaRodada === sessao.rodadaAtual)
+            throw new BusinessException(
+              'Forcar Dominio so pode ser usado uma vez por rodada.',
+              'DOMINIO_FORCAR_LIMITE_RODADA',
+            );
           await this.cobrarPeDominioTx(tx, atual, 2);
           await tx.disputaDominioParticipante.update({
             where: { id: participante.id },
-            data: { forcarNaRodada: atual.rodadaAbertura },
+            data: { forcarNaRodada: sessao.rodadaAtual },
           });
         }
         if (dto.acao === 'PRESSIONAR') {
@@ -15744,7 +15920,7 @@ export class SessaoService {
     usuarioId: number,
     dto: ResolverDisputaDominioSessaoDto,
   ) {
-    const { acesso } = await this.obterSessaoMutavelComAcesso(
+    const { acesso, sessao } = await this.obterSessaoMutavelComAcesso(
       campanhaId,
       sessaoId,
       usuarioId,
@@ -15761,14 +15937,18 @@ export class SessaoService {
           'Disputa de Dominio nao encontrada.',
           'DOMINIO_DISPUTA_NAO_ENCONTRADA',
         );
-      const resultados = disputa.participantes.map((p) => ({
-        p,
-        valor:
-          10 +
-          (p.refinado ? 5 : 0) +
-          (p.forcarNaRodada ? 2 : 0) -
-          (p.expansaoReativa && p.primeiraResolucaoPendente ? 5 : 0),
-      }));
+      const resultados = await Promise.all(
+        disputa.participantes.map(async (p) => ({
+          p,
+          ...(await this.rolarRefinamentoDominioTx(
+            tx,
+            campanhaId,
+            sessaoId,
+            sessao.rodadaAtual,
+            p,
+          )),
+        })),
+      );
       resultados.sort((a, b) => b.valor - a.valor);
       if (
         resultados.length < 2 ||
@@ -15798,7 +15978,39 @@ export class SessaoService {
         const margem = resultados[0].valor - resultados[1].valor;
         const ganho = margem >= 11 ? 3 : margem >= 6 ? 2 : 1;
         const vencedor = resultados[0].p;
-        const dominancia = vencedor.dominancia + ganho;
+        const entradaTardia =
+          vencedor.entradaTardia && vencedor.primeiraResolucaoPendente;
+        const dominancia = entradaTardia
+          ? vencedor.dominancia
+          : vencedor.dominancia + ganho;
+        const porDominio = new Map(
+          resultados.map((item) => [item.p.dominioSessaoId, item]),
+        );
+        await Promise.all(
+          disputa.participantes
+            .filter((item) => item.pressionarDominioSessaoId)
+            .map(async (item) => {
+              const alvo = porDominio.get(item.pressionarDominioSessaoId!);
+              const pressao = porDominio.get(item.dominioSessaoId);
+              if (!alvo || !pressao || pressao.valor <= alvo.valor) return;
+              await tx.disputaDominioParticipante.update({
+                where: { id: alvo.p.id },
+                data: { dominancia: Math.max(0, alvo.p.dominancia - 1) },
+              });
+            }),
+        );
+        if (entradaTardia) {
+          await Promise.all(
+            disputa.participantes
+              .filter((item) => item.id !== vencedor.id)
+              .map((item) =>
+                tx.disputaDominioParticipante.update({
+                  where: { id: item.id },
+                  data: { dominancia: Math.max(0, item.dominancia - 1) },
+                }),
+              ),
+          );
+        }
         await tx.disputaDominioParticipante.update({
           where: { id: vencedor.id },
           data: {
@@ -15855,12 +16067,125 @@ export class SessaoService {
             resultados: resultados.map((x) => ({
               dominioId: x.p.dominioSessaoId,
               refinamento: x.valor,
+              rolagem: x.rolagem,
+              expressao: x.expressao,
+              ajustes: x.ajustes,
             })),
           }),
         },
       });
     });
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  /** Resolve o teste completo, preservando dados e penalidades auditaveis. */
+  private async rolarRefinamentoDominioTx(
+    tx: Prisma.TransactionClient,
+    campanhaId: number,
+    sessaoId: number,
+    rodadaAtual: number,
+    participante: {
+      dominioSessaoId: number;
+      refinado: boolean;
+      forcarNaRodada: number | null;
+      expansaoReativa: boolean;
+      primeiraResolucaoPendente: boolean;
+      dominio: {
+        personagemSessaoId: number | null;
+        npcSessaoId: number | null;
+        incompleto: boolean;
+      };
+    },
+  ) {
+    const ajustes: string[] = [];
+    let dadosExtra = 0;
+    let bonus = 0;
+    if (participante.refinado) {
+      dadosExtra += 1;
+      bonus += 5;
+      ajustes.push('Refinar Dominio: +1d20 e +5');
+    }
+    if (participante.forcarNaRodada === rodadaAtual) {
+      dadosExtra += 1;
+      ajustes.push('Forcar Dominio: +1d20');
+    }
+    if (participante.expansaoReativa && participante.primeiraResolucaoPendente) {
+      dadosExtra -= 1;
+      bonus -= 5;
+      ajustes.push('Expansao reativa: -1d20 e -5');
+    }
+    if (participante.dominio.incompleto) {
+      // Regra literal: Dominio Incompleto sofre -2d20 no Refinamento.
+      dadosExtra -= 2;
+      ajustes.push('Dominio Incompleto: -2d20');
+    }
+
+    if (participante.dominio.personagemSessaoId) {
+      const pericia = await this.resolverPericiaAutoritativaTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        participante.dominio.personagemSessaoId,
+        'JUJUTSU',
+      );
+      const sobrecarga = await tx.condicaoPersonagemSessao.findFirst({
+        where: {
+          sessaoId,
+          personagemSessaoId: participante.dominio.personagemSessaoId,
+          ativo: true,
+          condicao: { codigo: CODIGO_CONDICAO_SOBRECARGA_NEURAL },
+        },
+        select: { acumulos: true },
+      });
+      const penalidadeSobrecarga = Math.max(0, (sobrecarga?.acumulos ?? 0) - 1);
+      if (penalidadeSobrecarga) {
+        dadosExtra -= penalidadeSobrecarga;
+        ajustes.push(`Sobrecarga Neural: -${penalidadeSobrecarga}d20`);
+      }
+      const rolagem = rolarDadosServidor({
+        quantidade: Math.max(1, pericia.quantidadeDados + dadosExtra),
+        faces: 20,
+        modificador: pericia.bonusTotal + bonus,
+        operador: '+',
+        aplicarModificadorPorDado: false,
+        keepMode: pericia.keepMode,
+        label: 'Refinamento de Dominio',
+      });
+      return {
+      valor: calcularResultadoDiceServidor(rolagem).total,
+        rolagem,
+        expressao: formatarExpressaoDiceServidor(rolagem),
+        ajustes,
+      };
+    }
+
+    const npc = participante.dominio.npcSessaoId
+      ? await tx.npcAmeacaSessao.findUnique({
+          where: { id: participante.dominio.npcSessaoId },
+          select: {
+            jujutsu: true,
+            npcAmeaca: { select: { jujutsuDados: true } },
+          },
+        })
+      : null;
+    const rolagem = rolarDadosServidor({
+      quantidade: Math.max(
+        1,
+        (npc?.npcAmeaca?.jujutsuDados ?? 1) + dadosExtra,
+      ),
+      faces: 20,
+      modificador: (npc?.jujutsu ?? 0) + bonus,
+      operador: '+',
+      aplicarModificadorPorDado: false,
+      keepMode: 'HIGHEST',
+      label: 'Refinamento de Dominio (NPC)',
+    });
+    return {
+      valor: calcularResultadoDiceServidor(rolagem).total,
+      rolagem,
+      expressao: formatarExpressaoDiceServidor(rolagem),
+      ajustes,
+    };
   }
 
   async criarDefesaAntiDominioSessao(
