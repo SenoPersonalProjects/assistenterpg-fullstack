@@ -48,7 +48,9 @@ export class HealthService {
       this.prisma.registroBackupOperacional.findFirst({
         orderBy: { executadoEm: 'desc' },
       }),
-      this.prisma.$queryRaw<Array<{ migration_name: string; finished_at: Date | null }>>`
+      this.prisma.$queryRaw<
+        Array<{ migration_name: string; finished_at: Date | null }>
+      >`
         SELECT migration_name, finished_at
         FROM _prisma_migrations
         ORDER BY finished_at DESC
@@ -88,7 +90,11 @@ export class HealthService {
     dto: RegistrarBackupOperacionalDto,
   ) {
     const tokenEsperado = process.env.BACKUP_STATUS_TOKEN;
-    if (!tokenEsperado || !tokenRecebido || !this.tokensIguais(tokenEsperado, tokenRecebido)) {
+    if (
+      !tokenEsperado ||
+      !tokenRecebido ||
+      !this.tokensIguais(tokenEsperado, tokenRecebido)
+    ) {
       throw new UnauthorizedException({
         code: 'BACKUP_STATUS_TOKEN_INVALIDO',
         message: 'Token de registro de backup inválido.',

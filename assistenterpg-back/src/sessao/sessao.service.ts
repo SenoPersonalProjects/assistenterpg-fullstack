@@ -8632,8 +8632,7 @@ export class SessaoService {
                   requerConcentracao: true,
                   NOT: {
                     habilidadeTecnicaId: habilidade.id,
-                    variacaoHabilidadeId:
-                      custo.variacaoHabilidadeId ?? null,
+                    variacaoHabilidadeId: custo.variacaoHabilidadeId ?? null,
                   },
                 },
                 select: { id: true, nomeHabilidade: true, nomeVariacao: true },
@@ -15595,8 +15594,11 @@ export class SessaoService {
     );
     this.assertMestre(acesso, 'criar barreira narrativa');
     const cena = await this.obterCenaAtualSessaoTx(this.prisma, sessaoId);
-    const regras = [...new Set((dto.regras ?? []).map((regra) => regra.trim()).filter(Boolean))]
-      .slice(0, 12);
+    const regras = [
+      ...new Set(
+        (dto.regras ?? []).map((regra) => regra.trim()).filter(Boolean),
+      ),
+    ].slice(0, 12);
     const nome = dto.nome.trim();
     if (!nome) {
       throw new BusinessException(
@@ -17552,10 +17554,11 @@ export class SessaoService {
     const mecanica = this.extrairRegistro(custo.mecanicasSessao);
     if (mecanica.tipo === 'EXPANSAO_DOMINIO') return true;
     if (mecanica.tipo === 'DEFESA_ANTI_DOMINIO') {
-      const defesa = this.extrairRegistro(
-        mecanica.defesa as Prisma.JsonValue,
+      const defesa = this.extrairRegistro(mecanica.defesa as Prisma.JsonValue);
+      return (
+        defesa.tipo === 'DOMINIO_SIMPLES' ||
+        mecanica.requerConcentracao === true
       );
-      return defesa.tipo === 'DOMINIO_SIMPLES' || mecanica.requerConcentracao === true;
     }
     return mecanica.requerConcentracao === true;
   }
@@ -17564,7 +17567,12 @@ export class SessaoService {
     ajustes: UsarHabilidadeSessaoDto['ajustesRitualisticos'],
     grauTecnica: number,
   ): {
-    ajustes: Array<{ tipo: string; efeito: string; pontos: number; descricao: string | null }>;
+    ajustes: Array<{
+      tipo: string;
+      efeito: string;
+      pontos: number;
+      descricao: string | null;
+    }>;
     custoEAAdicional: number;
     requerResolucaoNarrativa: boolean;
   } {

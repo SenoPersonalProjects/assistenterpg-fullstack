@@ -6010,18 +6010,17 @@ describe('SessaoService', () => {
   });
   describe('Ajustes Ritualisticos', () => {
     it('limita ajustes simultaneos ao grau da Tecnica e calcula custo de EA', () => {
-      const resolver = (service as unknown as {
-        resolverAjustesRitualisticos: (
-          ajustes: unknown,
-          grau: number,
-        ) => { custoEAAdicional: number; requerResolucaoNarrativa: boolean };
-      }).resolverAjustesRitualisticos.bind(service);
+      const resolver = (
+        service as unknown as {
+          resolverAjustesRitualisticos: (
+            ajustes: unknown,
+            grau: number,
+          ) => { custoEAAdicional: number; requerResolucaoNarrativa: boolean };
+        }
+      ).resolverAjustesRitualisticos.bind(service);
 
       expect(
-        resolver(
-          [{ tipo: 'SUBTRACAO', efeito: 'CUSTO_EA', pontos: 2 }],
-          1,
-        ),
+        resolver([{ tipo: 'SUBTRACAO', efeito: 'CUSTO_EA', pontos: 2 }], 1),
       ).toEqual(
         expect.objectContaining({
           custoEAAdicional: 4,
