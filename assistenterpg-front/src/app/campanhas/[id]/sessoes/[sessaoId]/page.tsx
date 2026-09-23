@@ -4270,6 +4270,18 @@ export default function SessaoCampanhaPage() {
                           custoPE: habilidade.custoPE,
                         })),
                     }))}
+                    alvos={[
+                      ...detalhe.cards.map((card) => ({
+                        id: card.personagemSessaoId,
+                        nome: card.nomePersonagem,
+                        tipo: "PERSONAGEM" as const,
+                      })),
+                      ...npcs.map((npc) => ({
+                        id: npc.npcSessaoId,
+                        nome: npc.nome,
+                        tipo: "NPC" as const,
+                      })),
+                    ]}
                     onAtualizar={setDetalhe}
                   />
 

@@ -3394,6 +3394,11 @@ describe('SessaoService', () => {
         }),
       ]),
     };
+    (prisma as any).npcAmeacaSessao = {
+      findMany: jest
+        .fn()
+        .mockResolvedValue([{ id: 601, nomeExibicao: 'Ameaca oculta' }]),
+    };
 
     const eventos = await service.listarEventosSessao(7, 21, 10, {
       limit: 80,
@@ -3401,6 +3406,10 @@ describe('SessaoService', () => {
 
     expect(eventos).toHaveLength(1);
     expect(eventos[0].descricao).toContain('Ameaca oculta');
+    expect(eventos[0].contexto).toMatchObject({
+      categoria: 'OUTRO',
+      npcs: [{ id: 601, nome: 'Ameaca oculta' }],
+    });
   });
 
   it('não oferece desfazer evento na timeline de sessão encerrada', async () => {

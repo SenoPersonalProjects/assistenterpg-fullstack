@@ -443,8 +443,12 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Uma disputa exige ao menos dois Domínios distintos.",
   DOMINIO_DISPUTA_DOMINIO_INVALIDO:
     "Todos os Domínios devem estar ativos na cena atual.",
+  DOMINIO_DISPUTA_DOMINIO_JA_ENVOLVIDO:
+    "Um dos Domínios selecionados já participa de uma disputa ativa.",
   DOMINIO_PRESSAO_ALVO_INVALIDO:
     "Escolha outro Domínio válido para pressionar.",
+  DOMINIO_PRESSAO_ALVO_FORA_DISPUTA:
+    "O Domínio pressionado deve pertencer à mesma disputa ativa.",
   DOMINIO_DEFESA_PARTICIPANTE_INVALIDO:
     "Escolha exatamente um participante para a defesa.",
   DOMINIO_INTERLUDIO_INDISPONIVEL:

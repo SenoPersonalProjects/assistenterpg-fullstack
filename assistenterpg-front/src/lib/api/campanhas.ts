@@ -87,6 +87,13 @@ export type AcaoDominioSessaoPayload = {
   motivo?: string;
 };
 
+export type CriarDisputaDominioSessaoPayload = {
+  clientRequestId: string;
+  dominioIds: number[];
+  alvosPersonagemSessaoIds?: number[];
+  alvosNpcSessaoIds?: number[];
+};
+
 export type TentarEpifaniaDominioSessaoPayload = {
   clientRequestId: string;
   personagemSessaoId: number;
@@ -1218,6 +1225,31 @@ export async function apiExecutarAcaoDominioSessaoCampanha(
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/dominios/${dominioId}/acoes`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiCriarDisputaDominioSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: CriarDisputaDominioSessaoPayload,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/disputas-dominios`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiResolverDisputaDominioSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  disputaId: number,
+  payload: { clientRequestId: string },
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/disputas-dominios/${disputaId}/resolver`,
     payload,
   );
   return data;

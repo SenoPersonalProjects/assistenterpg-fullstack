@@ -74,6 +74,21 @@ export function EventoDetalheModal({
             ) : null}
           </div>
 
+          {evento.contexto?.categoria === 'DOMINIO' ? (
+            <div className="rounded border border-app-secondary/40 bg-app-secondary/10 p-3 space-y-2">
+              <p className="text-xs font-semibold text-app-fg">Linha do tempo de Domínios</p>
+              {evento.contexto.dominios.length ? (
+                <p className="text-xs text-app-muted">Domínio: {evento.contexto.dominios.map((item) => item.nome).join(' · ')}</p>
+              ) : null}
+              {evento.contexto.personagens.length ? (
+                <p className="text-xs text-app-muted">Personagem: {evento.contexto.personagens.map((item) => item.nome).join(' · ')}</p>
+              ) : null}
+              {evento.contexto.npcs.length ? (
+                <p className="text-xs text-app-muted">NPC: {evento.contexto.npcs.map((item) => item.nome).join(' · ')}</p>
+              ) : null}
+            </div>
+          ) : null}
+
           {podeDesfazer ? (
             <div className="rounded border border-app-border bg-app-bg p-3 space-y-2">
               <p className="text-xs font-semibold text-app-fg">Desfazer evento</p>

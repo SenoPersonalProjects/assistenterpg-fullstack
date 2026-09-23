@@ -10,6 +10,9 @@ Status: Em validação
 - [x] Disputa com Dominância e registro de eventos.
 - [x] Cesta Oca, Domínio Simples e Amplificação como estados persistentes.
 - [x] Painel inicial de Domínios e barreiras na sessão.
+- [x] Fluxo guiado de criação de disputa, com participantes/alvos selecionados por nome e explicação de Dominância.
+- [x] Linha do tempo de Domínios no histórico do mestre, com contexto, filtros e detalhes estruturados.
+- [x] Avisos operacionais de abertura interrompível, Instabilidade, barreira e neutralização de Acerto Garantido.
 - [x] Gatilho auditável de Acerto Garantido no início do turno, sem impor dano de técnica customizada.
 - [ ] Testes unitários e bateria manual da sessão.
 - [x] Migration aplicada no TiDB de teste e seed `tecnicas-nao-inatas` validado remotamente.
@@ -52,3 +55,21 @@ O núcleo foi publicado no commit `53fba4b`. Antes de encerrar o lote, concluir 
 - [ ] Registrar Ruptura, Reforçar e Reconfigurar uma barreira fechada; confirmar que Domínio aberto não aceita Integridade.
 - [ ] Ativar Cesta Oca, Domínio Simples e Amplificação; verificar recursos, substituição da defesa e permissão de mestre/controlador/terceiro.
 - [ ] Repetir uma ação com a mesma requisição no navegador/rede e confirmar que o histórico e os recursos não são duplicados.
+
+## UX operacional de Domínios — 2026-09-23
+
+- [x] O mestre cria disputa sem IDs: escolhe dois ou mais Domínios ativos e,
+  opcionalmente, os personagens/NPCs na região de colisão.
+- [x] A tela explica a Dominância (0 inicial, margem de +1 a +3, vitória em
+  3, no máximo três resoluções e colapso no empate final).
+- [x] O servidor impede que um Domínio ativo entre em duas disputas e impede
+  Pressionar um Domínio que não pertence à mesma disputa.
+- [x] Cartões exibem abertura interrompível, Instabilidade, estado de barreira
+  e neutralização do Acerto Garantido, com origem por disputa ou defesa.
+- [x] A Timeline do mestre destaca eventos de Domínio e permite filtrar por
+  personagem, NPC, Domínio e categoria de evento, sem expor contexto extra a
+  jogadores.
+- [x] Todo encerramento ou colapso registra o motivo explícito no histórico,
+  inclusive interrupção, ruptura e empate final.
+- [ ] Validar manualmente no navegador a seleção de alvos, Pressionar,
+  Registro de Ruptura e os filtros combinados durante uma sessão real.

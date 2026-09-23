@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { SessionPanel } from "@/components/campanha/sessao/SessionPanel";
+import { CriarDisputaDominioModal } from "@/components/campanha/sessao/modals/CriarDisputaDominioModal";
 import {
+  apiCriarDisputaDominioSessaoCampanha,
   apiExecutarAcaoDominioSessaoCampanha,
+  apiResolverDisputaDominioSessaoCampanha,
   apiTentarEpifaniaDominioSessaoCampanha,
 } from "@/lib/api/campanhas";
 import type { SessaoCampanhaDetalhe } from "@/lib/types";
@@ -28,6 +34,11 @@ type Props = {
       custoPE: number;
     }>;
   }>;
+  alvos?: Array<{
+    id: number;
+    nome: string;
+    tipo: "PERSONAGEM" | "NPC";
+  }>;
   onAtualizar: (detalhe: SessaoCampanhaDetalhe) => void;
 };
 
@@ -46,6 +57,7 @@ export function SessionDomainsPanel({
   sessaoEncerrada,
   ehMestre,
   personagens = [],
+  alvos = [],
   onAtualizar,
 }: Props) {
   const [pendente, setPendente] = useState<number | null>(null);
@@ -64,6 +76,14 @@ export function SessionDomainsPanel({
   const [grauBarreiraEpifania, setGrauBarreiraEpifania] = useState("2");
   const [custoEaEpifania, setCustoEaEpifania] = useState("0");
   const [custoPeEpifania, setCustoPeEpifania] = useState("0");
+  const [disputaAberta, setDisputaAberta] = useState(false);
+  const [disputaInstancia, setDisputaInstancia] = useState(0);
+  const [criandoDisputa, setCriandoDisputa] = useState(false);
+  const [dominioPressaoId, setDominioPressaoId] = useState<number | null>(null);
+  const [dominioRupturaId, setDominioRupturaId] = useState<number | null>(null);
+  const [resultadoRuptura, setResultadoRuptura] = useState("");
+  const [potenciaRuptura, setPotenciaRuptura] = useState<"NORMAL" | "POTENCIALIZADO" | "EXCEPCIONAL">("NORMAL");
+  const [golpeConcentrado, setGolpeConcentrado] = useState(false);
   const personagemSelecionado = personagens.find(
     (personagem) => personagem.id === Number(personagemEpifaniaId),
   );
@@ -76,9 +96,47 @@ export function SessionDomainsPanel({
   );
   const usarPerfilNarrativo =
     possuiPerfilNarrativo && !editarPerfilNarrativo && !expansaoSelecionada;
+  const dominiosAtivos = useMemo(
+    () => dominios.filter((dominio) => dominio.estado === "ATIVO"),
+    [dominios],
+  );
+  const dominiosDisponiveisParaDisputa = useMemo(
+    () =>
+      dominiosAtivos.filter(
+        (dominio) =>
+          !dominio.disputas.some((disputa) => disputa.estado === "ATIVA"),
+      ),
+    [dominiosAtivos],
+  );
+  const disputasAtivas = useMemo(() => {
+    const porId = new Map<
+      number,
+      { id: number; resolucoesConcluidas: number; rodadaProximaResolucao: number; dominios: string[] }
+    >();
+    dominios.forEach((dominio) =>
+      dominio.disputas
+        .filter((disputa) => disputa.estado === "ATIVA")
+        .forEach((disputa) => {
+          const atual = porId.get(disputa.id);
+          if (atual) {
+            atual.dominios.push(dominio.nome);
+            return;
+          }
+          porId.set(disputa.id, {
+            id: disputa.id,
+            resolucoesConcluidas: disputa.resolucoesConcluidas,
+            rodadaProximaResolucao: disputa.rodadaProximaResolucao,
+            dominios: [dominio.nome],
+          });
+        }),
+    );
+    return [...porId.values()];
+  }, [dominios]);
+
   async function executar(
     dominioId: number,
     acao: Parameters<typeof apiExecutarAcaoDominioSessaoCampanha>[3]["acao"],
+    detalhes: Partial<Parameters<typeof apiExecutarAcaoDominioSessaoCampanha>[3]> = {},
   ) {
     setErro(null);
     setPendente(dominioId);
@@ -88,7 +146,7 @@ export function SessionDomainsPanel({
           campanhaId,
           sessaoId,
           dominioId,
-          { clientRequestId: crypto.randomUUID(), acao },
+          { clientRequestId: crypto.randomUUID(), acao, ...detalhes },
         ),
       );
     } catch (error) {
@@ -100,6 +158,72 @@ export function SessionDomainsPanel({
     } finally {
       setPendente(null);
     }
+  }
+
+  async function criarDisputa(dados: {
+    dominioIds: number[];
+    alvosPersonagemSessaoIds: number[];
+    alvosNpcSessaoIds: number[];
+  }) {
+    setErro(null);
+    setCriandoDisputa(true);
+    try {
+      onAtualizar(
+        await apiCriarDisputaDominioSessaoCampanha(campanhaId, sessaoId, {
+          clientRequestId: crypto.randomUUID(),
+          ...dados,
+        }),
+      );
+      setDisputaAberta(false);
+    } catch (error) {
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível criar a disputa de Domínios.",
+      );
+    } finally {
+      setCriandoDisputa(false);
+    }
+  }
+
+  async function resolverDisputa(disputaId: number) {
+    setErro(null);
+    setPendente(-disputaId);
+    try {
+      onAtualizar(
+        await apiResolverDisputaDominioSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          disputaId,
+          { clientRequestId: crypto.randomUUID() },
+        ),
+      );
+    } catch (error) {
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível resolver o Refinamento da disputa.",
+      );
+    } finally {
+      setPendente(null);
+    }
+  }
+
+  async function registrarRuptura() {
+    const resultadoAtaque = Number(resultadoRuptura);
+    if (!dominioRupturaId || !Number.isInteger(resultadoAtaque) || resultadoAtaque < 1) {
+      setErro("Informe o resultado inteiro do ataque que superou a DT estrutural.");
+      return;
+    }
+    await executar(dominioRupturaId, "REGISTRAR_RUPTURA", {
+      resultadoAtaque,
+      potenciaRuptura,
+      golpeConcentrado,
+    });
+    setDominioRupturaId(null);
+    setResultadoRuptura("");
+    setPotenciaRuptura("NORMAL");
+    setGolpeConcentrado(false);
   }
   async function tentarEpifania() {
     const personagemSessaoId = Number(personagemEpifaniaId);
@@ -176,6 +300,45 @@ export function SessionDomainsPanel({
       collapseLabel="Domínios e barreiras"
     >
       {erro ? <ErrorAlert message={erro} /> : null}
+      {ehMestre ? (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-app-secondary/30 bg-app-secondary/10 p-3">
+          <div>
+            <p className="text-sm font-semibold text-app-fg">Disputa de Domínios</p>
+            <p className="text-xs text-app-muted">Selecione Domínios e os alvos na região de colisão sem precisar informar IDs.</p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              setDisputaInstancia((atual) => atual + 1);
+              setDisputaAberta(true);
+            }}
+            disabled={sessaoEncerrada || dominiosDisponiveisParaDisputa.length < 2}
+          >
+            Criar disputa
+          </Button>
+        </div>
+      ) : null}
+      {ehMestre && disputasAtivas.length ? (
+        <div className="mb-3 space-y-2 rounded-xl border border-app-secondary/30 bg-app-secondary/10 p-3">
+          <p className="text-sm font-semibold text-app-fg">Disputas ativas</p>
+          {disputasAtivas.map((disputa) => (
+            <div key={disputa.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-app-border bg-app-base/40 p-2">
+              <p className="text-xs text-app-muted">
+                {disputa.dominios.join(" × ")} · resolução {disputa.resolucoesConcluidas + 1} · próxima na rodada {disputa.rodadaProximaResolucao}
+              </p>
+              <Button
+                type="button"
+                size="xs"
+                onClick={() => void resolverDisputa(disputa.id)}
+                disabled={sessaoEncerrada || pendente !== null}
+              >
+                {pendente === -disputa.id ? "Resolvendo..." : "Resolver Refinamento"}
+              </Button>
+            </div>
+          ))}
+        </div>
+      ) : null}
       {ehMestre ? (
         <div className="mb-3 rounded-xl border border-app-border bg-app-base/40 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -372,10 +535,20 @@ export function SessionDomainsPanel({
                     · {dominio.incompleto ? "Incompleto" : dominio.estado}
                   </p>
                 </div>
-                <span className="rounded-full bg-app-secondary/15 px-2 py-1 text-xs font-semibold text-app-secondary">
-                  {estadoBarreiraLabel[dominio.estadoBarreira] ??
-                    dominio.estadoBarreira}
-                </span>
+                <div className="flex flex-wrap justify-end gap-1">
+                  <Badge color="purple" size="sm">
+                    {estadoBarreiraLabel[dominio.estadoBarreira] ?? dominio.estadoBarreira}
+                  </Badge>
+                  {dominio.estado === "ABRINDO" ? (
+                    <Badge color="yellow" size="sm" title="O mestre pode formar ou interromper a abertura.">
+                      Abrindo · interrompível
+                    </Badge>
+                  ) : null}
+                  {dominio.instavel ? <Badge color="red" size="sm">Instável</Badge> : null}
+                  {dominio.acertoGarantidoNeutralizado ? (
+                    <Badge color="cyan" size="sm">Acerto Garantido neutralizado</Badge>
+                  ) : null}
+                </div>
               </div>
               {dominio.integridadeMax !== null ? (
                 <p className="mt-2 text-xs text-app-muted">
@@ -390,6 +563,11 @@ export function SessionDomainsPanel({
                   resolução {disputa.resolucoesConcluidas + 1}.
                 </p>
               ))}
+              {dominio.acertoGarantidoNeutralizado ? (
+                <p className="mt-2 text-xs text-app-info">
+                  Acerto Garantido neutralizado: {(dominio.motivosNeutralizacaoAcertoGarantido ?? []).join(" · ") || "há uma proteção ou disputa ativa para o alvo."}
+                </p>
+              ) : null}
               {dominio.acertoGarantido ? (
                 <p className="mt-2 text-xs text-app-muted">
                   Acerto garantido: {dominio.acertoGarantido}
@@ -425,22 +603,44 @@ export function SessionDomainsPanel({
                   ) : null}
                   {dominio.estado === "ATIVO" ? (
                     <>
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        onClick={() => void executar(dominio.id, "REFINAR")}
-                        disabled={pendente === dominio.id}
-                      >
-                        Refinar
-                      </Button>
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        onClick={() => void executar(dominio.id, "FORCAR")}
-                        disabled={pendente === dominio.id}
-                      >
-                        Forçar
-                      </Button>
+                      {dominio.disputas.some((disputa) => disputa.estado === "ATIVA") ? (
+                        <>
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            onClick={() => void executar(dominio.id, "REFINAR")}
+                            disabled={pendente === dominio.id}
+                          >
+                            Refinar
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            onClick={() => void executar(dominio.id, "FORCAR")}
+                            disabled={pendente === dominio.id}
+                          >
+                            Forçar
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            onClick={() => setDominioPressaoId(dominio.id)}
+                            disabled={pendente === dominio.id}
+                          >
+                            Pressionar
+                          </Button>
+                        </>
+                      ) : null}
+                      {dominio.instavel ? (
+                        <Button
+                          size="xs"
+                          variant="secondary"
+                          onClick={() => void executar(dominio.id, "ESTABILIZAR")}
+                          disabled={pendente === dominio.id}
+                        >
+                          Estabilizar
+                        </Button>
+                      ) : null}
                       {dominio.tipo === "FECHADO" ? (
                         <>
                           <Button
@@ -463,6 +663,16 @@ export function SessionDomainsPanel({
                           >
                             Reconfigurar
                           </Button>
+                          {ehMestre ? (
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              onClick={() => setDominioRupturaId(dominio.id)}
+                              disabled={pendente === dominio.id}
+                            >
+                              Registrar Ruptura
+                            </Button>
+                          ) : null}
                         </>
                       ) : null}
                       <Button
@@ -481,6 +691,90 @@ export function SessionDomainsPanel({
           ))}
         </div>
       )}
+      <CriarDisputaDominioModal
+        key={disputaInstancia}
+        isOpen={disputaAberta}
+        dominios={dominiosAtivos}
+        alvos={alvos}
+        enviando={criandoDisputa}
+        erro={erro}
+        onClose={() => setDisputaAberta(false)}
+        onConfirmar={(dados) => void criarDisputa(dados)}
+      />
+      <Modal
+        isOpen={dominioRupturaId !== null}
+        onClose={() => setDominioRupturaId(null)}
+        title="Registrar Ruptura na barreira"
+        size="md"
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={() => setDominioRupturaId(null)} disabled={pendente !== null}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={() => void registrarRuptura()} disabled={pendente !== null}>
+              Registrar
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-app-muted">Informe apenas um ataque já resolvido que superou a DT estrutural exibida no cartão. O servidor confirma a DT e calcula as Rupturas.</p>
+          <Input
+            label="Resultado do ataque"
+            type="number"
+            min="1"
+            step="1"
+            value={resultadoRuptura}
+            onChange={(event) => setResultadoRuptura(event.target.value)}
+          />
+          <label className="block text-sm text-app-fg">
+            Potência do ataque
+            <select
+              className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg"
+              value={potenciaRuptura}
+              onChange={(event) => setPotenciaRuptura(event.target.value as typeof potenciaRuptura)}
+            >
+              <option value="NORMAL">Normal (1 Ruptura)</option>
+              <option value="POTENCIALIZADO">Potencializado (2 Rupturas)</option>
+              <option value="EXCEPCIONAL">Excepcional (3 Rupturas)</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm text-app-fg">
+            <input type="checkbox" checked={golpeConcentrado} onChange={(event) => setGolpeConcentrado(event.target.checked)} />
+            Golpe Concentrado (+1 Ruptura, máximo 3)
+          </label>
+        </div>
+      </Modal>
+      <Modal
+        isOpen={dominioPressaoId !== null}
+        onClose={() => setDominioPressaoId(null)}
+        title="Pressionar Domínio"
+        size="md"
+        footer={<Button type="button" variant="ghost" onClick={() => setDominioPressaoId(null)}>Cancelar</Button>}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-app-muted">Escolha o Domínio adversário. A pressão só reduz a Dominância se seu Refinamento superar o alvo na próxima resolução.</p>
+          <div className="grid gap-2">
+            {dominiosAtivos.filter((dominio) => dominio.id !== dominioPressaoId).map((dominio) => (
+              <Button
+                key={dominio.id}
+                type="button"
+                variant="secondary"
+                className="justify-start"
+                disabled={pendente !== null}
+                onClick={() => {
+                  if (dominioPressaoId !== null) {
+                    void executar(dominioPressaoId, "PRESSIONAR", { dominioAlvoId: dominio.id });
+                  }
+                  setDominioPressaoId(null);
+                }}
+              >
+                {dominio.nome} · {dominio.participante.nome}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </Modal>
     </SessionPanel>
   );
 }

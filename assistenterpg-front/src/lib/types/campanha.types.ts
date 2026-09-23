@@ -1083,6 +1083,8 @@ export type SessaoCampanhaDetalhe = {
     };
     podeControlar: boolean;
     acertoGarantido: string | null;
+    acertoGarantidoNeutralizado?: boolean;
+    motivosNeutralizacaoAcertoGarantido?: string[];
     alvos: Array<{
       personagemSessaoId: number | null;
       npcSessaoId: number | null;
@@ -1383,6 +1385,12 @@ export type EventoSessaoTimeline = {
     apelido: string;
     personagemNome: string | null;
   } | null;
+  contexto?: {
+    categoria: "DOMINIO" | "RECURSO" | "CONDICAO" | "CENA" | "ROLAGEM" | "OUTRO";
+    dominios: Array<{ id: number; nome: string }>;
+    personagens: Array<{ id: number; nome: string }>;
+    npcs: Array<{ id: number; nome: string }>;
+  };
 };
 
 export type SessaoRelatorioContadores = {

@@ -467,6 +467,14 @@ type EventoSessaoMapeado = {
     apelido: string;
     personagemNome: string | null;
   } | null;
+  contexto: EventoSessaoContextoMapeado;
+};
+
+type EventoSessaoContextoMapeado = {
+  categoria: 'DOMINIO' | 'RECURSO' | 'CONDICAO' | 'CENA' | 'ROLAGEM' | 'OUTRO';
+  dominios: Array<{ id: number; nome: string }>;
+  personagens: Array<{ id: number; nome: string }>;
+  npcs: Array<{ id: number; nome: string }>;
 };
 
 type TipoParticipanteIniciativa = 'PERSONAGEM' | 'NPC';
@@ -1807,18 +1815,58 @@ export class SessaoService {
                 estado: true,
                 resolucoesConcluidas: true,
                 rodadaProximaResolucao: true,
+                alvos: {
+                  select: { personagemSessaoId: true, npcSessaoId: true },
+                },
               },
             },
           },
         },
       },
     });
+    const defesasAntiDominioAtivas =
+      await this.prisma.defesaAntiDominioSessao.findMany({
+        where: {
+          sessaoId,
+          cenaId: cenaAtualId,
+          ativa: true,
+          tipo: { in: ['CESTA_OCA', 'DOMINIO_SIMPLES'] },
+          OR: [{ integridadeAtual: null }, { integridadeAtual: { gt: 0 } }],
+        },
+        select: { tipo: true, personagemSessaoId: true, npcSessaoId: true },
+      });
     const dominios = dominiosAtivos.map((dominio) => {
       const podeControlar =
         acesso.ehMestre ||
         dominio.personagemSessao?.controladorUsuarioId === usuarioId ||
         dominio.personagemSessao?.personagemCampanha.donoId === usuarioId ||
         dominio.npcSessao?.controladorUsuarioId === usuarioId;
+      const alvosDominio = dominio.alvos;
+      const disputasAtivas = dominio.participacoesDisputa.filter(
+        (participacao) => participacao.disputa.estado === 'ATIVA',
+      );
+      const motivosNeutralizacao = new Set<string>();
+      for (const disputa of disputasAtivas) {
+        const possuiAlvoNeutralizado = disputa.disputa.alvos.some((alvo) =>
+          alvosDominio.some(
+            (alvoDominio) =>
+              alvoDominio.personagemSessaoId === alvo.personagemSessaoId &&
+              alvoDominio.npcSessaoId === alvo.npcSessaoId,
+          ),
+        );
+        if (possuiAlvoNeutralizado) {
+          motivosNeutralizacao.add(`Disputa #${disputa.disputa.id}`);
+        }
+      }
+      for (const defesa of defesasAntiDominioAtivas) {
+        const protegeAlvo = alvosDominio.some(
+          (alvo) =>
+            alvo.personagemSessaoId === defesa.personagemSessaoId &&
+            alvo.npcSessaoId === defesa.npcSessaoId,
+        );
+        if (protegeAlvo)
+          motivosNeutralizacao.add(defesa.tipo.replace('_', ' '));
+      }
       return {
         id: dominio.id,
         nome: dominio.nome,
@@ -1861,6 +1909,8 @@ export class SessaoService {
           podeControlar || acesso.ehMestre
             ? dominio.descricaoAcertoGarantido
             : null,
+        acertoGarantidoNeutralizado: motivosNeutralizacao.size > 0,
+        motivosNeutralizacaoAcertoGarantido: [...motivosNeutralizacao],
         alvos: dominio.alvos,
         disputas: dominio.participacoesDisputa.map((participacao) => ({
           id: participacao.disputa.id,
@@ -5707,10 +5757,17 @@ export class SessaoService {
           )
         : null;
 
+    // O contexto detalhado é uma ferramenta operacional do mestre. Além de
+    // manter a Timeline privada, isso evita resolver nomes de NPCs ocultos a
+    // partir de referências históricas indiretas (por exemplo, um domínio).
+    const contextos = acesso.ehMestre
+      ? await this.mapearContextosEventosSessao(eventosVisiveis, sessaoId)
+      : new Map<number, EventoSessaoContextoMapeado>();
     return eventosVisiveis.map((evento) =>
       this.mapearEventoSessao(
         evento,
         acesso.ehMestre && evento.id === ultimoEventoReversivel?.id,
+        contextos.get(evento.id),
       ),
     );
   }
@@ -15834,6 +15891,18 @@ export class SessaoService {
               'Escolha outro Dominio para pressionar.',
               'DOMINIO_PRESSAO_ALVO_INVALIDO',
             );
+          const alvoNaDisputa = await tx.disputaDominioParticipante.findFirst({
+            where: {
+              disputaDominioSessaoId: participante.disputaDominioSessaoId,
+              dominioSessaoId: dto.dominioAlvoId,
+            },
+            select: { id: true },
+          });
+          if (!alvoNaDisputa)
+            throw new BusinessException(
+              'O Domínio pressionado deve participar da mesma disputa ativa.',
+              'DOMINIO_PRESSAO_ALVO_FORA_DISPUTA',
+            );
           await tx.disputaDominioParticipante.update({
             where: { id: participante.id },
             data: { pressionarDominioSessaoId: dto.dominioAlvoId },
@@ -15886,6 +15955,19 @@ export class SessaoService {
       throw new BusinessException(
         'Todos os Dominios devem estar ativos na cena atual.',
         'DOMINIO_DISPUTA_DOMINIO_INVALIDO',
+      );
+    const emOutraDisputa =
+      await this.prisma.disputaDominioParticipante.findFirst({
+        where: {
+          dominioSessaoId: { in: dto.dominioIds },
+          disputa: { sessaoId, estado: 'ATIVA' },
+        },
+        select: { dominioSessaoId: true },
+      });
+    if (emOutraDisputa)
+      throw new BusinessException(
+        'Um dos Domínios selecionados já participa de uma disputa ativa.',
+        'DOMINIO_DISPUTA_DOMINIO_JA_ENVOLVIDO',
       );
     await this.prisma.$transaction(async (tx) => {
       const disputa = await tx.disputaDominioSessao.create({
@@ -16582,6 +16664,19 @@ export class SessaoService {
           motivoDesativacao: motivo,
         },
       });
+    await tx.eventoSessao.create({
+      data: {
+        sessaoId: dominio.sessaoId,
+        cenaId: dominio.cenaId,
+        tipoEvento: 'DOMINIO_ENCERRADO',
+        solicitanteUsuarioId: usuarioId,
+        dados: this.jsonParaPersistencia({
+          dominioId: dominio.id,
+          motivoEncerramento: motivo,
+          estadoFinal: motivo.includes('COLAPSO') ? 'COLAPSADO' : 'ENCERRADO',
+        }),
+      },
+    });
     await this.aplicarEsgotamentosDominioTx(tx, {
       sessaoId: dominio.sessaoId,
       cenaId: dominio.cenaId,
@@ -21031,6 +21126,159 @@ export class SessaoService {
     });
   }
 
+  private async mapearContextosEventosSessao(
+    eventos: Array<{
+      id: number;
+      tipoEvento: string;
+      dados: Prisma.JsonValue | null;
+      personagemAtorId: number | null;
+      personagemAlvoId: number | null;
+    }>,
+    sessaoId: number,
+  ): Promise<Map<number, EventoSessaoContextoMapeado>> {
+    const dominiosIds = new Set<number>();
+    const personagensIds = new Set<number>();
+    const npcsIds = new Set<number>();
+    const porEvento = new Map<
+      number,
+      { dominios: Set<number>; personagens: Set<number>; npcs: Set<number> }
+    >();
+
+    for (const evento of eventos) {
+      const contexto = {
+        dominios: new Set<number>(),
+        personagens: new Set<number>(),
+        npcs: new Set<number>(),
+      };
+      if (evento.personagemAtorId)
+        contexto.personagens.add(evento.personagemAtorId);
+      if (evento.personagemAlvoId)
+        contexto.personagens.add(evento.personagemAlvoId);
+      this.coletarReferenciasContextoEvento(evento.dados, contexto);
+      contexto.dominios.forEach((id) => dominiosIds.add(id));
+      contexto.personagens.forEach((id) => personagensIds.add(id));
+      contexto.npcs.forEach((id) => npcsIds.add(id));
+      porEvento.set(evento.id, contexto);
+    }
+
+    const [dominios, personagens, npcs] = await Promise.all([
+      dominiosIds.size
+        ? this.prisma.dominioSessao.findMany({
+            where: { sessaoId, id: { in: [...dominiosIds] } },
+            select: { id: true, nome: true },
+          })
+        : [],
+      personagensIds.size
+        ? this.prisma.personagemSessao.findMany({
+            where: { sessaoId, id: { in: [...personagensIds] } },
+            select: {
+              id: true,
+              personagemCampanha: { select: { nome: true } },
+            },
+          })
+        : [],
+      npcsIds.size
+        ? this.prisma.npcAmeacaSessao.findMany({
+            where: { sessaoId, id: { in: [...npcsIds] } },
+            select: { id: true, nomeExibicao: true },
+          })
+        : [],
+    ]);
+    const dominiosPorId = new Map<number, string>(
+      dominios.map((item): [number, string] => [item.id, String(item.nome)]),
+    );
+    const personagensPorId = new Map<number, string>(
+      personagens.map((item): [number, string] => [
+        item.id,
+        String(item.personagemCampanha.nome),
+      ]),
+    );
+    const npcsPorId = new Map<number, string>(
+      npcs.map((item): [number, string] => [
+        item.id,
+        String(item.nomeExibicao),
+      ]),
+    );
+
+    return new Map<number, EventoSessaoContextoMapeado>(
+      eventos.map((evento): [number, EventoSessaoContextoMapeado] => {
+        const contexto = porEvento.get(evento.id)!;
+        return [
+          evento.id,
+          {
+            categoria: this.categoriaEventoSessao(evento.tipoEvento),
+            dominios: [...contexto.dominios].map((id) => ({
+              id,
+              nome: dominiosPorId.get(id) ?? `Domínio #${id}`,
+            })),
+            personagens: [...contexto.personagens].map((id) => ({
+              id,
+              nome: personagensPorId.get(id) ?? `Personagem #${id}`,
+            })),
+            npcs: [...contexto.npcs].map((id) => ({
+              id,
+              nome: npcsPorId.get(id) ?? `NPC #${id}`,
+            })),
+          } satisfies EventoSessaoContextoMapeado,
+        ];
+      }),
+    );
+  }
+
+  private coletarReferenciasContextoEvento(
+    valor: Prisma.JsonValue | null,
+    contexto: {
+      dominios: Set<number>;
+      personagens: Set<number>;
+      npcs: Set<number>;
+    },
+    chave?: string,
+  ): void {
+    const chaveDominio = new Set(['dominioId', 'dominioAlvoId']);
+    const chavePersonagem = new Set([
+      'personagemSessaoId',
+      'personagemAtorId',
+      'personagemAlvoId',
+    ]);
+    const chaveNpc = new Set(['npcSessaoId', 'npcAlvoId']);
+    const chaveListaDominio = new Set(['dominioIds']);
+    const chaveListaPersonagem = new Set(['alvosPersonagemSessaoIds']);
+    const chaveListaNpc = new Set(['alvosNpcSessaoIds']);
+    const id = this.normalizarInteiroEvento(valor);
+    if (id !== null && chave) {
+      if (chaveDominio.has(chave) || chaveListaDominio.has(chave))
+        contexto.dominios.add(id);
+      if (chavePersonagem.has(chave) || chaveListaPersonagem.has(chave))
+        contexto.personagens.add(id);
+      if (chaveNpc.has(chave) || chaveListaNpc.has(chave))
+        contexto.npcs.add(id);
+    }
+    if (Array.isArray(valor)) {
+      valor.forEach((item) =>
+        this.coletarReferenciasContextoEvento(item, contexto, chave),
+      );
+      return;
+    }
+    if (!valor || typeof valor !== 'object') return;
+    Object.entries(valor as Record<string, Prisma.JsonValue>).forEach(
+      ([nome, item]) =>
+        this.coletarReferenciasContextoEvento(item, contexto, nome),
+    );
+  }
+
+  private categoriaEventoSessao(
+    tipoEvento: string,
+  ): EventoSessaoContextoMapeado['categoria'] {
+    if (tipoEvento.startsWith('DOMINIO_')) return 'DOMINIO';
+    if (tipoEvento.startsWith('RECURSO_')) return 'RECURSO';
+    if (tipoEvento.startsWith('CONDICAO_')) return 'CONDICAO';
+    if (tipoEvento.startsWith('CENA_') || tipoEvento.startsWith('TURNO_'))
+      return 'CENA';
+    if (tipoEvento.includes('ROLAGEM') || tipoEvento === 'CHAT')
+      return 'ROLAGEM';
+    return 'OUTRO';
+  }
+
   private mapearEventoSessao(
     evento: Prisma.EventoSessaoGetPayload<{
       include: {
@@ -21052,6 +21300,7 @@ export class SessaoService {
       };
     }>,
     podeDesfazer: boolean,
+    contexto?: EventoSessaoContextoMapeado,
   ): EventoSessaoMapeado {
     const dados = this.extrairRegistro(evento.dados);
     const desfeito = this.eventoJaFoiDesfeito(evento.dados);
@@ -21077,11 +21326,17 @@ export class SessaoService {
       cenaId: evento.cenaId,
       criadoEm: evento.criadoEm,
       tipoEvento: evento.tipoEvento,
-      descricao: this.descreverEventoSessao(evento.tipoEvento, dados),
+      descricao: this.descreverEventoSessao(evento.tipoEvento, dados, contexto),
       desfeito,
       podeDesfazer: !desfeito && podeDesfazer,
       dados: evento.dados ?? null,
       autor,
+      contexto: contexto ?? {
+        categoria: this.categoriaEventoSessao(evento.tipoEvento),
+        dominios: [],
+        personagens: [],
+        npcs: [],
+      },
     };
   }
 
@@ -21161,8 +21416,86 @@ export class SessaoService {
   private descreverEventoSessao(
     tipoEvento: string,
     dados: Record<string, unknown>,
+    contexto?: EventoSessaoContextoMapeado,
   ): string {
+    const dominioNome =
+      contexto?.dominios[0]?.nome ??
+      this.lerTextoOpcionalRegistro(dados, 'dominioNome');
+    const nomeOuPadrao = dominioNome ? `: ${dominioNome}` : '';
     switch (tipoEvento) {
+      case 'DOMINIO_ABRINDO':
+        return `Domínio abrindo${nomeOuPadrao}`;
+      case 'DOMINIO_EPIFANIA_ABRINDO': {
+        const resultado = this.lerInteiroRegistro(dados, 'resultado');
+        const dt = this.lerInteiroRegistro(dados, 'dt');
+        return `Epifania manifestou Domínio Incompleto${nomeOuPadrao}${resultado !== null && dt !== null ? ` (${resultado} / DT ${dt})` : ''}`;
+      }
+      case 'DOMINIO_FORMAR':
+        return `Domínio formado${nomeOuPadrao}`;
+      case 'DOMINIO_INTERRUPPER':
+        return `Abertura de Domínio interrompida${nomeOuPadrao}`;
+      case 'DOMINIO_DESFAZER':
+        return `Domínio encerrado voluntariamente${nomeOuPadrao}`;
+      case 'DOMINIO_ENCERRADO': {
+        const motivo = this.lerTextoOpcionalRegistro(
+          dados,
+          'motivoEncerramento',
+        );
+        return `Domínio encerrado${nomeOuPadrao}${motivo ? ` (${motivo.replaceAll('_', ' ').toLowerCase()})` : ''}`;
+      }
+      case 'DOMINIO_REFINAR':
+        return `Domínio refinado${nomeOuPadrao}`;
+      case 'DOMINIO_FORCAR':
+        return `Domínio forçado${nomeOuPadrao} (PE -2)`;
+      case 'DOMINIO_PRESSIONAR': {
+        const alvo = contexto?.dominios.find(
+          (item) => item.id !== this.lerInteiroRegistro(dados, 'dominioId'),
+        )?.nome;
+        return `Pressão de Domínio${nomeOuPadrao}${alvo ? ` contra ${alvo}` : ''}`;
+      }
+      case 'DOMINIO_ESTABILIZAR':
+        return `Domínio estabilizado${nomeOuPadrao}`;
+      case 'DOMINIO_REFORCAR':
+        return `Barreira reforçada${nomeOuPadrao} (EA -1)`;
+      case 'DOMINIO_RECONFIGURAR':
+        return `Barreira reconfigurada${nomeOuPadrao} (PE -1)`;
+      case 'DOMINIO_REGISTRAR_RUPTURA': {
+        const resultado = this.lerInteiroRegistro(dados, 'resultadoAtaque');
+        const potencia = this.lerTextoOpcionalRegistro(
+          dados,
+          'potenciaRuptura',
+        );
+        return `Ruptura registrada${nomeOuPadrao}${resultado !== null ? ` (ataque ${resultado})` : ''}${potencia ? ` · ${potencia.toLowerCase()}` : ''}`;
+      }
+      case 'DOMINIO_DISPUTA_INICIADA':
+        return `Disputa de Domínios iniciada${contexto?.dominios.length ? `: ${contexto.dominios.map((item) => item.nome).join(' × ')}` : ''}`;
+      case 'DOMINIO_DISPUTA_RESOLVIDA': {
+        const resolucao = this.lerInteiroRegistro(dados, 'resolucao');
+        const resultados = Array.isArray(dados.resultados)
+          ? dados.resultados
+          : [];
+        const resumo = resultados
+          .map((item) => {
+            const resultado = this.extrairRegistro(item as Prisma.JsonValue);
+            const dominioId = this.lerInteiroRegistro(resultado, 'dominioId');
+            const refinamento = this.lerInteiroRegistro(
+              resultado,
+              'refinamento',
+            );
+            const nome = contexto?.dominios.find(
+              (dominio) => dominio.id === dominioId,
+            )?.nome;
+            return nome && refinamento !== null
+              ? `${nome} ${refinamento}`
+              : null;
+          })
+          .filter((item): item is string => Boolean(item));
+        return `Refinamento de disputa resolvido${resolucao !== null ? ` (resolução ${resolucao})` : ''}${resumo.length ? `: ${resumo.join(' · ')}` : ''}`;
+      }
+      case 'DOMINIO_ACERTO_GARANTIDO':
+        return `Acerto Garantido acionado${nomeOuPadrao}`;
+      case 'DOMINIO_DEFESA_ATIVADA':
+        return `Defesa anti-Domínio ativada${this.lerTextoOpcionalRegistro(dados, 'tipo') ? `: ${this.lerTextoOpcionalRegistro(dados, 'tipo')}` : ''}`;
       case 'SESSAO_INICIADA':
         return 'Sessão iniciada';
       case 'SESSAO_ENCERRADA':
