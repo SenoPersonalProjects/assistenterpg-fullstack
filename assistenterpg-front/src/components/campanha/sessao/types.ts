@@ -1,5 +1,8 @@
 import type { CondicaoAtivaSessaoCampanha, DuracaoCondicaoSessaoModo } from '@/lib/types';
+import type { AjusteRitualisticoSessaoPayload } from '@/lib/api/campanhas';
 export type { RolagemPericiaSessaoPayload } from '@/lib/campanha/sessao-rolagem.types';
+
+export type { AjusteRitualisticoSessaoPayload };
 
 export type NpcEditavel = {
   fichaTipo: string;

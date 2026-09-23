@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
+import { useState } from "react";
 import type React from "react";
 import type { SessaoCampanhaDetalhe } from "@/lib/types";
 import {
@@ -18,10 +19,12 @@ import {
 import { textoSeguro } from "@/lib/campanha/sessao-formatters";
 import { TIPO_EXECUCAO_LABELS, TipoExecucao } from "@/lib/types/homebrew-enums";
 import type {
+  AjusteRitualisticoSessaoPayload,
   HabilidadeRollContext,
   RolagemDanoHabilidadeSessaoPayload,
   RolagemTesteHabilidadeSessaoPayload,
 } from "@/components/campanha/sessao/types";
+import { RitualAdjustmentsModal } from "@/components/campanha/sessao/modals/RitualAdjustmentsModal";
 
 type SessionTechniqueBlockProps = {
   card: SessaoCampanhaDetalhe["cards"][number];
@@ -43,6 +46,7 @@ type SessionTechniqueBlockProps = {
     gastoPE?: number,
     condicaoSessaoId?: number,
     ignorarSobrecarga?: boolean,
+    ajustesRitualisticos?: AjusteRitualisticoSessaoPayload[],
   ) => void;
   onRolarTesteHabilidade: (
     payload: RolagemTesteHabilidadeSessaoPayload,
@@ -72,6 +76,14 @@ function montarChaveGastoPEHabilidade(
   variacaoHabilidadeId?: number,
 ): string {
   return `gasto-pe:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? "base"}`;
+}
+
+function montarChaveAjustesRitualisticos(
+  personagemSessaoId: number,
+  habilidadeTecnicaId: number,
+  variacaoHabilidadeId?: number,
+): string {
+  return `ajustes-ritualisticos:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? "base"}`;
 }
 
 function ehConversaoPeEmEa(mecanicasSessao: unknown): boolean {
@@ -290,6 +302,20 @@ export function SessionTechniqueBlock({
   onRolarTesteHabilidade,
   onRolarDanoHabilidade,
 }: SessionTechniqueBlockProps) {
+  const [alvoAjustes, setAlvoAjustes] = useState<{
+    chave: string;
+    nome: string;
+  } | null>(null);
+  const [ajustesRitualisticos, setAjustesRitualisticos] = useState<
+    Record<string, AjusteRitualisticoSessaoPayload[]>
+  >({});
+  const grauTecnicaAmaldicoada = Math.max(
+    0,
+    card.ficha?.grausAprimoramento.find(
+      (grau) => grau.tipoGrauCodigo === "TECNICA_AMALDICOADA",
+    )?.valor ?? 0,
+  );
+  const limiteAjustesRitualisticos = Math.min(5, grauTecnicaAmaldicoada);
   const habilidadesVisiveis = mostrarSomenteSustentadasAtivas
     ? tecnica.habilidades.filter((habilidade) => {
         const baseAtiva = obterQtdSustentacaoAtiva(habilidade.id) > 0;
@@ -385,6 +411,10 @@ export function SessionTechniqueBlock({
               (custoBase.custoSustentacaoPE ?? 0) +
               custoBase.escalonamentoCustoSustentacaoPE * acumulosBaseExtras;
             const chaveBase = montarChaveUsoHabilidade(
+              card.personagemSessaoId,
+              habilidade.id,
+            );
+            const chaveAjustesBase = montarChaveAjustesRitualisticos(
               card.personagemSessaoId,
               habilidade.id,
             );
@@ -727,35 +757,62 @@ export function SessionTechniqueBlock({
                       })}
                     </div>
                     {card.podeEditar ? (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() =>
-                          void onUsarHabilidade(
-                            card.personagemSessaoId,
-                            habilidade.id,
-                            undefined,
-                            acumulosBase,
-                            conversaoInstantaneaBase ? gastoPEBase : undefined,
-                            recuperacaoNeuralBase
-                              ? condicaoRecuperacaoNeuralId || undefined
-                              : undefined,
-                            recuperacaoNeuralBase
-                              ? ignorarSobrecargaBase
-                              : undefined,
-                          )
-                        }
-                        disabled={
-                          sessaoEncerrada ||
-                          acaoHabilidadePendente === chaveBase ||
-                          (recuperacaoNeuralBase &&
-                            !condicaoRecuperacaoNeuralId)
-                        }
-                      >
-                        {acaoHabilidadePendente === chaveBase
-                          ? "Aplicando..."
-                          : "Usar base"}
-                      </Button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            setAlvoAjustes({
+                              chave: chaveAjustesBase,
+                              nome: habilidade.nome,
+                            })
+                          }
+                          disabled={
+                            sessaoEncerrada ||
+                            limiteAjustesRitualisticos === 0
+                          }
+                          title={
+                            limiteAjustesRitualisticos === 0
+                              ? "Requer Grau 1 em Técnica Amaldiçoada"
+                              : "Configurar Adição/Subtração para esta ativação"
+                          }
+                        >
+                          Ajustes
+                          {ajustesRitualisticos[chaveAjustesBase]?.length
+                            ? ` (${ajustesRitualisticos[chaveAjustesBase].length})`
+                            : ""}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() =>
+                            void onUsarHabilidade(
+                              card.personagemSessaoId,
+                              habilidade.id,
+                              undefined,
+                              acumulosBase,
+                              conversaoInstantaneaBase ? gastoPEBase : undefined,
+                              recuperacaoNeuralBase
+                                ? condicaoRecuperacaoNeuralId || undefined
+                                : undefined,
+                              recuperacaoNeuralBase
+                                ? ignorarSobrecargaBase
+                                : undefined,
+                              ajustesRitualisticos[chaveAjustesBase],
+                            )
+                          }
+                          disabled={
+                            sessaoEncerrada ||
+                            acaoHabilidadePendente === chaveBase ||
+                            (recuperacaoNeuralBase &&
+                              !condicaoRecuperacaoNeuralId)
+                          }
+                        >
+                          {acaoHabilidadePendente === chaveBase
+                            ? "Aplicando..."
+                            : "Usar base"}
+                        </Button>
+                      </div>
                     ) : null}
                   </div>
 
@@ -879,6 +936,12 @@ export function SessionTechniqueBlock({
                           habilidade.id,
                           variacao.id,
                         );
+                        const chaveAjustesVariacao =
+                          montarChaveAjustesRitualisticos(
+                            card.personagemSessaoId,
+                            habilidade.id,
+                            variacao.id,
+                          );
                         const chaveGastoPEVariacao =
                           montarChaveGastoPEHabilidade(
                             card.personagemSessaoId,
@@ -1122,30 +1185,64 @@ export function SessionTechniqueBlock({
                                     variant: "solid",
                                   })}
                                 </div>
-                                <Button
-                                  size="xs"
-                                  variant="secondary"
-                                  onClick={() =>
-                                    void onUsarHabilidade(
-                                      card.personagemSessaoId,
-                                      habilidade.id,
-                                      variacao.id,
-                                      acumulosVariacao,
-                                      conversaoInstantaneaVariacao
-                                        ? gastoPEVariacao
-                                        : undefined,
-                                    )
-                                  }
-                                  disabled={
-                                    !card.podeEditar ||
-                                    sessaoEncerrada ||
-                                    acaoHabilidadePendente === chaveVariacao
-                                  }
-                                >
-                                  {acaoHabilidadePendente === chaveVariacao
-                                    ? "Aplicando..."
-                                    : "Usar variação"}
-                                </Button>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Button
+                                    size="xs"
+                                    variant="ghost"
+                                    onClick={() =>
+                                      setAlvoAjustes({
+                                        chave: chaveAjustesVariacao,
+                                        nome: `${habilidade.nome} — ${variacao.nome}`,
+                                      })
+                                    }
+                                    disabled={
+                                      !card.podeEditar ||
+                                      sessaoEncerrada ||
+                                      limiteAjustesRitualisticos === 0
+                                    }
+                                    title={
+                                      limiteAjustesRitualisticos === 0
+                                        ? "Requer Grau 1 em Técnica Amaldiçoada"
+                                        : "Configurar Adição/Subtração para esta ativação"
+                                    }
+                                  >
+                                    Ajustes
+                                    {ajustesRitualisticos[
+                                      chaveAjustesVariacao
+                                    ]?.length
+                                      ? ` (${ajustesRitualisticos[chaveAjustesVariacao].length})`
+                                      : ""}
+                                  </Button>
+                                  <Button
+                                    size="xs"
+                                    variant="secondary"
+                                    onClick={() =>
+                                      void onUsarHabilidade(
+                                        card.personagemSessaoId,
+                                        habilidade.id,
+                                        variacao.id,
+                                        acumulosVariacao,
+                                        conversaoInstantaneaVariacao
+                                          ? gastoPEVariacao
+                                          : undefined,
+                                        undefined,
+                                        undefined,
+                                        ajustesRitualisticos[
+                                          chaveAjustesVariacao
+                                        ],
+                                      )
+                                    }
+                                    disabled={
+                                      !card.podeEditar ||
+                                      sessaoEncerrada ||
+                                      acaoHabilidadePendente === chaveVariacao
+                                    }
+                                  >
+                                    {acaoHabilidadePendente === chaveVariacao
+                                      ? "Aplicando..."
+                                      : "Usar variação"}
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           </details>
@@ -1159,6 +1256,22 @@ export function SessionTechniqueBlock({
           })}
         </div>
       )}
+      {alvoAjustes ? (
+        <RitualAdjustmentsModal
+          isOpen
+          nomeHabilidade={alvoAjustes.nome}
+          ajustes={ajustesRitualisticos[alvoAjustes.chave] ?? []}
+          limite={limiteAjustesRitualisticos}
+          onClose={() => setAlvoAjustes(null)}
+          onConfirmar={(ajustes) => {
+            setAjustesRitualisticos((estado) => ({
+              ...estado,
+              [alvoAjustes.chave]: ajustes,
+            }));
+            setAlvoAjustes(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

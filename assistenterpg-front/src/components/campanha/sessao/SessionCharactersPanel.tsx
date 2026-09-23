@@ -21,6 +21,7 @@ import type {
 } from '@/hooks/useSessaoRecursos';
 import { formatarCustos } from '@/lib/campanha/sessao-habilidades';
 import type {
+  AjusteRitualisticoSessaoPayload,
   RolagemDanoHabilidadeSessaoPayload,
   RolagemPericiaSessaoPayload,
   RolagemTesteHabilidadeSessaoPayload,
@@ -64,6 +65,7 @@ type SessionCharactersPanelProps = {
     gastoPE?: number,
     condicaoSessaoId?: number,
     ignorarSobrecarga?: boolean,
+    ajustesRitualisticos?: AjusteRitualisticoSessaoPayload[],
   ) => void;
   onUsarHabilidadeClasse: (
     personagemSessaoId: number,

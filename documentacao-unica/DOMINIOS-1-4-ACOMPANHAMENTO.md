@@ -73,6 +73,13 @@ O núcleo foi publicado no commit `53fba4b`. Antes de encerrar o lote, concluir 
   limita a quantidade pelo grau da Técnica, aplica o custo de `+2 EA` quando
   selecionado e registra os demais efeitos para resolução narrativa auditável.
 
+- [x] A ficha de sessão expõe o modal **Ajustes** tanto para a aplicação-base
+  quanto para cada variação. Ele orienta Adição/Subtração, limita a escolha
+  pelo Grau em Técnica Amaldiçoada e mostra o custo extra antes da ativação.
+- [x] O histórico da sessão converte os ajustes persistidos em texto legível;
+  efeitos sem resolução mecânica genérica continuam explicitamente sob
+  resolução da mesa, sem o sistema inventar dano ou condição.
+
 ## UX operacional de Domínios — 2026-09-23
 
 - [x] O mestre cria disputa sem IDs: escolhe dois ou mais Domínios ativos e,

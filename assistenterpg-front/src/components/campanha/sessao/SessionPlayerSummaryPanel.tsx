@@ -20,6 +20,7 @@ import type {
   CampoAjusteRecurso,
 } from '@/hooks/useSessaoRecursos';
 import type {
+  AjusteRitualisticoSessaoPayload,
   RolagemDanoHabilidadeSessaoPayload,
   RolagemPericiaSessaoPayload,
   RolagemTesteHabilidadeSessaoPayload,
@@ -59,6 +60,7 @@ type SessionPlayerSummaryPanelProps = {
     gastoPE?: number,
     condicaoSessaoId?: number,
     ignorarSobrecarga?: boolean,
+    ajustesRitualisticos?: AjusteRitualisticoSessaoPayload[],
   ) => void;
   onUsarHabilidadeClasse: (
     personagemSessaoId: number,

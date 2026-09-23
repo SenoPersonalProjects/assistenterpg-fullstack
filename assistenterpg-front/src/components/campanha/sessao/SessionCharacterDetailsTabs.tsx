@@ -32,6 +32,7 @@ import type {
   PreferenciaMacroPersonalizadaSessao,
 } from "@/lib/campanha/sessao-preferencias";
 import type {
+  AjusteRitualisticoSessaoPayload,
   RolagemDanoHabilidadeSessaoPayload,
   RolagemPericiaSessaoPayload,
   RolagemTesteHabilidadeSessaoPayload,
@@ -92,6 +93,7 @@ type SessionCharacterDetailsTabsProps = {
     gastoPE?: number,
     condicaoSessaoId?: number,
     ignorarSobrecarga?: boolean,
+    ajustesRitualisticos?: AjusteRitualisticoSessaoPayload[],
   ) => void;
   onUsarHabilidadeClasse: (
     personagemSessaoId: number,

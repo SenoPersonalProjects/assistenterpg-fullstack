@@ -22,6 +22,7 @@ import type {
 } from '@/lib/campanha/sessao-preferencias';
 import type { SolicitacaoMacroArma, SolicitacaoMacroPersonalizada } from '@/components/campanha/sessao/SessionCharacterMacrosTab';
 import type {
+  AjusteRitualisticoSessaoPayload,
   RolagemDanoHabilidadeSessaoPayload,
   RolagemPericiaSessaoPayload,
   RolagemTesteHabilidadeSessaoPayload,
@@ -93,6 +94,7 @@ type CharacterSessionCardProps = {
     gastoPE?: number,
     condicaoSessaoId?: number,
     ignorarSobrecarga?: boolean,
+    ajustesRitualisticos?: AjusteRitualisticoSessaoPayload[],
   ) => void;
   onUsarHabilidadeClasse: (
     personagemSessaoId: number,

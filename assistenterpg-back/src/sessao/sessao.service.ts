@@ -21873,6 +21873,49 @@ export class SessaoService {
     return Number.isInteger(numero) ? numero : null;
   }
 
+  private descreverAjustesRitualisticosRegistro(valor: unknown): string {
+    if (!valor || typeof valor !== 'object') return '';
+    const ajustes = (valor as { ajustes?: unknown }).ajustes;
+    if (!Array.isArray(ajustes) || ajustes.length === 0) return '';
+
+    const rotulosEfeito: Record<string, string> = {
+      REDUZIR_EFEITO: 'reduzir efeito',
+      REDUZIR_ALCANCE: 'reduzir alcance',
+      REDUZIR_AREA: 'reduzir área',
+      REDUZIR_DT: 'reduzir DT',
+      PENALIDADE_TESTE: 'penalidade no teste',
+      CUSTO_EA: 'aumentar custo de EA',
+      PERDER_EFEITO_SECUNDARIO: 'perder efeito secundário',
+      MELHORAR_ACAO: 'melhorar ação',
+      AUMENTAR_ALCANCE: 'aumentar alcance',
+      AUMENTAR_DT: 'aumentar DT',
+      BONUS_TESTE: 'bônus no teste',
+      AUMENTAR_EFEITO: 'aumentar efeito',
+    };
+    const itens = ajustes.flatMap((ajuste) => {
+      if (!ajuste || typeof ajuste !== 'object') return [];
+      const registro = ajuste as {
+        tipo?: unknown;
+        efeito?: unknown;
+        pontos?: unknown;
+      };
+      if (
+        typeof registro.tipo !== 'string' ||
+        typeof registro.efeito !== 'string'
+      ) {
+        return [];
+      }
+      const tipo = registro.tipo === 'ADICAO' ? 'Adição' : 'Subtração';
+      const efeito = rotulosEfeito[registro.efeito] ?? registro.efeito;
+      const pontos =
+        typeof registro.pontos === 'number' && Number.isFinite(registro.pontos)
+          ? ` (${Math.trunc(registro.pontos)} ponto${Math.trunc(registro.pontos) === 1 ? '' : 's'})`
+          : '';
+      return [`${tipo}: ${efeito}${pontos}`];
+    });
+    return itens.length > 0 ? `Ajustes Ritualísticos: ${itens.join('; ')}` : '';
+  }
+
   private descreverEventoSessao(
     tipoEvento: string,
     dados: Record<string, unknown>,
@@ -22020,11 +22063,15 @@ export class SessaoService {
           dados,
           'acumulosMaximos',
         );
+        const resumoAjustesRitualisticos =
+          this.descreverAjustesRitualisticosRegistro(
+            dados.ajustesRitualisticos,
+          );
         const sufixoAcumulos =
           acumulos !== null && (acumulos > 1 || (acumulosMaximos ?? 0) > 1)
             ? ` ${acumulos}`
             : '';
-        return `Habilidade usada${habilidade ? `: ${habilidade}${sufixoAcumulos}` : ''}${variacao ? ` (${variacao})` : ''}${resumoEscalonamento ? ` | ${resumoEscalonamento}` : ''}`;
+        return `Habilidade usada${habilidade ? `: ${habilidade}${sufixoAcumulos}` : ''}${variacao ? ` (${variacao})` : ''}${resumoEscalonamento ? ` | ${resumoEscalonamento}` : ''}${resumoAjustesRitualisticos ? ` | ${resumoAjustesRitualisticos}` : ''}`;
       }
       case 'HABILIDADE_SUSTENTADA_COBRADA': {
         const habilidade = this.lerTextoOpcionalRegistro(

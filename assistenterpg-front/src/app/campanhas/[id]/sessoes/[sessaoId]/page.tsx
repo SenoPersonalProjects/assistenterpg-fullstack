@@ -3856,6 +3856,7 @@ export default function SessaoCampanhaPage() {
         gastoPE,
         condicaoSessaoId,
         ignorarSobrecarga,
+        ajustesRitualisticos,
       ) =>
         void handleUsarHabilidade(
           personagemSessaoId,
@@ -3865,6 +3866,7 @@ export default function SessaoCampanhaPage() {
           gastoPE,
           condicaoSessaoId,
           ignorarSobrecarga,
+          ajustesRitualisticos,
         )
       }
       onUsarHabilidadeClasse={(personagemSessaoId, payload) =>
@@ -4422,6 +4424,7 @@ export default function SessaoCampanhaPage() {
                       gastoPE,
                       condicaoSessaoId,
                       ignorarSobrecarga,
+                      ajustesRitualisticos,
                     ) =>
                       void handleUsarHabilidade(
                         personagemSessaoId,
@@ -4431,6 +4434,7 @@ export default function SessaoCampanhaPage() {
                         gastoPE,
                         condicaoSessaoId,
                         ignorarSobrecarga,
+                        ajustesRitualisticos,
                       )
                     }
                     onUsarHabilidadeClasse={(personagemSessaoId, payload) =>
