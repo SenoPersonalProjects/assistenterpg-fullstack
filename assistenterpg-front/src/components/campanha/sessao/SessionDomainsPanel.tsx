@@ -15,6 +15,7 @@ import {
   apiExecutarAcaoDominioSessaoCampanha,
   apiResolverDisputaDominioSessaoCampanha,
   apiTentarEpifaniaDominioSessaoCampanha,
+  type ResultadoEpifaniaDominioSessao,
 } from "@/lib/api/campanhas";
 import type { SessaoCampanhaDetalhe } from "@/lib/types";
 
@@ -77,7 +78,7 @@ export function SessionDomainsPanel({
   const [tipoEpifania, setTipoEpifania] = useState<"FECHADO" | "ABERTO">(
     "FECHADO",
   );
-  const [grauBarreiraEpifania, setGrauBarreiraEpifania] = useState("2");
+  const [grauBarreiraEpifania, setGrauBarreiraEpifania] = useState("1");
   const [custoEaEpifania, setCustoEaEpifania] = useState("0");
   const [custoPeEpifania, setCustoPeEpifania] = useState("0");
   const [disputaAberta, setDisputaAberta] = useState(false);
@@ -97,6 +98,9 @@ export function SessionDomainsPanel({
   const [ancoradaBarreira, setAncoradaBarreira] = useState(false);
   const [concentracaoBarreira, setConcentracaoBarreira] = useState(false);
   const [responsavelBarreira, setResponsavelBarreira] = useState("");
+  const [resultadoEpifania, setResultadoEpifania] = useState<
+    ResultadoEpifaniaDominioSessao["epifania"] | null
+  >(null);
   const personagemSelecionado = personagens.find(
     (personagem) => personagem.id === Number(personagemEpifaniaId),
   );
@@ -252,7 +256,7 @@ export function SessionDomainsPanel({
     }
     if (
       !Number.isInteger(grauBarreira) ||
-      grauBarreira < 2 ||
+      grauBarreira < 1 ||
       grauBarreira > 5 ||
       !Number.isInteger(custoEA) ||
       custoEA < 0 ||
@@ -260,15 +264,17 @@ export function SessionDomainsPanel({
       custoPE < 0
     ) {
       setErro(
-        "Informe grau de barreira entre 2 e 5 e custos inteiros validos.",
+        "Informe grau de barreira entre 1 e 5 e custos inteiros validos.",
       );
       return;
     }
     setErro(null);
     setPendente(-1);
     try {
-      onAtualizar(
-        await apiTentarEpifaniaDominioSessaoCampanha(campanhaId, sessaoId, {
+      const resposta = await apiTentarEpifaniaDominioSessaoCampanha(
+        campanhaId,
+        sessaoId,
+        {
           clientRequestId: crypto.randomUUID(),
           personagemSessaoId,
           habilidadeTecnicaId: expansaoSelecionada?.id,
@@ -290,10 +296,14 @@ export function SessionDomainsPanel({
           custoPE:
             expansaoSelecionada || usarPerfilNarrativo ? undefined : custoPE,
           salvarPerfilNarrativo: !expansaoSelecionada,
-        }),
+        },
       );
-      setEpifaniaAberta(false);
-      setNomeEpifania("");
+      onAtualizar(resposta.detalhe);
+      setResultadoEpifania(resposta.epifania);
+      if (resposta.epifania.sucesso) {
+        setEpifaniaAberta(false);
+        setNomeEpifania("");
+      }
     } catch (error) {
       setErro(
         error instanceof Error
@@ -491,11 +501,41 @@ export function SessionDomainsPanel({
             <Button
               size="xs"
               variant="ghost"
-              onClick={() => setEpifaniaAberta((aberta) => !aberta)}
+              onClick={() => {
+                setEpifaniaAberta((aberta) => !aberta);
+                setResultadoEpifania(null);
+              }}
             >
               {epifaniaAberta ? "Cancelar" : "Resolver Epifania"}
             </Button>
           </div>
+          {resultadoEpifania ? (
+            <div
+              className={`mt-3 rounded-lg border p-3 text-xs ${
+                resultadoEpifania.sucesso
+                  ? "border-app-success/50 bg-app-success/10 text-app-fg"
+                  : "border-app-warning/50 bg-app-warning/10 text-app-fg"
+              }`}
+              role="status"
+              aria-live="polite"
+            >
+              {resultadoEpifania.sucesso ? (
+                <>
+                  <p className="font-semibold">Epifania bem-sucedida: {resultadoEpifania.resultado} / DT {resultadoEpifania.dt}.</p>
+                  <p className="mt-1 text-app-muted">
+                    O Domínio Incompleto está abrindo. Use <strong>Formar</strong> no cartão do Domínio para ativar seus bônus; <strong>Interromper</strong> encerra a abertura com o esgotamento antecipado previsto.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold">A Epifania falhou: {resultadoEpifania.resultado} / DT {resultadoEpifania.dt}.</p>
+                  <p className="mt-1 text-app-muted">
+                    Nenhum recurso foi gasto. Uma nova tentativa nesta cena terá DT {resultadoEpifania.proximaDt}.
+                  </p>
+                </>
+              )}
+            </div>
+          ) : null}
           {epifaniaAberta ? (
             <div className="mt-3 grid gap-2 md:grid-cols-2">
               <label className="text-xs text-app-muted">
@@ -600,11 +640,11 @@ export function SessionDomainsPanel({
                 </select>
               </label>
               <label className="text-xs text-app-muted">
-                Grau de barreira (2 a 5)
+                Grau de barreira (1 a 5)
                 <input
                   className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg"
                   type="number"
-                  min="2"
+                  min="1"
                   max="5"
                   step="1"
                   value={grauBarreiraEpifania}
@@ -636,8 +676,10 @@ export function SessionDomainsPanel({
                 />
               </label>
               <p className="text-xs text-app-muted md:col-span-2">
-                A Epifania nao possui Acerto Garantido. O mestre define custos e
-                estrutura coerentes com a manifestacao narrada.
+                A Epifania não possui Acerto Garantido. Com grau 1, um Domínio
+                fechado tem Integridade 3 e DT estrutural 18; nos graus maiores,
+                a Integridade sobe normalmente. Ela também sofre as limitações
+                próprias de Domínio Incompleto, inclusive -2d20 no Refinamento.
               </p>
               <div className="flex items-end">
                 <Button

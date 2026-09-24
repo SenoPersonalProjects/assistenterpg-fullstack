@@ -6424,9 +6424,10 @@ export class SessaoService {
       'AVANCAR',
       dto,
     );
-    await this.processarEfeitosAutomaticosTurnoSessao(processamento);
-
-    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+    return {
+      detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
+      processamento,
+    };
   }
 
   async voltarTurnoSessao(
@@ -6442,9 +6443,10 @@ export class SessaoService {
       'VOLTAR',
       dto,
     );
-    await this.processarEfeitosAutomaticosTurnoSessao(processamento);
-
-    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+    return {
+      detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
+      processamento,
+    };
   }
 
   async pularTurnoSessao(
@@ -6460,9 +6462,10 @@ export class SessaoService {
       'PULAR',
       dto,
     );
-    await this.processarEfeitosAutomaticosTurnoSessao(processamento);
-
-    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+    return {
+      detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
+      processamento,
+    };
   }
 
   async atualizarOrdemIniciativaSessao(
@@ -15745,7 +15748,7 @@ export class SessaoService {
     );
     this.assertMestre(acesso, 'resolver Epifania de Dominio');
     const cena = await this.obterCenaAtualSessaoTx(this.prisma, sessaoId);
-    await this.prisma.$transaction(async (tx) => {
+    const resultadoEpifania = await this.prisma.$transaction(async (tx) => {
       const personagem = await tx.personagemSessao.findFirst({
         where: { id: dto.personagemSessaoId, sessaoId, cenaId: cena.id },
         select: {
@@ -15858,7 +15861,13 @@ export class SessaoService {
             }),
           },
         });
-        return;
+        return {
+          sucesso: false,
+          resultado,
+          dt,
+          proximaDt: Math.max(1, dt - 1),
+          dominioId: null,
+        };
       }
 
       const tecnicaInataEfetiva =
@@ -15960,7 +15969,7 @@ export class SessaoService {
       );
       if (
         !['FECHADO', 'ABERTO'].includes(tipo) ||
-        grauBarreira < 2 ||
+        grauBarreira < 1 ||
         grauBarreira > 5
       )
         throw new BusinessException(
@@ -15997,8 +16006,11 @@ export class SessaoService {
           },
         });
       }
+      // Grau 1 permite a Epifania, mas forma uma barreira deliberadamente
+      // frágil: Integridade 3 e DT estrutural 18. As demais limitações do
+      // Domínio Incompleto continuam se aplicando.
       const integridade =
-        tipo === 'FECHADO' ? 4 + Math.max(0, grauBarreira - 2) : null;
+        tipo === 'FECHADO' ? 3 + Math.max(0, grauBarreira - 1) : null;
       const dominio = await tx.dominioSessao.create({
         data: {
           sessaoId,
@@ -16087,8 +16099,18 @@ export class SessaoService {
           }),
         },
       });
+      return {
+        sucesso: true,
+        resultado,
+        dt,
+        proximaDt: null,
+        dominioId: dominio.id,
+      };
     });
-    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+    return {
+      detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
+      epifania: resultadoEpifania,
+    };
   }
 
   async executarAcaoDominioSessao(
@@ -19087,6 +19109,22 @@ export class SessaoService {
       );
       return false;
     }
+  }
+
+  agendarEfeitosAutomaticosTurnoSessao(
+    processamento: ProcessamentoEfeitosTurnoSessao | null,
+    aoConcluir?: () => void,
+  ): void {
+    if (!processamento) return;
+
+    const temporizador = setTimeout(() => {
+      void this.processarEfeitosAutomaticosTurnoSessao(processamento).then(
+        (concluido) => {
+          if (concluido) aoConcluir?.();
+        },
+      );
+    }, 0);
+    temporizador.unref();
   }
 
   private async processarProximoPassoEfeitosTurnoTx(

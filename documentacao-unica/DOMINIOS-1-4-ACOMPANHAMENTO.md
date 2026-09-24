@@ -97,3 +97,17 @@ O núcleo foi publicado no commit `53fba4b`. Antes de encerrar o lote, concluir 
   inclusive interrupção, ruptura e empate final.
 - [ ] Validar manualmente no navegador a seleção de alvos, Pressionar,
   Registro de Ruptura e os filtros combinados durante uma sessão real.
+
+## Resposta de turno e Epifania — 2026-09-24
+
+- [x] Avançar, recuar e pular turno agora devolvem a atualização de iniciativa
+  antes de processar a fila de efeitos automáticos. O processamento continua
+  protegido por transação e concorrência, roda em segundo plano e emite uma
+  atualização realtime ao concluir.
+- [x] A interface informa que os efeitos automáticos estão sendo aplicados,
+  sem induzir o usuário a reprocessar manualmente uma fila normal.
+- [x] A Epifania passou a expor o resultado da rolagem e a próxima DT quando
+  falha, evitando o fechamento silencioso que parecia não executar nada.
+- [ ] Em uma sessão com vários efeitos de início de turno, confirmar que a
+  troca de turno responde sem espera longa e que a atualização realtime final
+  registra os efeitos, recursos e condições corretos.

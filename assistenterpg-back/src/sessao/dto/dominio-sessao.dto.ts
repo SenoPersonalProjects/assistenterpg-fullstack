@@ -68,7 +68,7 @@ export class TentarEpifaniaDominioSessaoDto {
 
   @IsOptional()
   @IsInt()
-  @Min(2)
+  @Min(1)
   @Max(5)
   grauBarreira?: number;
 

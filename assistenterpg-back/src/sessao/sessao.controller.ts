@@ -288,7 +288,7 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: TentarEpifaniaDominioSessaoDto,
   ) {
-    const detalhe = await this.sessaoService.tentarEpifaniaDominioSessao(
+    const resultado = await this.sessaoService.tentarEpifaniaDominioSessao(
       campanhaId,
       sessaoId,
       req.user.id,
@@ -299,7 +299,7 @@ export class SessaoController {
       sessaoId,
       'DOMINIO_ATUALIZADO',
     );
-    return detalhe;
+    return resultado;
   }
 
   @Post(':sessaoId/barreiras-narrativas')
@@ -609,13 +609,23 @@ export class SessaoController {
       dto,
     );
 
+    this.sessaoService.agendarEfeitosAutomaticosTurnoSessao(
+      resultado.processamento,
+      () =>
+        this.sessaoGateway.emitirSessaoAtualizada(
+          campanhaId,
+          sessaoId,
+          'EFEITOS_TURNO_REPROCESSADOS',
+        ),
+    );
+
     this.sessaoGateway.emitirSessaoAtualizada(
       campanhaId,
       sessaoId,
       'TURNO_AVANCADO',
     );
 
-    return resultado;
+    return resultado.detalhe;
   }
 
   @Post(':sessaoId/turno/voltar')
@@ -632,13 +642,23 @@ export class SessaoController {
       dto,
     );
 
+    this.sessaoService.agendarEfeitosAutomaticosTurnoSessao(
+      resultado.processamento,
+      () =>
+        this.sessaoGateway.emitirSessaoAtualizada(
+          campanhaId,
+          sessaoId,
+          'EFEITOS_TURNO_REPROCESSADOS',
+        ),
+    );
+
     this.sessaoGateway.emitirSessaoAtualizada(
       campanhaId,
       sessaoId,
       'TURNO_RECUADO',
     );
 
-    return resultado;
+    return resultado.detalhe;
   }
 
   @Post(':sessaoId/turno/pular')
@@ -655,13 +675,23 @@ export class SessaoController {
       dto,
     );
 
+    this.sessaoService.agendarEfeitosAutomaticosTurnoSessao(
+      resultado.processamento,
+      () =>
+        this.sessaoGateway.emitirSessaoAtualizada(
+          campanhaId,
+          sessaoId,
+          'EFEITOS_TURNO_REPROCESSADOS',
+        ),
+    );
+
     this.sessaoGateway.emitirSessaoAtualizada(
       campanhaId,
       sessaoId,
       'TURNO_PULADO',
     );
 
-    return resultado;
+    return resultado.detalhe;
   }
 
   @Post(':sessaoId/turno/efeitos/:eventoId/reprocessar')

@@ -89,8 +89,8 @@ export function useSessaoTurnos({
         sincronizarEstadosDerivados(atualizado);
         if (atualizado.efeitosTurnoPendentes) {
           showToast(
-            'Turno atualizado, mas os efeitos automáticos precisam ser reprocessados.',
-            'warning',
+            'Turno atualizado. Aplicando efeitos automáticos em segundo plano.',
+            'info',
           );
         } else {
           showToast(

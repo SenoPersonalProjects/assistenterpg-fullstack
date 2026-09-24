@@ -17,9 +17,11 @@ describe('SessaoController', () => {
     listarEventosSessao: jest.fn(),
     enviarMensagemChatSessao: jest.fn(),
     criarRolagemSessao: jest.fn(),
+    tentarEpifaniaDominioSessao: jest.fn(),
     avancarTurnoSessao: jest.fn(),
     voltarTurnoSessao: jest.fn(),
     pularTurnoSessao: jest.fn(),
+    agendarEfeitosAutomaticosTurnoSessao: jest.fn(),
     reprocessarEfeitosAutomaticosTurnoSessao: jest.fn(),
     atualizarOrdemIniciativaSessao: jest.fn(),
     encerrarSessaoCampanha: jest.fn(),
@@ -350,7 +352,10 @@ describe('SessaoController', () => {
   });
 
   it('deve emitir evento ao voltar turno', async () => {
-    sessaoServiceMock.voltarTurnoSessao.mockResolvedValue({ id: 12 });
+    sessaoServiceMock.voltarTurnoSessao.mockResolvedValue({
+      detalhe: { id: 12 },
+      processamento: null,
+    });
 
     const precondicao = { rodadaEsperada: 2, indiceTurnoEsperado: 1 };
     await controller.voltarTurnoSessao(7, 12, { user: { id: 3 } }, precondicao);
@@ -366,10 +371,47 @@ describe('SessaoController', () => {
       12,
       'TURNO_RECUADO',
     );
+    expect(
+      sessaoServiceMock.agendarEfeitosAutomaticosTurnoSessao,
+    ).toHaveBeenCalledWith(null, expect.any(Function));
+  });
+
+  it('agenda os efeitos automáticos após confirmar o avanço de turno', async () => {
+    const processamento = { eventoId: 91 };
+    sessaoServiceMock.avancarTurnoSessao.mockResolvedValue({
+      detalhe: { id: 12 },
+      processamento,
+    });
+
+    await controller.avancarTurnoSessao(7, 12, { user: { id: 3 } }, {
+      rodadaEsperada: 2,
+      indiceTurnoEsperado: 1,
+    });
+
+    expect(
+      sessaoServiceMock.agendarEfeitosAutomaticosTurnoSessao,
+    ).toHaveBeenCalledWith(processamento, expect.any(Function));
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'TURNO_AVANCADO',
+    );
+
+    const aoConcluir =
+      sessaoServiceMock.agendarEfeitosAutomaticosTurnoSessao.mock.calls[0][1];
+    aoConcluir();
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'EFEITOS_TURNO_REPROCESSADOS',
+    );
   });
 
   it('deve emitir evento ao pular turno', async () => {
-    sessaoServiceMock.pularTurnoSessao.mockResolvedValue({ id: 12 });
+    sessaoServiceMock.pularTurnoSessao.mockResolvedValue({
+      detalhe: { id: 12 },
+      processamento: null,
+    });
 
     const precondicao = { rodadaEsperada: 2, indiceTurnoEsperado: 1 };
     await controller.pularTurnoSessao(7, 12, { user: { id: 3 } }, precondicao);
@@ -384,6 +426,37 @@ describe('SessaoController', () => {
       7,
       12,
       'TURNO_PULADO',
+    );
+    expect(
+      sessaoServiceMock.agendarEfeitosAutomaticosTurnoSessao,
+    ).toHaveBeenCalledWith(null, expect.any(Function));
+  });
+
+  it('devolve o resultado estruturado da Epifania e atualiza a sessão', async () => {
+    const resultado = {
+      detalhe: { id: 12 },
+      epifania: {
+        sucesso: false,
+        resultado: 11,
+        dt: 20,
+        proximaDt: 19,
+        dominioId: null,
+      },
+    };
+    sessaoServiceMock.tentarEpifaniaDominioSessao.mockResolvedValue(resultado);
+
+    await expect(
+      controller.tentarEpifaniaDominioSessao(7, 12, { user: { id: 3 } }, {
+        clientRequestId: 'ec2f5b76-1fda-41ae-bbe0-c7276b864d7b',
+        personagemSessaoId: 5,
+        atributo: 'PRE',
+      }),
+    ).resolves.toEqual(resultado);
+
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'DOMINIO_ATUALIZADO',
     );
   });
 

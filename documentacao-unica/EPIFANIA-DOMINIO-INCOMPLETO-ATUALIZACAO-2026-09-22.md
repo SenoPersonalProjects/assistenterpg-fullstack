@@ -24,3 +24,24 @@ Status: Em validacao manual
 - [ ] Salvar e reutilizar um perfil narrativo sem Expansao cadastrada.
 - [ ] Conferir o evento de uma disputa com Dominio Incompleto e validar o
   ajuste `-2d20` e os dados rolados.
+
+## Operacao e barreira de grau 1 — 2026-09-24
+
+- [x] A Epifania aceita grau de barreira 1. Em Dominio fechado, esse grau
+  cria Integridade 3 e DT estrutural 18; grau 2 permanece com Integridade 4 e
+  DT 21. Assim, a reducao do requisito nao elimina o risco estrutural.
+- [x] As limitacoes anteriores continuam cumulativas: sem Acerto Garantido,
+  `-2d20` literal em Refinamento e esgotamento proprio do Dominio Incompleto.
+- [x] O endpoint devolve o resultado da rolagem. A interface mostra falha,
+  DT da proxima tentativa e confirma que nenhum recurso foi gasto; em sucesso,
+  informa que o Dominio esta em abertura e exige `Formar` para ativar bonus.
+- [x] A tentativa falha continua registrada no historico e nao e tratada como
+  erro de transporte.
+
+## Validacao manual adicional
+
+- [ ] Tentar uma Epifania com grau 1: confirmar Integridade 3 e DT estrutural
+  18 no cartao, alem das limitacoes de Dominio Incompleto.
+- [ ] Falhar e ter sucesso em uma Epifania: conferir o aviso imediato de
+  resultado, a DT reduzida na nova tentativa e a janela `Abrindo` antes de
+  usar `Formar` ou `Interromper`.

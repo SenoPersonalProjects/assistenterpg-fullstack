@@ -116,6 +116,19 @@ describe('SessaoService', () => {
     return tx.eventoSessao;
   }
 
+  async function concluirEfeitosAutomaticosDoTurno(resultado: unknown) {
+    const processamento = (
+      resultado as { processamento?: unknown } | undefined
+    )?.processamento;
+    return (
+      service as unknown as {
+        processarEfeitosAutomaticosTurnoSessao: (
+          valor: unknown,
+        ) => Promise<boolean>;
+      }
+    ).processarEfeitosAutomaticosTurnoSessao(processamento);
+  }
+
   function criarEventoTimeline(
     id: number,
     tipoEvento: string,
@@ -5213,10 +5226,11 @@ describe('SessaoService', () => {
 
     const eventoEfeitos = configurarTransacaoEfeitosAutomaticos(tx);
 
-    await service.avancarTurnoSessao(7, 21, 10, {
+    const turno = await service.avancarTurnoSessao(7, 21, 10, {
       rodadaEsperada: 3,
       indiceTurnoEsperado: 0,
     });
+    await concluirEfeitosAutomaticosDoTurno(turno);
 
     expect(tx.sessao.update).toHaveBeenCalledWith({
       where: { id: 21 },
@@ -5434,10 +5448,11 @@ describe('SessaoService', () => {
 
     const eventoEfeitos = configurarTransacaoEfeitosAutomaticos(tx);
 
-    await service.avancarTurnoSessao(7, 21, 10, {
+    const turno = await service.avancarTurnoSessao(7, 21, 10, {
       rodadaEsperada: 3,
       ladoAtualIdEsperado: 10,
     });
+    await concluirEfeitosAutomaticosDoTurno(turno);
 
     expect(tx.sessao.update).toHaveBeenCalledWith({
       where: { id: 21 },
@@ -5589,10 +5604,11 @@ describe('SessaoService', () => {
 
     const eventoEfeitos = configurarTransacaoEfeitosAutomaticos(tx);
 
-    await service.avancarTurnoSessao(7, 21, 10, {
+    const turno = await service.avancarTurnoSessao(7, 21, 10, {
       rodadaEsperada: 5,
       indiceTurnoEsperado: 0,
     });
+    await concluirEfeitosAutomaticosDoTurno(turno);
 
     expect(tx.personagemCampanha.update).not.toHaveBeenCalled();
     expect(tx.personagemSessaoHabilidadeSustentada.update).toHaveBeenCalledWith(
@@ -5718,10 +5734,11 @@ describe('SessaoService', () => {
 
     const eventoEfeitos = configurarTransacaoEfeitosAutomaticos(tx);
 
-    await service.avancarTurnoSessao(7, 21, 10, {
+    const turno = await service.avancarTurnoSessao(7, 21, 10, {
       rodadaEsperada: 8,
       indiceTurnoEsperado: 0,
     });
+    await concluirEfeitosAutomaticosDoTurno(turno);
 
     expect(tx.personagemCampanha.update).not.toHaveBeenCalled();
     expect(tx.personagemSessaoHabilidadeSustentada.update).toHaveBeenCalledWith(
