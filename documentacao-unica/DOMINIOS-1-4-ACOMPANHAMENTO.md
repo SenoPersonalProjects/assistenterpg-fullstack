@@ -111,3 +111,28 @@ O núcleo foi publicado no commit `53fba4b`. Antes de encerrar o lote, concluir 
 - [ ] Em uma sessão com vários efeitos de início de turno, confirmar que a
   troca de turno responde sem espera longa e que a atualização realtime final
   registra os efeitos, recursos e condições corretos.
+
+## Desempenho dos efeitos automáticos — 2026-09-24
+
+- [x] A iniciativa alternada passou a usar a mesma confirmação imediata da
+  iniciativa comum. O lado novo aparece antes da fila terminar e a sessão é
+  atualizada novamente quando os efeitos concluírem.
+- [x] Os passos pendentes de um mesmo avanço são processados em uma transação
+  única, com locks de sessão e evento adquiridos uma só vez. Isso reduz idas ao
+  TiDB em viradas de rodada, sem perder atomicidade: se um passo falhar, o lote
+  inteiro volta para pendente e pode ser reprocessado de forma auditável.
+- [ ] Medir numa sessão real a virada com sustentação, duração e recuperação
+  ativa; confirmar a redução de latência e que o histórico contém todos os
+  eventos esperados após a atualização realtime final.
+
+## Feedback operacional de barreiras — 2026-09-24
+
+- [x] Ações de Domínio retornam um resultado estruturado e persistem o mesmo
+  contexto no histórico. O painel mostra uma confirmação acessível com título,
+  participante e efeito imediato.
+- [x] Formar, interromper, desfazer, estabilizar, refinar, forçar, pressionar,
+  reforçar, reconfigurar e registrar Ruptura possuem textos próprios; Ruptura
+  informa ganho, totais e colapso quando a Integridade é superada.
+- [x] Erros de regra permanecem no alerta de validação, sem simular sucesso.
+- [ ] Conferir no navegador uma ação de reforço, reconfiguração, estabilização
+  e ruptura seguida de colapso, verificando confirmação, cartão e histórico.

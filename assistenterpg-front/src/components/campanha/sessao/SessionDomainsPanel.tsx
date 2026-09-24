@@ -15,6 +15,7 @@ import {
   apiExecutarAcaoDominioSessaoCampanha,
   apiResolverDisputaDominioSessaoCampanha,
   apiTentarEpifaniaDominioSessaoCampanha,
+  type ResultadoAcaoDominioSessao,
   type ResultadoEpifaniaDominioSessao,
 } from "@/lib/api/campanhas";
 import type { SessaoCampanhaDetalhe } from "@/lib/types";
@@ -23,7 +24,9 @@ type Props = {
   campanhaId: number;
   sessaoId: number;
   dominios: NonNullable<SessaoCampanhaDetalhe["dominios"]>;
-  barreirasNarrativas?: NonNullable<SessaoCampanhaDetalhe["barreirasNarrativas"]>;
+  barreirasNarrativas?: NonNullable<
+    SessaoCampanhaDetalhe["barreirasNarrativas"]
+  >;
   sessaoEncerrada: boolean;
   ehMestre: boolean;
   personagens?: Array<{
@@ -87,12 +90,16 @@ export function SessionDomainsPanel({
   const [dominioPressaoId, setDominioPressaoId] = useState<number | null>(null);
   const [dominioRupturaId, setDominioRupturaId] = useState<number | null>(null);
   const [resultadoRuptura, setResultadoRuptura] = useState("");
-  const [potenciaRuptura, setPotenciaRuptura] = useState<"NORMAL" | "POTENCIALIZADO" | "EXCEPCIONAL">("NORMAL");
+  const [potenciaRuptura, setPotenciaRuptura] = useState<
+    "NORMAL" | "POTENCIALIZADO" | "EXCEPCIONAL"
+  >("NORMAL");
   const [golpeConcentrado, setGolpeConcentrado] = useState(false);
   const [barreiraAberta, setBarreiraAberta] = useState(false);
   const [nomeBarreira, setNomeBarreira] = useState("");
   const [descricaoBarreira, setDescricaoBarreira] = useState("");
-  const [escalaBarreira, setEscalaBarreira] = useState<"PEQUENA" | "MEDIA" | "GRANDE" | "MASSIVA">("PEQUENA");
+  const [escalaBarreira, setEscalaBarreira] = useState<
+    "PEQUENA" | "MEDIA" | "GRANDE" | "MASSIVA"
+  >("PEQUENA");
   const [complexidadeBarreira, setComplexidadeBarreira] = useState("1");
   const [regrasBarreira, setRegrasBarreira] = useState("");
   const [ancoradaBarreira, setAncoradaBarreira] = useState(false);
@@ -100,6 +107,9 @@ export function SessionDomainsPanel({
   const [responsavelBarreira, setResponsavelBarreira] = useState("");
   const [resultadoEpifania, setResultadoEpifania] = useState<
     ResultadoEpifaniaDominioSessao["epifania"] | null
+  >(null);
+  const [feedbackDominio, setFeedbackDominio] = useState<
+    ResultadoAcaoDominioSessao["feedback"] | null
   >(null);
   const personagemSelecionado = personagens.find(
     (personagem) => personagem.id === Number(personagemEpifaniaId),
@@ -128,7 +138,12 @@ export function SessionDomainsPanel({
   const disputasAtivas = useMemo(() => {
     const porId = new Map<
       number,
-      { id: number; resolucoesConcluidas: number; rodadaProximaResolucao: number; dominios: string[] }
+      {
+        id: number;
+        resolucoesConcluidas: number;
+        rodadaProximaResolucao: number;
+        dominios: string[];
+      }
     >();
     dominios.forEach((dominio) =>
       dominio.disputas
@@ -153,19 +168,21 @@ export function SessionDomainsPanel({
   async function executar(
     dominioId: number,
     acao: Parameters<typeof apiExecutarAcaoDominioSessaoCampanha>[3]["acao"],
-    detalhes: Partial<Parameters<typeof apiExecutarAcaoDominioSessaoCampanha>[3]> = {},
+    detalhes: Partial<
+      Parameters<typeof apiExecutarAcaoDominioSessaoCampanha>[3]
+    > = {},
   ) {
     setErro(null);
     setPendente(dominioId);
     try {
-      onAtualizar(
-        await apiExecutarAcaoDominioSessaoCampanha(
-          campanhaId,
-          sessaoId,
-          dominioId,
-          { clientRequestId: crypto.randomUUID(), acao, ...detalhes },
-        ),
+      const resposta = await apiExecutarAcaoDominioSessaoCampanha(
+        campanhaId,
+        sessaoId,
+        dominioId,
+        { clientRequestId: crypto.randomUUID(), acao, ...detalhes },
       );
+      onAtualizar(resposta.detalhe);
+      setFeedbackDominio(resposta.feedback);
     } catch (error) {
       setErro(
         error instanceof Error
@@ -228,8 +245,14 @@ export function SessionDomainsPanel({
 
   async function registrarRuptura() {
     const resultadoAtaque = Number(resultadoRuptura);
-    if (!dominioRupturaId || !Number.isInteger(resultadoAtaque) || resultadoAtaque < 1) {
-      setErro("Informe o resultado inteiro do ataque que superou a DT estrutural.");
+    if (
+      !dominioRupturaId ||
+      !Number.isInteger(resultadoAtaque) ||
+      resultadoAtaque < 1
+    ) {
+      setErro(
+        "Informe o resultado inteiro do ataque que superou a DT estrutural.",
+      );
       return;
     }
     await executar(dominioRupturaId, "REGISTRAR_RUPTURA", {
@@ -317,8 +340,14 @@ export function SessionDomainsPanel({
 
   async function criarBarreiraNarrativa() {
     const pontosComplexidade = Number(complexidadeBarreira);
-    if (!nomeBarreira.trim() || !Number.isInteger(pontosComplexidade) || pontosComplexidade < 1) {
-      setErro("Informe nome e uma complexidade inteira positiva para a barreira.");
+    if (
+      !nomeBarreira.trim() ||
+      !Number.isInteger(pontosComplexidade) ||
+      pontosComplexidade < 1
+    ) {
+      setErro(
+        "Informe nome e uma complexidade inteira positiva para a barreira.",
+      );
       return;
     }
     const [tipoResponsavel, idResponsavel] = responsavelBarreira.split(":");
@@ -358,7 +387,11 @@ export function SessionDomainsPanel({
       setConcentracaoBarreira(false);
       setResponsavelBarreira("");
     } catch (error) {
-      setErro(error instanceof Error ? error.message : "Não foi possível criar a barreira narrativa.");
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível criar a barreira narrativa.",
+      );
     } finally {
       setPendente(null);
     }
@@ -377,7 +410,11 @@ export function SessionDomainsPanel({
         ),
       );
     } catch (error) {
-      setErro(error instanceof Error ? error.message : "Não foi possível encerrar a barreira narrativa.");
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível encerrar a barreira narrativa.",
+      );
     } finally {
       setPendente(null);
     }
@@ -391,11 +428,36 @@ export function SessionDomainsPanel({
       collapseLabel="Domínios e barreiras"
     >
       {erro ? <ErrorAlert message={erro} /> : null}
+      {feedbackDominio ? (
+        <div
+          className={`mb-3 rounded-xl border p-3 text-sm ${
+            feedbackDominio.severidade === "WARNING"
+              ? "border-app-warning/40 bg-app-warning/10 text-app-fg"
+              : feedbackDominio.severidade === "INFO"
+                ? "border-app-info/40 bg-app-info/10 text-app-fg"
+                : "border-app-success/40 bg-app-success/10 text-app-fg"
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <p className="font-semibold">
+            {feedbackDominio.titulo}: {feedbackDominio.dominioNome}
+          </p>
+          <p className="mt-1 text-xs text-app-muted">
+            {feedbackDominio.mensagem}
+          </p>
+        </div>
+      ) : null}
       {ehMestre ? (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-app-secondary/30 bg-app-secondary/10 p-3">
           <div>
-            <p className="text-sm font-semibold text-app-fg">Disputa de Domínios</p>
-            <p className="text-xs text-app-muted">Selecione Domínios e os alvos na região de colisão sem precisar informar IDs.</p>
+            <p className="text-sm font-semibold text-app-fg">
+              Disputa de Domínios
+            </p>
+            <p className="text-xs text-app-muted">
+              Selecione Domínios e os alvos na região de colisão sem precisar
+              informar IDs.
+            </p>
           </div>
           <Button
             type="button"
@@ -404,7 +466,9 @@ export function SessionDomainsPanel({
               setDisputaInstancia((atual) => atual + 1);
               setDisputaAberta(true);
             }}
-            disabled={sessaoEncerrada || dominiosDisponiveisParaDisputa.length < 2}
+            disabled={
+              sessaoEncerrada || dominiosDisponiveisParaDisputa.length < 2
+            }
           >
             Criar disputa
           </Button>
@@ -413,9 +477,12 @@ export function SessionDomainsPanel({
       <div className="mb-3 rounded-xl border border-app-border bg-app-base/40 p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-sm font-semibold text-app-fg">Barreiras narrativas</p>
+            <p className="text-sm font-semibold text-app-fg">
+              Barreiras narrativas
+            </p>
             <p className="text-xs text-app-muted">
-              Cortinas e barreiras permanentes da cena, sem mapa tático ou efeitos inventados pelo sistema.
+              Cortinas e barreiras permanentes da cena, sem mapa tático ou
+              efeitos inventados pelo sistema.
             </p>
           </div>
           {ehMestre ? (
@@ -433,14 +500,22 @@ export function SessionDomainsPanel({
         {barreirasNarrativas.length ? (
           <div className="mt-3 space-y-2">
             {barreirasNarrativas.map((barreira) => (
-              <article key={barreira.id} className="rounded-lg border border-app-border bg-app-surface/50 p-2">
+              <article
+                key={barreira.id}
+                className="rounded-lg border border-app-border bg-app-surface/50 p-2"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <p className="text-sm font-semibold text-app-fg">{barreira.nome}</p>
+                    <p className="text-sm font-semibold text-app-fg">
+                      {barreira.nome}
+                    </p>
                     <p className="text-xs text-app-muted">
-                      {barreira.escala.toLowerCase()} · Complexidade {barreira.pontosComplexidade}
+                      {barreira.escala.toLowerCase()} · Complexidade{" "}
+                      {barreira.pontosComplexidade}
                       {barreira.ancorada ? " · ancorada" : ""}
-                      {barreira.requerConcentracao ? " · requer Concentração" : ""}
+                      {barreira.requerConcentracao
+                        ? " · requer Concentração"
+                        : ""}
                     </p>
                   </div>
                   {ehMestre ? (
@@ -448,33 +523,48 @@ export function SessionDomainsPanel({
                       type="button"
                       size="xs"
                       variant="ghost"
-                      onClick={() => void encerrarBarreiraNarrativa(barreira.id)}
+                      onClick={() =>
+                        void encerrarBarreiraNarrativa(barreira.id)
+                      }
                       disabled={sessaoEncerrada || pendente !== null}
                     >
                       Encerrar
                     </Button>
                   ) : null}
                 </div>
-                {barreira.descricao ? <p className="mt-2 text-xs text-app-muted">{barreira.descricao}</p> : null}
+                {barreira.descricao ? (
+                  <p className="mt-2 text-xs text-app-muted">
+                    {barreira.descricao}
+                  </p>
+                ) : null}
                 {barreira.regras.length ? (
                   <ul className="mt-2 list-inside list-disc text-xs text-app-muted">
-                    {barreira.regras.map((regra, index) => <li key={`${barreira.id}-${index}`}>{String(regra)}</li>)}
+                    {barreira.regras.map((regra, index) => (
+                      <li key={`${barreira.id}-${index}`}>{String(regra)}</li>
+                    ))}
                   </ul>
                 ) : null}
               </article>
             ))}
           </div>
         ) : (
-          <p className="mt-3 text-xs text-app-muted">Nenhuma barreira narrativa está ativa nesta cena.</p>
+          <p className="mt-3 text-xs text-app-muted">
+            Nenhuma barreira narrativa está ativa nesta cena.
+          </p>
         )}
       </div>
       {ehMestre && disputasAtivas.length ? (
         <div className="mb-3 space-y-2 rounded-xl border border-app-secondary/30 bg-app-secondary/10 p-3">
           <p className="text-sm font-semibold text-app-fg">Disputas ativas</p>
           {disputasAtivas.map((disputa) => (
-            <div key={disputa.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-app-border bg-app-base/40 p-2">
+            <div
+              key={disputa.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-app-border bg-app-base/40 p-2"
+            >
               <p className="text-xs text-app-muted">
-                {disputa.dominios.join(" × ")} · resolução {disputa.resolucoesConcluidas + 1} · próxima na rodada {disputa.rodadaProximaResolucao}
+                {disputa.dominios.join(" × ")} · resolução{" "}
+                {disputa.resolucoesConcluidas + 1} · próxima na rodada{" "}
+                {disputa.rodadaProximaResolucao}
               </p>
               <Button
                 type="button"
@@ -482,7 +572,9 @@ export function SessionDomainsPanel({
                 onClick={() => void resolverDisputa(disputa.id)}
                 disabled={sessaoEncerrada || pendente !== null}
               >
-                {pendente === -disputa.id ? "Resolvendo..." : "Resolver Refinamento"}
+                {pendente === -disputa.id
+                  ? "Resolvendo..."
+                  : "Resolver Refinamento"}
               </Button>
             </div>
           ))}
@@ -521,16 +613,26 @@ export function SessionDomainsPanel({
             >
               {resultadoEpifania.sucesso ? (
                 <>
-                  <p className="font-semibold">Epifania bem-sucedida: {resultadoEpifania.resultado} / DT {resultadoEpifania.dt}.</p>
+                  <p className="font-semibold">
+                    Epifania bem-sucedida: {resultadoEpifania.resultado} / DT{" "}
+                    {resultadoEpifania.dt}.
+                  </p>
                   <p className="mt-1 text-app-muted">
-                    O Domínio Incompleto está abrindo. Use <strong>Formar</strong> no cartão do Domínio para ativar seus bônus; <strong>Interromper</strong> encerra a abertura com o esgotamento antecipado previsto.
+                    O Domínio Incompleto está abrindo. Use{" "}
+                    <strong>Formar</strong> no cartão do Domínio para ativar
+                    seus bônus; <strong>Interromper</strong> encerra a abertura
+                    com o esgotamento antecipado previsto.
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="font-semibold">A Epifania falhou: {resultadoEpifania.resultado} / DT {resultadoEpifania.dt}.</p>
+                  <p className="font-semibold">
+                    A Epifania falhou: {resultadoEpifania.resultado} / DT{" "}
+                    {resultadoEpifania.dt}.
+                  </p>
                   <p className="mt-1 text-app-muted">
-                    Nenhum recurso foi gasto. Uma nova tentativa nesta cena terá DT {resultadoEpifania.proximaDt}.
+                    Nenhum recurso foi gasto. Uma nova tentativa nesta cena terá
+                    DT {resultadoEpifania.proximaDt}.
                   </p>
                 </>
               )}
@@ -718,16 +820,27 @@ export function SessionDomainsPanel({
                 </div>
                 <div className="flex flex-wrap justify-end gap-1">
                   <Badge color="purple" size="sm">
-                    {estadoBarreiraLabel[dominio.estadoBarreira] ?? dominio.estadoBarreira}
+                    {estadoBarreiraLabel[dominio.estadoBarreira] ??
+                      dominio.estadoBarreira}
                   </Badge>
                   {dominio.estado === "ABRINDO" ? (
-                    <Badge color="yellow" size="sm" title="O mestre pode formar ou interromper a abertura.">
+                    <Badge
+                      color="yellow"
+                      size="sm"
+                      title="O mestre pode formar ou interromper a abertura."
+                    >
                       Abrindo · interrompível
                     </Badge>
                   ) : null}
-                  {dominio.instavel ? <Badge color="red" size="sm">Instável</Badge> : null}
+                  {dominio.instavel ? (
+                    <Badge color="red" size="sm">
+                      Instável
+                    </Badge>
+                  ) : null}
                   {dominio.acertoGarantidoNeutralizado ? (
-                    <Badge color="cyan" size="sm">Acerto Garantido neutralizado</Badge>
+                    <Badge color="cyan" size="sm">
+                      Acerto Garantido neutralizado
+                    </Badge>
                   ) : null}
                 </div>
               </div>
@@ -746,7 +859,10 @@ export function SessionDomainsPanel({
               ))}
               {dominio.acertoGarantidoNeutralizado ? (
                 <p className="mt-2 text-xs text-app-info">
-                  Acerto Garantido neutralizado: {(dominio.motivosNeutralizacaoAcertoGarantido ?? []).join(" · ") || "há uma proteção ou disputa ativa para o alvo."}
+                  Acerto Garantido neutralizado:{" "}
+                  {(dominio.motivosNeutralizacaoAcertoGarantido ?? []).join(
+                    " · ",
+                  ) || "há uma proteção ou disputa ativa para o alvo."}
                 </p>
               ) : null}
               {dominio.acertoGarantido ? (
@@ -784,7 +900,9 @@ export function SessionDomainsPanel({
                   ) : null}
                   {dominio.estado === "ATIVO" ? (
                     <>
-                      {dominio.disputas.some((disputa) => disputa.estado === "ATIVA") ? (
+                      {dominio.disputas.some(
+                        (disputa) => disputa.estado === "ATIVA",
+                      ) ? (
                         <>
                           <Button
                             size="xs"
@@ -816,7 +934,9 @@ export function SessionDomainsPanel({
                         <Button
                           size="xs"
                           variant="secondary"
-                          onClick={() => void executar(dominio.id, "ESTABILIZAR")}
+                          onClick={() =>
+                            void executar(dominio.id, "ESTABILIZAR")
+                          }
                           disabled={pendente === dominio.id}
                         >
                           Estabilizar
@@ -889,17 +1009,29 @@ export function SessionDomainsPanel({
         size="md"
         footer={
           <>
-            <Button type="button" variant="ghost" onClick={() => setDominioRupturaId(null)} disabled={pendente !== null}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setDominioRupturaId(null)}
+              disabled={pendente !== null}
+            >
               Cancelar
             </Button>
-            <Button type="button" onClick={() => void registrarRuptura()} disabled={pendente !== null}>
+            <Button
+              type="button"
+              onClick={() => void registrarRuptura()}
+              disabled={pendente !== null}
+            >
               Registrar
             </Button>
           </>
         }
       >
         <div className="space-y-3">
-          <p className="text-sm text-app-muted">Informe apenas um ataque já resolvido que superou a DT estrutural exibida no cartão. O servidor confirma a DT e calcula as Rupturas.</p>
+          <p className="text-sm text-app-muted">
+            Informe apenas um ataque já resolvido que superou a DT estrutural
+            exibida no cartão. O servidor confirma a DT e calcula as Rupturas.
+          </p>
           <Input
             label="Resultado do ataque"
             type="number"
@@ -913,15 +1045,23 @@ export function SessionDomainsPanel({
             <select
               className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg"
               value={potenciaRuptura}
-              onChange={(event) => setPotenciaRuptura(event.target.value as typeof potenciaRuptura)}
+              onChange={(event) =>
+                setPotenciaRuptura(event.target.value as typeof potenciaRuptura)
+              }
             >
               <option value="NORMAL">Normal (1 Ruptura)</option>
-              <option value="POTENCIALIZADO">Potencializado (2 Rupturas)</option>
+              <option value="POTENCIALIZADO">
+                Potencializado (2 Rupturas)
+              </option>
               <option value="EXCEPCIONAL">Excepcional (3 Rupturas)</option>
             </select>
           </label>
           <label className="flex items-center gap-2 text-sm text-app-fg">
-            <input type="checkbox" checked={golpeConcentrado} onChange={(event) => setGolpeConcentrado(event.target.checked)} />
+            <input
+              type="checkbox"
+              checked={golpeConcentrado}
+              onChange={(event) => setGolpeConcentrado(event.target.checked)}
+            />
             Golpe Concentrado (+1 Ruptura, máximo 3)
           </label>
         </div>
@@ -931,28 +1071,43 @@ export function SessionDomainsPanel({
         onClose={() => setDominioPressaoId(null)}
         title="Pressionar Domínio"
         size="md"
-        footer={<Button type="button" variant="ghost" onClick={() => setDominioPressaoId(null)}>Cancelar</Button>}
+        footer={
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setDominioPressaoId(null)}
+          >
+            Cancelar
+          </Button>
+        }
       >
         <div className="space-y-3">
-          <p className="text-sm text-app-muted">Escolha o Domínio adversário. A pressão só reduz a Dominância se seu Refinamento superar o alvo na próxima resolução.</p>
+          <p className="text-sm text-app-muted">
+            Escolha o Domínio adversário. A pressão só reduz a Dominância se seu
+            Refinamento superar o alvo na próxima resolução.
+          </p>
           <div className="grid gap-2">
-            {dominiosAtivos.filter((dominio) => dominio.id !== dominioPressaoId).map((dominio) => (
-              <Button
-                key={dominio.id}
-                type="button"
-                variant="secondary"
-                className="justify-start"
-                disabled={pendente !== null}
-                onClick={() => {
-                  if (dominioPressaoId !== null) {
-                    void executar(dominioPressaoId, "PRESSIONAR", { dominioAlvoId: dominio.id });
-                  }
-                  setDominioPressaoId(null);
-                }}
-              >
-                {dominio.nome} · {dominio.participante.nome}
-              </Button>
-            ))}
+            {dominiosAtivos
+              .filter((dominio) => dominio.id !== dominioPressaoId)
+              .map((dominio) => (
+                <Button
+                  key={dominio.id}
+                  type="button"
+                  variant="secondary"
+                  className="justify-start"
+                  disabled={pendente !== null}
+                  onClick={() => {
+                    if (dominioPressaoId !== null) {
+                      void executar(dominioPressaoId, "PRESSIONAR", {
+                        dominioAlvoId: dominio.id,
+                      });
+                    }
+                    setDominioPressaoId(null);
+                  }}
+                >
+                  {dominio.nome} · {dominio.participante.nome}
+                </Button>
+              ))}
           </div>
         </div>
       </Modal>
@@ -963,10 +1118,19 @@ export function SessionDomainsPanel({
         size="lg"
         footer={
           <>
-            <Button type="button" variant="ghost" onClick={() => setBarreiraAberta(false)} disabled={pendente !== null}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setBarreiraAberta(false)}
+              disabled={pendente !== null}
+            >
               Cancelar
             </Button>
-            <Button type="button" onClick={() => void criarBarreiraNarrativa()} disabled={pendente !== null}>
+            <Button
+              type="button"
+              onClick={() => void criarBarreiraNarrativa()}
+              disabled={pendente !== null}
+            >
               {pendente === -2 ? "Criando..." : "Criar barreira"}
             </Button>
           </>
@@ -974,31 +1138,65 @@ export function SessionDomainsPanel({
       >
         <div className="space-y-3">
           <p className="text-sm text-app-muted">
-            Registre Cortinas e Barreiras Simples permanentes como contexto da cena. Sem mapa, as regras continuam narrativas e não aplicam dano, posição ou bloqueios automaticamente.
+            Registre Cortinas e Barreiras Simples permanentes como contexto da
+            cena. Sem mapa, as regras continuam narrativas e não aplicam dano,
+            posição ou bloqueios automaticamente.
           </p>
-          <Input label="Nome" value={nomeBarreira} onChange={(event) => setNomeBarreira(event.target.value)} placeholder="Ex.: Cortina da escola" />
+          <Input
+            label="Nome"
+            value={nomeBarreira}
+            onChange={(event) => setNomeBarreira(event.target.value)}
+            placeholder="Ex.: Cortina da escola"
+          />
           <label className="block text-sm text-app-fg">
             Descrição
-            <textarea className="mt-1 min-h-20 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg" value={descricaoBarreira} onChange={(event) => setDescricaoBarreira(event.target.value)} placeholder="Escopo e condição narrativa da barreira." />
+            <textarea
+              className="mt-1 min-h-20 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg"
+              value={descricaoBarreira}
+              onChange={(event) => setDescricaoBarreira(event.target.value)}
+              placeholder="Escopo e condição narrativa da barreira."
+            />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm text-app-fg">
               Escala
-              <select className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg" value={escalaBarreira} onChange={(event) => setEscalaBarreira(event.target.value as typeof escalaBarreira)}>
+              <select
+                className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg"
+                value={escalaBarreira}
+                onChange={(event) =>
+                  setEscalaBarreira(event.target.value as typeof escalaBarreira)
+                }
+              >
                 <option value="PEQUENA">Pequena</option>
                 <option value="MEDIA">Média</option>
                 <option value="GRANDE">Grande</option>
                 <option value="MASSIVA">Massiva</option>
               </select>
             </label>
-            <Input label="Pontos de Complexidade" type="number" min="1" max="20" step="1" value={complexidadeBarreira} onChange={(event) => setComplexidadeBarreira(event.target.value)} helperText="Compare com o grau de Técnicas de Barreira do responsável." />
+            <Input
+              label="Pontos de Complexidade"
+              type="number"
+              min="1"
+              max="20"
+              step="1"
+              value={complexidadeBarreira}
+              onChange={(event) => setComplexidadeBarreira(event.target.value)}
+              helperText="Compare com o grau de Técnicas de Barreira do responsável."
+            />
           </div>
           <label className="block text-sm text-app-fg">
             Responsável (opcional)
-            <select className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg" value={responsavelBarreira} onChange={(event) => setResponsavelBarreira(event.target.value)}>
+            <select
+              className="mt-1 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg"
+              value={responsavelBarreira}
+              onChange={(event) => setResponsavelBarreira(event.target.value)}
+            >
               <option value="">Barreira ambiental ou sem responsável</option>
               {alvos.map((alvo) => (
-                <option key={`${alvo.tipo}-${alvo.id}`} value={`${alvo.tipo}:${alvo.id}`}>
+                <option
+                  key={`${alvo.tipo}-${alvo.id}`}
+                  value={`${alvo.tipo}:${alvo.id}`}
+                >
                   {alvo.tipo === "NPC" ? "NPC" : "Personagem"}: {alvo.nome}
                 </option>
               ))}
@@ -1006,11 +1204,32 @@ export function SessionDomainsPanel({
           </label>
           <label className="block text-sm text-app-fg">
             Regras da barreira
-            <textarea className="mt-1 min-h-24 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg" value={regrasBarreira} onChange={(event) => setRegrasBarreira(event.target.value)} placeholder="Uma regra por linha. Ex.: Impede a entrada de não-feiticeiros." />
+            <textarea
+              className="mt-1 min-h-24 w-full rounded-lg border border-app-border bg-app-surface p-2 text-sm text-app-fg"
+              value={regrasBarreira}
+              onChange={(event) => setRegrasBarreira(event.target.value)}
+              placeholder="Uma regra por linha. Ex.: Impede a entrada de não-feiticeiros."
+            />
           </label>
           <div className="flex flex-wrap gap-4 text-sm text-app-fg">
-            <label className="flex items-center gap-2"><input type="checkbox" checked={ancoradaBarreira} onChange={(event) => setAncoradaBarreira(event.target.checked)} /> Possui âncora ou preparação</label>
-            <label className="flex items-center gap-2"><input type="checkbox" checked={concentracaoBarreira} onChange={(event) => setConcentracaoBarreira(event.target.checked)} /> Requer Concentração</label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={ancoradaBarreira}
+                onChange={(event) => setAncoradaBarreira(event.target.checked)}
+              />{" "}
+              Possui âncora ou preparação
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={concentracaoBarreira}
+                onChange={(event) =>
+                  setConcentracaoBarreira(event.target.checked)
+                }
+              />{" "}
+              Requer Concentração
+            </label>
           </div>
         </div>
       </Modal>

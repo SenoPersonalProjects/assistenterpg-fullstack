@@ -354,7 +354,7 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: AcaoDominioSessaoDto,
   ) {
-    const detalhe = await this.sessaoService.executarAcaoDominioSessao(
+    const resultado = await this.sessaoService.executarAcaoDominioSessao(
       campanhaId,
       sessaoId,
       dominioId,
@@ -366,7 +366,7 @@ export class SessaoController {
       sessaoId,
       'DOMINIO_ATUALIZADO',
     );
-    return detalhe;
+    return resultado;
   }
 
   @Post(':sessaoId/disputas-dominios')
@@ -1351,12 +1351,21 @@ export class SessaoController {
         req.user.id,
         dto,
       );
+    this.sessaoService.agendarEfeitosAutomaticosTurnoSessao(
+      resultado.processamento,
+      () =>
+        this.sessaoGateway.emitirSessaoAtualizada(
+          campanhaId,
+          sessaoId,
+          'EFEITOS_TURNO_REPROCESSADOS',
+        ),
+    );
     this.sessaoGateway.emitirSessaoAtualizada(
       campanhaId,
       sessaoId,
       'INICIATIVA_ALTERNADA_ATUALIZADA',
     );
-    return resultado;
+    return resultado.detalhe;
   }
 
   @Post(':sessaoId/consumiveis/usar')

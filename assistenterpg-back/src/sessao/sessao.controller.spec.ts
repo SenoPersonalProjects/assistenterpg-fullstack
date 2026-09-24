@@ -17,8 +17,10 @@ describe('SessaoController', () => {
     listarEventosSessao: jest.fn(),
     enviarMensagemChatSessao: jest.fn(),
     criarRolagemSessao: jest.fn(),
+    executarAcaoDominioSessao: jest.fn(),
     tentarEpifaniaDominioSessao: jest.fn(),
     avancarTurnoSessao: jest.fn(),
+    avancarLadoIniciativaAlternadaSessao: jest.fn(),
     voltarTurnoSessao: jest.fn(),
     pularTurnoSessao: jest.fn(),
     agendarEfeitosAutomaticosTurnoSessao: jest.fn(),
@@ -412,6 +414,30 @@ describe('SessaoController', () => {
     );
   });
 
+  it('agenda efeitos após avançar o lado da iniciativa alternada', async () => {
+    const processamento = { eventoId: 92 };
+    sessaoServiceMock.avancarLadoIniciativaAlternadaSessao.mockResolvedValue({
+      detalhe: { id: 12 },
+      processamento,
+    });
+
+    await controller.avancarLadoIniciativaAlternadaSessao(
+      7,
+      12,
+      { user: { id: 3 } },
+      { rodadaEsperada: 2, ladoAtualIdEsperado: 1 },
+    );
+
+    expect(
+      sessaoServiceMock.agendarEfeitosAutomaticosTurnoSessao,
+    ).toHaveBeenCalledWith(processamento, expect.any(Function));
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'INICIATIVA_ALTERNADA_ATUALIZADA',
+    );
+  });
+
   it('deve emitir evento ao pular turno', async () => {
     sessaoServiceMock.pularTurnoSessao.mockResolvedValue({
       detalhe: { id: 12 },
@@ -459,6 +485,40 @@ describe('SessaoController', () => {
           clientRequestId: 'ec2f5b76-1fda-41ae-bbe0-c7276b864d7b',
           personagemSessaoId: 5,
           atributo: 'PRE',
+        },
+      ),
+    ).resolves.toEqual(resultado);
+
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'DOMINIO_ATUALIZADO',
+    );
+  });
+
+  it('devolve o feedback estruturado da ação de barreira', async () => {
+    const resultado = {
+      detalhe: { id: 12 },
+      feedback: {
+        acao: 'REFORCAR',
+        dominioId: 5,
+        dominioNome: 'Santuário',
+        titulo: 'Barreira reforçada',
+        mensagem: 'EA -1. Rupturas: 2 → 1.',
+        severidade: 'SUCCESS',
+      },
+    };
+    sessaoServiceMock.executarAcaoDominioSessao.mockResolvedValue(resultado);
+
+    await expect(
+      controller.executarAcaoDominioSessao(
+        7,
+        12,
+        5,
+        { user: { id: 3 } },
+        {
+          clientRequestId: '77f55297-b7a0-4513-8e22-77f6831146a1',
+          acao: 'REFORCAR',
         },
       ),
     ).resolves.toEqual(resultado);

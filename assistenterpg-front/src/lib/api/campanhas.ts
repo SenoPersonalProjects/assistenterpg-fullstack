@@ -143,6 +143,18 @@ export type TentarEpifaniaDominioSessaoPayload = {
   alvosNpcSessaoIds?: number[];
 };
 
+export type ResultadoAcaoDominioSessao = {
+  detalhe: SessaoCampanhaDetalhe;
+  feedback: {
+    acao: AcaoDominioSessaoPayload["acao"];
+    dominioId: number;
+    dominioNome: string;
+    titulo: string;
+    mensagem: string;
+    severidade: "INFO" | "SUCCESS" | "WARNING";
+  };
+};
+
 export type ResultadoEpifaniaDominioSessao = {
   detalhe: SessaoCampanhaDetalhe;
   epifania: {
@@ -1266,7 +1278,7 @@ export async function apiExecutarAcaoDominioSessaoCampanha(
   sessaoId: number,
   dominioId: number,
   payload: AcaoDominioSessaoPayload,
-): Promise<SessaoCampanhaDetalhe> {
+): Promise<ResultadoAcaoDominioSessao> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/dominios/${dominioId}/acoes`,
     payload,

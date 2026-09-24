@@ -10751,9 +10751,10 @@ export class SessaoService {
       'AVANCAR',
       dto,
     );
-    await this.processarEfeitosAutomaticosTurnoSessao(processamento);
-
-    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+    return {
+      detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
+      processamento,
+    };
   }
 
   async reprocessarEfeitosAutomaticosTurnoSessao(
@@ -16154,11 +16155,18 @@ export class SessaoService {
       throw new CampanhaApenasMestreException(
         'confirmar abertura, interrupcao ou ruptura de Dominio',
       );
-    await this.prisma.$transaction(async (tx) => {
+    const feedback = await this.prisma.$transaction(async (tx) => {
       const atual = await tx.dominioSessao.findUnique({
         where: { id: dominioId },
       });
-      if (!atual) return;
+      if (!atual)
+        throw new BusinessException(
+          'Dominio nao encontrado nesta sessao.',
+          'DOMINIO_NAO_ENCONTRADO',
+        );
+      let titulo = 'Domínio atualizado';
+      let mensagem = 'A ação no Domínio foi registrada.';
+      let severidade: 'INFO' | 'SUCCESS' | 'WARNING' = 'SUCCESS';
       if (dto.acao === 'FORMAR') {
         if (atual.estado !== 'ABRINDO')
           throw new BusinessException(
@@ -16169,6 +16177,10 @@ export class SessaoService {
           where: { id: dominioId },
           data: { estado: 'ATIVO' },
         });
+        titulo = 'Domínio formado';
+        mensagem = atual.incompleto
+          ? 'O Domínio Incompleto está ativo; seus bônus entram em vigor, mas ele não possui Acerto Garantido.'
+          : 'O Domínio está ativo e seus efeitos já podem ser resolvidos na ordem de turno.';
       } else if (dto.acao === 'INTERROMPER' || dto.acao === 'DESFAZER') {
         await this.encerrarDominioTx(
           tx,
@@ -16178,6 +16190,15 @@ export class SessaoService {
             ? 'INTERRUPCAO'
             : 'ENCERRAMENTO_VOLUNTARIO',
         );
+        titulo =
+          dto.acao === 'INTERROMPER'
+            ? 'Abertura interrompida'
+            : 'Domínio desfeito';
+        mensagem =
+          dto.acao === 'INTERROMPER'
+            ? 'A abertura foi interrompida e o esgotamento aplicável foi registrado.'
+            : 'O Domínio foi encerrado voluntariamente e os efeitos de término foram registrados.';
+        severidade = 'WARNING';
       } else if (dto.acao === 'REFORCAR') {
         if (atual.tipo !== 'FECHADO' || atual.estado !== 'ATIVO')
           throw new BusinessException(
@@ -16189,6 +16210,9 @@ export class SessaoService {
           where: { id: dominioId },
           data: { rupturas: Math.max(0, atual.rupturas - 1) },
         });
+        const rupturasNovas = Math.max(0, atual.rupturas - 1);
+        titulo = 'Barreira reforçada';
+        mensagem = `EA -1. Rupturas: ${atual.rupturas} → ${rupturasNovas}.`;
       } else if (dto.acao === 'RECONFIGURAR') {
         if (atual.tipo !== 'FECHADO' || atual.estado !== 'ATIVO')
           throw new BusinessException(
@@ -16200,6 +16224,10 @@ export class SessaoService {
           where: { id: dominioId },
           data: { exteriorReforcado: !atual.exteriorReforcado },
         });
+        titulo = 'Barreira reconfigurada';
+        mensagem = atual.exteriorReforcado
+          ? 'PE -1. O interior voltou a ser a face mais resistente.'
+          : 'PE -1. O exterior passou a ser a face mais resistente.';
       } else if (dto.acao === 'ESTABILIZAR') {
         if (atual.estado !== 'ATIVO')
           throw new BusinessException(
@@ -16210,6 +16238,8 @@ export class SessaoService {
           where: { id: dominioId },
           data: { instavel: false },
         });
+        titulo = 'Domínio estabilizado';
+        mensagem = 'A Instabilidade foi removida.';
       } else if (dto.acao === 'REGISTRAR_RUPTURA') {
         if (atual.tipo !== 'FECHADO' || atual.integridadeMax === null)
           throw new BusinessException(
@@ -16243,6 +16273,15 @@ export class SessaoService {
             where: { id: dominioId },
             data: { rupturas },
           });
+        titulo =
+          rupturas >= atual.integridadeMax
+            ? 'Barreira colapsada'
+            : 'Ruptura registrada';
+        mensagem =
+          rupturas >= atual.integridadeMax
+            ? `O ataque causou ${ganho} Ruptura(s): ${atual.rupturas} → ${rupturas}. A Integridade foi superada e o Domínio colapsou.`
+            : `O ataque causou ${ganho} Ruptura(s): ${atual.rupturas} → ${rupturas} de ${atual.integridadeMax}.`;
+        severidade = rupturas >= atual.integridadeMax ? 'WARNING' : 'SUCCESS';
       } else if (['REFINAR', 'FORCAR', 'PRESSIONAR'].includes(dto.acao)) {
         const participante = await tx.disputaDominioParticipante.findFirst({
           where: { dominioSessaoId: dominioId, disputa: { estado: 'ATIVA' } },
@@ -16258,6 +16297,10 @@ export class SessaoService {
             where: { id: participante.id },
             data: { refinado: true },
           });
+        if (dto.acao === 'REFINAR') {
+          titulo = 'Domínio refinado';
+          mensagem = 'A preparação para o próximo Refinamento foi registrada.';
+        }
         if (dto.acao === 'FORCAR') {
           if (participante.forcarNaRodada === sessao.rodadaAtual)
             throw new BusinessException(
@@ -16269,6 +16312,9 @@ export class SessaoService {
             where: { id: participante.id },
             data: { forcarNaRodada: sessao.rodadaAtual },
           });
+          titulo = 'Domínio forçado';
+          mensagem =
+            'PE -2. A pressão técnica foi registrada para esta rodada.';
         }
         if (dto.acao === 'PRESSIONAR') {
           if (!dto.dominioAlvoId || dto.dominioAlvoId === dominioId)
@@ -16292,8 +16338,19 @@ export class SessaoService {
             where: { id: participante.id },
             data: { pressionarDominioSessaoId: dto.dominioAlvoId },
           });
+          titulo = 'Domínio pressionado';
+          mensagem =
+            'A pressão contra o Domínio escolhido foi registrada para o próximo Refinamento.';
         }
       }
+      const resultado = {
+        acao: dto.acao,
+        dominioId,
+        dominioNome: atual.nome,
+        titulo,
+        mensagem,
+        severidade,
+      };
       await tx.eventoSessao.create({
         data: {
           sessaoId,
@@ -16301,11 +16358,19 @@ export class SessaoService {
           tipoEvento: `DOMINIO_${dto.acao}`,
           solicitanteUsuarioId: usuarioId,
           clientRequestId: dto.clientRequestId,
-          dados: this.jsonParaPersistencia({ dominioId, ...dto }),
+          dados: this.jsonParaPersistencia({
+            dominioId,
+            ...dto,
+            feedback: resultado,
+          }),
         },
       });
+      return resultado;
     });
-    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+    return {
+      detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
+      feedback,
+    };
   }
 
   async criarDisputaDominioSessao(
@@ -19072,21 +19137,18 @@ export class SessaoService {
     if (!processamento) return true;
 
     try {
-      const limitePassos = Math.max(
-        1,
-        processamento.contexto.passos.length + 1,
+      // Cada passo anteriormente abria uma nova transação e reabria os locks
+      // da sessão/evento. Agrupar os passos pendentes preserva a atomicidade,
+      // reduz as idas ao TiDB e mantém a reexecução segura: uma falha desfaz
+      // o lote inteiro, deixando o contexto pendente para nova tentativa.
+      await executarComRetryConcorrencia(
+        'processar efeitos automaticos do turno',
+        () =>
+          this.prisma.$transaction((tx) =>
+            this.processarPassosEfeitosTurnoTx(tx, processamento),
+          ),
       );
-      for (let execucao = 0; execucao < limitePassos; execucao += 1) {
-        const resultado = await executarComRetryConcorrencia(
-          'processar efeitos automaticos do turno',
-          () =>
-            this.prisma.$transaction((tx) =>
-              this.processarProximoPassoEfeitosTurnoTx(tx, processamento),
-            ),
-        );
-        if (resultado === 'CONCLUIDO') return true;
-      }
-      throw new Error('Processamento de efeitos excedeu o limite de passos.');
+      return true;
     } catch (error) {
       await this.marcarFalhaEfeitosTurno(processamento).catch(
         (erroMarcacao) => {
@@ -19127,10 +19189,10 @@ export class SessaoService {
     temporizador.unref();
   }
 
-  private async processarProximoPassoEfeitosTurnoTx(
+  private async processarPassosEfeitosTurnoTx(
     tx: Prisma.TransactionClient,
     processamento: ProcessamentoEfeitosTurnoSessao,
-  ): Promise<'PASSO_CONCLUIDO' | 'CONCLUIDO'> {
+  ): Promise<void> {
     await bloquearSessaoTx(
       tx,
       processamento.campanhaId,
@@ -19148,41 +19210,29 @@ export class SessaoService {
     });
     const contexto = evento ? this.lerContextoEfeitosTurno(evento.dados) : null;
     if (!evento || !contexto || contexto.status === 'CONCLUIDO') {
-      return 'CONCLUIDO';
+      return;
     }
 
-    const indicePasso = contexto.passos.findIndex(
-      (passo) => passo.status !== 'CONCLUIDO',
-    );
-    if (indicePasso < 0) {
-      await this.persistirContextoEfeitosTurnoTx(tx, processamento.eventoId, {
-        ...contexto,
-        status: 'CONCLUIDO',
-        atualizadoEm: new Date().toISOString(),
-      });
-      return 'CONCLUIDO';
+    const passos = [...contexto.passos];
+    for (let indice = 0; indice < passos.length; indice += 1) {
+      const passo = passos[indice];
+      if (passo.status === 'CONCLUIDO') continue;
+      await this.executarPassoEfeitosTurnoTx(
+        tx,
+        processamento.sessaoId,
+        contexto,
+        passo,
+      );
+      passos[indice] = { ...passo, status: 'CONCLUIDO' };
     }
-
-    const passo = contexto.passos[indicePasso];
-    await this.executarPassoEfeitosTurnoTx(
-      tx,
-      processamento.sessaoId,
-      contexto,
-      passo,
-    );
-    const passos = contexto.passos.map((item, indice) =>
-      indice === indicePasso ? { ...item, status: 'CONCLUIDO' as const } : item,
-    );
-    const concluido = passos.every((item) => item.status === 'CONCLUIDO');
     await this.persistirContextoEfeitosTurnoTx(tx, processamento.eventoId, {
       ...contexto,
-      status: concluido ? 'CONCLUIDO' : 'PENDENTE',
+      status: 'CONCLUIDO',
       passos,
       tentativas: contexto.tentativas + 1,
       ultimaFalhaEm: undefined,
       atualizadoEm: new Date().toISOString(),
     });
-    return concluido ? 'CONCLUIDO' : 'PASSO_CONCLUIDO';
   }
 
   private async executarPassoEfeitosTurnoTx(
