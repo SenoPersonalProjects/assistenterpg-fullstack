@@ -117,9 +117,8 @@ describe('SessaoService', () => {
   }
 
   async function concluirEfeitosAutomaticosDoTurno(resultado: unknown) {
-    const processamento = (
-      resultado as { processamento?: unknown } | undefined
-    )?.processamento;
+    const processamento = (resultado as { processamento?: unknown } | undefined)
+      ?.processamento;
     return (
       service as unknown as {
         processarEfeitosAutomaticosTurnoSessao: (

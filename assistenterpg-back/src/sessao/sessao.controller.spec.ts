@@ -383,10 +383,15 @@ describe('SessaoController', () => {
       processamento,
     });
 
-    await controller.avancarTurnoSessao(7, 12, { user: { id: 3 } }, {
-      rodadaEsperada: 2,
-      indiceTurnoEsperado: 1,
-    });
+    await controller.avancarTurnoSessao(
+      7,
+      12,
+      { user: { id: 3 } },
+      {
+        rodadaEsperada: 2,
+        indiceTurnoEsperado: 1,
+      },
+    );
 
     expect(
       sessaoServiceMock.agendarEfeitosAutomaticosTurnoSessao,
@@ -446,11 +451,16 @@ describe('SessaoController', () => {
     sessaoServiceMock.tentarEpifaniaDominioSessao.mockResolvedValue(resultado);
 
     await expect(
-      controller.tentarEpifaniaDominioSessao(7, 12, { user: { id: 3 } }, {
-        clientRequestId: 'ec2f5b76-1fda-41ae-bbe0-c7276b864d7b',
-        personagemSessaoId: 5,
-        atributo: 'PRE',
-      }),
+      controller.tentarEpifaniaDominioSessao(
+        7,
+        12,
+        { user: { id: 3 } },
+        {
+          clientRequestId: 'ec2f5b76-1fda-41ae-bbe0-c7276b864d7b',
+          personagemSessaoId: 5,
+          atributo: 'PRE',
+        },
+      ),
     ).resolves.toEqual(resultado);
 
     expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
