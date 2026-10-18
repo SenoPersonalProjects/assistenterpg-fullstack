@@ -6106,6 +6106,8 @@ export class SessaoService {
             dadosEvento,
             'cenaAnteriorId',
           );
+          const cenaNovaId =
+            this.lerInteiroRegistro(dadosEvento, 'cenaNovaId') ?? evento.cenaId;
           const tipoAnterior = this.lerTextoRegistro(
             dadosEvento,
             'tipoAnterior',
@@ -6124,6 +6126,7 @@ export class SessaoService {
           );
           if (
             cenaAnteriorId === null ||
+            cenaNovaId === null ||
             tipoAnterior === null ||
             rodadaAnterior === null ||
             indiceTurnoAnterior === null
@@ -6154,11 +6157,11 @@ export class SessaoService {
           }
 
           await tx.personagemSessao.updateMany({
-            where: { sessaoId },
+            where: { sessaoId, cenaId: cenaNovaId },
             data: { cenaId: cenaAnteriorId },
           });
           await tx.npcAmeacaSessao.updateMany({
-            where: { sessaoId },
+            where: { sessaoId, cenaId: cenaNovaId },
             data: { cenaId: cenaAnteriorId },
           });
 
@@ -6736,11 +6739,11 @@ export class SessaoService {
       });
 
       await tx.personagemSessao.updateMany({
-        where: { sessaoId },
+        where: { sessaoId, cenaId: cenaAnterior.id },
         data: { cenaId: cena.id },
       });
       await tx.npcAmeacaSessao.updateMany({
-        where: { sessaoId },
+        where: { sessaoId, cenaId: cenaAnterior.id },
         data: { cenaId: cena.id },
       });
 

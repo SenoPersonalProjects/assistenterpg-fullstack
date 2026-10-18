@@ -894,12 +894,181 @@ async function main() {
         ?.visibilidade,
       'completa',
     );
+    const cenaAtiva = await db.cena.create({ data: { sessaoId: sessao.id } });
+    await db.personagemSessao.update({
+      where: { id: ps.id },
+      data: { cenaId: cenaAtiva.id },
+    });
+    await db.npcAmeacaSessao.update({
+      where: { id: daigoSessao.id },
+      data: { cenaId: cenaAtiva.id },
+    });
+    const ausentes: Array<{
+      id: number;
+      personagemCampanhaId: number;
+      cenaId: number | null;
+    }> = [];
+    for (const cenaAusente of [null, cena.id]) {
+      const baseAusente = await db.personagemBase.create({
+        data: {
+          donoId: admin.id,
+          nome: `Ausente ${cenaAusente}`,
+          nivel: 1,
+          claId: cla.id,
+          origemId: origem.id,
+          classeId: classe.id,
+          agilidade: 1,
+          forca: 1,
+          intelecto: 1,
+          presenca: 1,
+          vigor: 1,
+        },
+      });
+      const pcAusente = await db.personagemCampanha.create({
+        data: {
+          campanhaId: campanha.id,
+          personagemBaseId: baseAusente.id,
+          donoId: admin.id,
+          nome: baseAusente.nome,
+          nivel: 1,
+          claId: cla.id,
+          origemId: origem.id,
+          classeId: classe.id,
+          pvMax: 10,
+          pvAtual: 10,
+          peMax: 10,
+          peAtual: 10,
+          eaMax: 10,
+          eaAtual: 10,
+          sanMax: 10,
+          sanAtual: 10,
+          limitePeEaPorTurno: 1,
+        },
+      });
+      ausentes.push(
+        await db.personagemSessao.create({
+          data: {
+            sessaoId: sessao.id,
+            personagemCampanhaId: pcAusente.id,
+            cenaId: cenaAusente,
+          },
+        }),
+      );
+    }
+    const npcRemovido = await db.npcAmeacaSessao.create({
+      data: {
+        sessaoId: sessao.id,
+        cenaId: null,
+        nomeExibicao: 'NPC removido',
+        fichaTipo: 'NPC',
+        tipo: 'OUTRO',
+        defesa: 10,
+        pontosVidaMax: 10,
+        pontosVidaAtual: 10,
+      },
+    });
+    await sessaoService.atualizarCenaSessao(campanha.id, sessao.id, admin.id, {
+      tipo: 'LIVRE',
+      nome: 'Continuidade',
+    });
+    const cenaNova = await db.cena.findFirstOrThrow({
+      where: { sessaoId: sessao.id },
+      orderBy: { id: 'desc' },
+    });
+    assert.equal(
+      (await db.personagemSessao.findUniqueOrThrow({ where: { id: ps.id } }))
+        .cenaId,
+      cenaNova.id,
+    );
+    assert.equal(
+      (
+        await db.npcAmeacaSessao.findUniqueOrThrow({
+          where: { id: daigoSessao.id },
+        })
+      ).cenaId,
+      cenaNova.id,
+    );
+    for (const ausente of ausentes)
+      assert.equal(
+        (
+          await db.personagemSessao.findUniqueOrThrow({
+            where: { id: ausente.id },
+          })
+        ).cenaId,
+        ausente.cenaId,
+      );
+    assert.equal(
+      (
+        await db.npcAmeacaSessao.findUniqueOrThrow({
+          where: { id: npcRemovido.id },
+        })
+      ).cenaId,
+      null,
+    );
+    assert.equal(
+      (
+        await db.npcAmeacaSessao.findUniqueOrThrow({
+          where: { id: alvoTeste.id },
+        })
+      ).cenaId,
+      cena.id,
+    );
+    await sessaoService.adicionarPersonagemSessao(
+      campanha.id,
+      sessao.id,
+      admin.id,
+      { personagemCampanhaId: ausentes[0].personagemCampanhaId },
+    );
+    await sessaoService.atualizarCenaSessao(campanha.id, sessao.id, admin.id, {
+      tipo: 'LIVRE',
+    });
+    const cenaSeguinte = await db.cena.findFirstOrThrow({
+      where: { sessaoId: sessao.id },
+      orderBy: { id: 'desc' },
+    });
+    assert.equal(
+      (
+        await db.personagemSessao.findUniqueOrThrow({
+          where: { id: ausentes[0].id },
+        })
+      ).cenaId,
+      cenaSeguinte.id,
+    );
+    assert.equal(
+      (
+        await db.personagemSessao.findUniqueOrThrow({
+          where: { id: ausentes[1].id },
+        })
+      ).cenaId,
+      cena.id,
+    );
+    await db.cena.create({ data: { sessaoId: sessao.id } });
+    await sessaoService.atualizarCenaSessao(campanha.id, sessao.id, admin.id, {
+      tipo: 'LIVRE',
+    });
+    const cenaVazia = await db.cena.findFirstOrThrow({
+      where: { sessaoId: sessao.id },
+      orderBy: { id: 'desc' },
+    });
+    assert.equal(
+      await db.personagemSessao.count({
+        where: { sessaoId: sessao.id, cenaId: cenaVazia.id },
+      }),
+      0,
+    );
+    assert.equal(
+      await db.npcAmeacaSessao.count({
+        where: { sessaoId: sessao.id, cenaId: cenaVazia.id },
+      }),
+      0,
+    );
     console.log(
       JSON.stringify(
         {
           resultado: 'PASSOU',
           bancoLocalIsolado: nomeBanco,
           cenarios: [
+            'troca de cena preserva apenas presentes, permite inclusao manual e mantem cena vazia sem reinserir ausentes',
             'NPC oculto visivel ao controlador e mestre, oculto dos demais; troca de controlador revoga a excecao',
             'importação idempotente das5 fichas',
             '27 perícias',

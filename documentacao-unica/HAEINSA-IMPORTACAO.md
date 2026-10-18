@@ -15,6 +15,7 @@ Os seis documentos originais e seus SHA-256 ficam em `assistenterpg-back/prisma/
 ## Operação da sessão
 
 1. Adicione Takaramono à campanha e à cena. Adicione os NPCs pelo catálogo.
+   Ao trocar de cena, apenas personagens e NPCs presentes na cena anterior acompanham a transição. Removidos e participantes de cenas antigas permanecem fora até inclusão manual; uma cena vazia continua vazia.
 2. Em controle do elenco, delegue Takaramono e os três NPCs aos respectivos jogadores. Mantenha Tobari com o mestre.
 3. O controlador edita atributos, perícias e habilidades na campanha. O modelo original permanece com o administrador. Revogar a delegação revoga o acesso.
    Ocultar um NPC dos jogadores preserva a ficha para o mestre e seu controlador autorizado; os demais jogadores não o veem. As ações dos NPCs permanecem na própria ficha, sem painéis extras de escolha de alvos. A resolução fica com a mesa. Passivas contêm apenas traços permanentes, sem cópia integral dos documentos.
