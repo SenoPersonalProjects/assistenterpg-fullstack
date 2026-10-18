@@ -8,6 +8,7 @@ import { revisarTextoDezSombras } from '../prisma/seeds/haeinsa/texto-revisado';
 import {
   CONFIG_TAKARAMONO,
   NPCS_HAEINSA,
+  PASSIVAS_NPCS_HAEINSA,
 } from '../prisma/seeds/haeinsa/revisao';
 const MARCADOR = '<!-- importacao:haeinsa:2026-10-18 -->';
 const json = (value: unknown) =>
@@ -488,9 +489,7 @@ async function main() {
               ),
               peSimplificado: n.pe === 0,
             },
-            passivas: [
-              { nome: 'Referência integral de operação', descricao: fonte },
-            ],
+            passivas: json(PASSIVAS_NPCS_HAEINSA[n.nome] ?? []),
             acoes: json(acoes),
             usoTatico:
               'Reação Especial1/rodada separada das reações comuns. Distribuir controlador na sessão.',

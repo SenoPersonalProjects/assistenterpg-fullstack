@@ -1659,6 +1659,7 @@ export class SessaoService {
     const npcsVisiveisCenaAtual = this.filtrarNpcsVisiveisCenaAtual(
       npcsCenaAtual,
       acesso.ehMestre,
+      usuarioId,
     );
     const npcSessaoIdsVisiveis = new Set(
       npcsVisiveisCenaAtual.map((npc) => npc.id),
@@ -22110,11 +22111,17 @@ export class SessaoService {
     return montarAtualizacaoNpcPorSnapshot(dados);
   }
 
-  private filtrarNpcsVisiveisCenaAtual<T extends { ocultoJogadores: boolean }>(
-    npcs: T[],
-    ehMestre: boolean,
-  ): T[] {
-    return filtrarNpcsVisiveisCenaAtualBase(npcs, ehMestre);
+  private filtrarNpcsVisiveisCenaAtual<
+    T extends {
+      ocultoJogadores: boolean;
+      controladorUsuarioId?: number | null;
+      personagemDono?: { donoId: number } | null;
+      personagemControladorSessao?: {
+        controladorUsuarioId: number | null;
+      } | null;
+    },
+  >(npcs: T[], ehMestre: boolean, usuarioId?: number): T[] {
+    return filtrarNpcsVisiveisCenaAtualBase(npcs, ehMestre, usuarioId);
   }
 
   private normalizarTipoFichaNpcAmeaca(

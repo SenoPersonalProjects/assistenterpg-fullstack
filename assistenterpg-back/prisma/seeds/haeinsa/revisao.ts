@@ -1,4 +1,36 @@
 import type { ConfigDezSombras } from '../../../src/sessao/dez-sombras.engine';
+export const PASSIVAS_NPCS_HAEINSA: Record<
+  string,
+  Array<{ nome: string; descricao: string }>
+> = {
+  'Daigo Shiranui': [
+    {
+      nome: 'Demolidor',
+      descricao:
+        'Ataques contra barreiras, selos, portas, objetos e estruturas ignoram 10 RD.',
+    },
+    {
+      nome: 'Corpo de Demolição',
+      descricao:
+        'Com o martelão nas duas mãos: +5 RD contra Impacto e +5 em Fortitude contra empurrões, quedas ou deslocamentos forçados por impacto físico.',
+    },
+  ],
+  'Mika Kurobane': [
+    {
+      nome: 'Biombos da Cortina de Funeral',
+      descricao:
+        'Cada biombo tem 30 PV, Defesa 18 e RD 5; mede cerca de 3m × 2,5m. Máximo de 3 persistentes; criar outro dissolve o mais antigo. Bloqueiam visão e ataques de linha direta, sem impedir automaticamente áreas ou efeitos que atravessem obstáculos.',
+    },
+  ],
+  'Seo Min-jun': [],
+  'Tobari Sōma': [
+    {
+      nome: 'Ato Cego — condição de uso',
+      descricao:
+        'O alvo da transferência deve estar fora da observação direta de qualquer ser não marcado. A observação de cúmplices marcados não bloqueia a técnica. Barreiras espaciais podem impedir a travessia.',
+    },
+  ],
+};
 export const CONFIG_TAKARAMONO: ConfigDezSombras = {
   dominadas: [
     'CAES_DIVINOS',

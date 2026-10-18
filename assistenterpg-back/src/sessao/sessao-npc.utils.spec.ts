@@ -15,6 +15,38 @@ import {
 } from './sessao-npc.utils';
 
 describe('utilitários de NPC da sessão', () => {
+  it('mantem o NPC oculto visivel apenas para mestre e controladores autorizados', () => {
+    const npcs = [
+      { id: 1, ocultoJogadores: false },
+      { id: 2, ocultoJogadores: true, controladorUsuarioId: 8 },
+      { id: 3, ocultoJogadores: true, personagemDono: { donoId: 9 } },
+      {
+        id: 4,
+        ocultoJogadores: true,
+        personagemControladorSessao: { controladorUsuarioId: 10 },
+      },
+    ];
+    expect(
+      filtrarNpcsVisiveisCenaAtual(npcs, false, 8).map((n) => n.id),
+    ).toEqual([1, 2]);
+    expect(
+      filtrarNpcsVisiveisCenaAtual(npcs, false, 9).map((n) => n.id),
+    ).toEqual([1, 3]);
+    expect(
+      filtrarNpcsVisiveisCenaAtual(npcs, false, 10).map((n) => n.id),
+    ).toEqual([1, 4]);
+    expect(
+      filtrarNpcsVisiveisCenaAtual(npcs, false, 11).map((n) => n.id),
+    ).toEqual([1]);
+    expect(filtrarNpcsVisiveisCenaAtual(npcs, true, 11)).toEqual(npcs);
+    expect(
+      filtrarNpcsVisiveisCenaAtual(
+        [{ ...npcs[1], controladorUsuarioId: null }],
+        false,
+        8,
+      ),
+    ).toEqual([]);
+  });
   it('atributo editado altera os dados sem apagar bônus de dados da ficha original', () => {
     expect(calcularDadosPericiaNpcEditada(3, 2, 2)).toBe(3);
     expect(calcularDadosPericiaNpcEditada(4, 2, 3)).toBe(5);

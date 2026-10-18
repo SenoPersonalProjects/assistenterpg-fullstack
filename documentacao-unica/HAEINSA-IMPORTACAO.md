@@ -17,6 +17,7 @@ Os seis documentos originais e seus SHA-256 ficam em `assistenterpg-back/prisma/
 1. Adicione Takaramono à campanha e à cena. Adicione os NPCs pelo catálogo.
 2. Em controle do elenco, delegue Takaramono e os três NPCs aos respectivos jogadores. Mantenha Tobari com o mestre.
 3. O controlador edita atributos, perícias e habilidades na campanha. O modelo original permanece com o administrador. Revogar a delegação revoga o acesso.
+   Ocultar um NPC dos jogadores preserva a ficha para o mestre e seu controlador autorizado; os demais jogadores não o veem. As ações dos NPCs permanecem na própria ficha, sem painéis extras de escolha de alvos. A resolução fica com a mesa. Passivas contêm apenas traços permanentes, sem cópia integral dos documentos.
 4. Use o painel **Dez Sombras** para invocar, comandar, mover, usar habilidades e liberar. A Carga é independente de descontos de EA; as sombras acompanham o turno do usuário.
 5. Escolha o Aspecto Vinculado antes de abrir o Jardim pelo controle normal de habilidades. O mestre confirma a formação no painel de Domínios. Aplique o Acerto Garantido a um alvo por rodada.
 6. Para Seo, selecione Domínio Simples e informe todos os ocupantes a até 3m, inclusive inimigos. Atualize os ocupantes ao mudarem as posições. A zona é móvel e sua Integridade usa o painel normal de Domínios.

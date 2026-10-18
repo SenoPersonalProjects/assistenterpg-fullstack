@@ -839,12 +839,68 @@ async function main() {
       where: { id: ps.id },
       data: { controladorUsuarioId: jogador.id },
     });
+    await db.npcAmeacaSessao.update({
+      where: { id: daigoSessao.id },
+      data: { ocultoJogadores: true, controladorUsuarioId: jogador.id },
+    });
+    const detalheControlador = await sessaoService.buscarDetalheSessao(
+      campanha.id,
+      sessao.id,
+      jogador.id,
+    );
+    const detalheOutro = await sessaoService.buscarDetalheSessao(
+      campanha.id,
+      sessao.id,
+      outro.id,
+    );
+    const detalheMestre = await sessaoService.buscarDetalheSessao(
+      campanha.id,
+      sessao.id,
+      admin.id,
+    );
+    assert.equal(
+      detalheControlador.npcs.find((n) => n.npcSessaoId === daigoSessao.id)
+        ?.visibilidade,
+      'completa',
+    );
+    assert.equal(
+      detalheOutro.npcs.some((n) => n.npcSessaoId === daigoSessao.id),
+      false,
+    );
+    assert.equal(
+      detalheMestre.npcs.some((n) => n.npcSessaoId === daigoSessao.id),
+      true,
+    );
+    await db.npcAmeacaSessao.update({
+      where: { id: daigoSessao.id },
+      data: { controladorUsuarioId: outro.id },
+    });
+    const detalheRevogado = await sessaoService.buscarDetalheSessao(
+      campanha.id,
+      sessao.id,
+      jogador.id,
+    );
+    const detalheNovoControlador = await sessaoService.buscarDetalheSessao(
+      campanha.id,
+      sessao.id,
+      outro.id,
+    );
+    assert.equal(
+      detalheRevogado.npcs.some((n) => n.npcSessaoId === daigoSessao.id),
+      false,
+    );
+    assert.equal(
+      detalheNovoControlador.npcs.find((n) => n.npcSessaoId === daigoSessao.id)
+        ?.visibilidade,
+      'completa',
+    );
     console.log(
       JSON.stringify(
         {
           resultado: 'PASSOU',
           bancoLocalIsolado: nomeBanco,
           cenarios: [
+            'NPC oculto visivel ao controlador e mestre, oculto dos demais; troca de controlador revoga a excecao',
             'importação idempotente das5 fichas',
             '27 perícias',
             'kit0 só na instância',

@@ -97,7 +97,6 @@ import { SessionPlayerSummaryPanel } from "@/components/campanha/sessao/SessionP
 import { SessionAccessNotice } from "@/components/campanha/sessao/SessionAccessNotice";
 import { SessionRosterControlPanel } from "@/components/campanha/sessao/SessionRosterControlPanel";
 import { SessionTenShadowsPanel } from "@/components/campanha/sessao/SessionTenShadowsPanel";
-import { SessionNpcActionsPanel } from "@/components/campanha/sessao/SessionNpcActionsPanel";
 import { SessionSceneRosterPanel } from "@/components/campanha/sessao/SessionSceneRosterPanel";
 import { AddNpcModal } from "@/components/campanha/sessao/modals/AddNpcModal";
 import { AddSimpleNpcModal } from "@/components/campanha/sessao/modals/AddSimpleNpcModal";
@@ -4545,39 +4544,6 @@ export default function SessaoCampanhaPage() {
 
           <section className="space-y-3">
             {podeControlarSessao ? renderCardsSessao() : null}
-            {detalhe.npcs
-              .filter(
-                (npc): npc is NpcSessaoCampanhaCompleto =>
-                  npc.visibilidade === "completa",
-              )
-              .filter(
-                (npc) =>
-                  (npc.podeControlar || npc.podeEditar) &&
-                  !npc.entidadeVinculadaId,
-              )
-              .map((npc) => (
-                <SessionNpcActionsPanel
-                  key={npc.npcSessaoId}
-                  campanhaId={campanhaId}
-                  sessaoId={sessaoId}
-                  npc={npc}
-                  encerrada={sessaoEncerrada}
-                  ehMestre={podeControlarSessao}
-                  onAtualizar={setDetalhe}
-                  alvos={[
-                    ...cards.map((c) => ({
-                      tipo: "PERSONAGEM" as const,
-                      id: c.personagemSessaoId,
-                      nome: c.nomePersonagem,
-                    })),
-                    ...detalhe.npcs.map((n) => ({
-                      tipo: "NPC" as const,
-                      id: n.npcSessaoId,
-                      nome: n.nome,
-                    })),
-                  ]}
-                />
-              ))}
             {cards
               .filter(
                 (card) =>

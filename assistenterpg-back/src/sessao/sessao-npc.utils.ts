@@ -162,9 +162,19 @@ export function montarResumoNpcSessao(npc: {
 }
 
 export function filtrarNpcsVisiveisCenaAtual<
-  T extends { ocultoJogadores: boolean },
->(npcs: T[], ehMestre: boolean): T[] {
-  return ehMestre ? npcs : npcs.filter((npc) => !npc.ocultoJogadores);
+  T extends { ocultoJogadores: boolean } & Partial<NpcSessaoControle>,
+>(npcs: T[], ehMestre: boolean, usuarioId?: number): T[] {
+  return ehMestre
+    ? npcs
+    : npcs.filter(
+        (npc) =>
+          !npc.ocultoJogadores ||
+          (usuarioId !== undefined &&
+            podeControlarNpcSessao(false, usuarioId, {
+              ...npc,
+              controladorUsuarioId: npc.controladorUsuarioId ?? null,
+            })),
+      );
 }
 
 export function normalizarInteiroEvento(valor: unknown): number | null {
