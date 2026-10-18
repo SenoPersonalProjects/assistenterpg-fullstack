@@ -102,6 +102,7 @@ type SessionPlayerSummaryPanelProps = {
     modo?: 'inline' | 'accordion',
   ) => ReactNode;
   onAbrirFichaCompleta: () => void;
+  onAbrirEdicaoPersonagem?: () => void;
   onSolicitarRemover: () => void;
   onAtualizarAjusteRecurso: (campo: CampoAjusteRecurso, valor: string) => void;
   onAplicarDeltaRecurso: (campo: CampoAjusteRecurso, delta: number) => void;
@@ -181,6 +182,7 @@ export function SessionPlayerSummaryPanel({
   onConsumirItem,
   renderPainelCondicoes,
   onAbrirFichaCompleta,
+  onAbrirEdicaoPersonagem,
   onSolicitarRemover,
   onAtualizarAjusteRecurso,
   onAplicarDeltaRecurso,
@@ -264,11 +266,18 @@ export function SessionPlayerSummaryPanel({
           />
 
           <div className="flex flex-wrap items-center gap-2">
+            {card.podeEditar && onAbrirEdicaoPersonagem ? (
+              <Button variant="secondary" size="sm" onClick={onAbrirEdicaoPersonagem} disabled={sessaoEncerrada}>
+                Editar ficha nesta campanha
+              </Button>
+            ) : null}
+            {!controladoPorDelegacao ? (
             <Button variant="ghost" size="sm" onClick={onAbrirFichaCompleta}>
               <Icon name="externalLink" className="mr-1.5 h-3.5 w-3.5" />
               Abrir ficha completa
             </Button>
-            {card.podeEditar ? (
+            ) : null}
+            {card.podeEditar && !controladoPorDelegacao ? (
               <Button
                 variant="secondary"
                 size="sm"

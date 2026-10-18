@@ -4496,6 +4496,10 @@ export default function SessaoCampanhaPage() {
                       if (!meuCard) return;
                       handleAbrirFichaCompleta(meuCard);
                     }}
+                    onAbrirEdicaoPersonagem={() => {
+                      if (!meuCard) return;
+                      handleAbrirEdicaoPersonagem(meuCard);
+                    }}
                     onSolicitarRemover={() => {
                       if (!meuCard) return;
                       solicitarRemoverPersonagem(meuCard);

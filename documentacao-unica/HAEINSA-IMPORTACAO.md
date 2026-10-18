@@ -53,4 +53,4 @@ npm test -- --runInBand
 npm run build
 ```
 
-Na interface local, o jogador delegado já foi verificado invocando, comandando, usando habilidade e liberando Gama, além de salvar uma habilidade de Seo na campanha.
+Na interface local, o jogador delegado já foi verificado invocando, comandando, usando habilidade e liberando Gama, além de salvar uma habilidade de Seo na campanha. O editor de campanha também foi verificado no painel do jogador: criação/remoção de habilidade personalizada e aplicação/desfazer de ajuste de atributo, preservando o modelo-base.
