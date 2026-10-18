@@ -229,9 +229,14 @@ export function calcularQuantidadeModificacoesEfetivas(params: {
 
 export function calcularEspacoUnitarioInventario(params: {
   espacosBase: number;
+  estado?: unknown;
   incrementosModificacoes?: number[];
   reduzirItensLeves?: boolean;
 }): number {
+  const override = isRecord(params.estado)
+    ? getNumber(params.estado, 'espacosOverride')
+    : null;
+  if (override !== null && override >= 0) return override;
   const espacosBase =
     params.reduzirItensLeves &&
     params.espacosBase > 0 &&

@@ -448,6 +448,7 @@ export class InventarioService {
           }),
         );
         const espacosCalculados = calcularEspacoUnitarioInventario({
+          estado: estadoNormalizado,
           espacosBase: equipamento.espacos,
           reduzirItensLeves: opcoes.reduzirItensLeves,
           incrementosModificacoes: modificacoesItem.map(
@@ -721,6 +722,7 @@ export class InventarioService {
         }),
       ),
       espacosCalculados: calcularEspacoUnitarioInventario({
+        estado: item.estado,
         espacosBase: item.equipamento.espacos,
         reduzirItensLeves,
         incrementosModificacoes: item.modificacoes.map(
@@ -1409,6 +1411,7 @@ export class InventarioService {
         );
 
         const espacosCalculados = calcularEspacoUnitarioInventario({
+          estado: item.estado,
           espacosBase: equipamento.espacos,
           reduzirItensLeves,
           incrementosModificacoes: modsDoItem.map(

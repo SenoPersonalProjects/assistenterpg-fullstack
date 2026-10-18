@@ -8,6 +8,21 @@ import {
 } from './inventario-calculo';
 
 describe('inventario-calculo', () => {
+  it('preserva override zero da instancia sem alterar o item-base', () => {
+    expect(
+      calcularEspacoUnitarioInventario({
+        espacosBase: 1,
+        estado: { espacosOverride: 0 },
+      }),
+    ).toBe(0);
+    expect(calcularEspacoUnitarioInventario({ espacosBase: 1 })).toBe(1);
+    expect(
+      calcularEspacoUnitarioInventario({
+        espacosBase: 1,
+        estado: { espacosOverride: -1 },
+      }),
+    ).toBe(1);
+  });
   it('calcula 20 espaços para a Jiwa com Inventário Otimizado', () => {
     const modificadores = resolverModificadoresInventario([
       { inventario: { somarIntelecto: true } },

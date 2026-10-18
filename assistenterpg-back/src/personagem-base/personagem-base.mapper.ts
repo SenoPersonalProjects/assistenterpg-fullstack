@@ -908,6 +908,7 @@ export class PersonagemBaseMapper {
           ];
         });
         const espacosPorUnidade = calcularEspacoUnitarioInventario({
+          estado: item.estado,
           espacosBase: equipamento.espacos,
           reduzirItensLeves: modificadores.reduzirItensLeves,
           incrementosModificacoes: modsAplicadas.map(
