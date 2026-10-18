@@ -95,8 +95,22 @@ export class CampanhaAccessService {
       );
     }
 
+    const controleDelegado =
+      !acesso.ehMestre && personagem.donoId !== usuarioId
+        ? await this.prisma.personagemSessao.findFirst({
+            where: {
+              personagemCampanhaId,
+              controladorUsuarioId: usuarioId,
+              sessao: { campanhaId, status: { not: 'ENCERRADA' } },
+            },
+            select: { id: true },
+          })
+        : null;
     if (exigirPermissaoEdicao) {
-      const podeEditar = acesso.ehMestre || personagem.donoId === usuarioId;
+      const podeEditar =
+        acesso.ehMestre ||
+        personagem.donoId === usuarioId ||
+        !!controleDelegado;
       if (!podeEditar) {
         throw new CampanhaPersonagemEdicaoNegadaException(
           campanhaId,
@@ -109,6 +123,7 @@ export class CampanhaAccessService {
     return {
       acesso,
       personagem,
+      controleDelegado: !!controleDelegado,
     };
   }
 }

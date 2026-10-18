@@ -201,7 +201,8 @@ export type PersonagemCampanhaResumoPublico = {
 };
 
 export type PersonagemCampanhaLista =
-  PersonagemCampanhaResumo | PersonagemCampanhaResumoPublico;
+  | PersonagemCampanhaResumo
+  | PersonagemCampanhaResumoPublico;
 
 export type PersonagemBaseDisponivelCampanha = {
   id: number;
@@ -326,7 +327,9 @@ export type NpcPericiaSessaoCampanha = {
 };
 
 export type TipoEntidadeVinculadaPersonagem =
-  "SHIKIGAMI" | "CORPO_AMALDICOADO" | "MALDICAO_CONTROLADA";
+  | "SHIKIGAMI"
+  | "CORPO_AMALDICOADO"
+  | "MALDICAO_CONTROLADA";
 
 export type EstadoEntidadeVinculadaPersonagem =
   | "DISPONIVEL"
@@ -608,15 +611,26 @@ export type NpcSessaoCampanhaCompleto = NpcSessaoCampanhaBase & {
   periciasEspeciais: NpcAmeacaPericiaEspecial[];
   passivas: NpcAmeacaPassiva[];
   acoes: NpcAmeacaAcao[];
+  estadoAcoes?: {
+    sustentacoes?: Record<string, number>;
+    biombos?: Array<{ id: string; pv: number; defesa: number; rd: number }>;
+    recinto?: { modo: string; danificado: boolean; dobrado: boolean };
+    marcas?: string[];
+    votoPessoal?: boolean;
+    perdeuTecnica?: boolean;
+  } | null;
   podeEditar: boolean;
   podeControlar?: boolean;
 };
 
 export type NpcSessaoCampanha =
-  NpcSessaoCampanhaCompleto | NpcSessaoCampanhaResumo;
+  | NpcSessaoCampanhaCompleto
+  | NpcSessaoCampanhaResumo;
 
 export type DuracaoCondicaoSessaoModo =
-  "ATE_REMOVER" | "RODADAS" | "TURNOS_ALVO";
+  | "ATE_REMOVER"
+  | "RODADAS"
+  | "TURNOS_ALVO";
 
 export type CondicaoAtivaSessaoCampanha = {
   id: number;
@@ -639,7 +653,10 @@ export type CondicaoAtivaSessaoCampanha = {
 };
 
 export type CampoRecursoSessaoCampanha =
-  "pvAtual" | "peAtual" | "eaAtual" | "sanAtual";
+  | "pvAtual"
+  | "peAtual"
+  | "eaAtual"
+  | "sanAtual";
 
 export type AtualizacaoRecursosSessaoCampanha = {
   tipo: "RECURSO_AJUSTADO";
@@ -666,7 +683,8 @@ export type AtualizacaoInspiracaoSessaoCampanha = {
 };
 
 export type AtualizacaoIncrementalSessaoCampanha =
-  AtualizacaoRecursosSessaoCampanha | AtualizacaoInspiracaoSessaoCampanha;
+  | AtualizacaoRecursosSessaoCampanha
+  | AtualizacaoInspiracaoSessaoCampanha;
 
 export type AdicionarNpcSessaoCampanhaPayload = {
   npcAmeacaId: number;
@@ -785,7 +803,11 @@ export type StatusSessaoAgendada =
   | "FALHA_ABERTURA";
 
 export type StatusSyncCalendar =
-  "NAO_SOLICITADO" | "PENDENTE" | "SINCRONIZADO" | "FALHOU" | "CANCELADO";
+  | "NAO_SOLICITADO"
+  | "PENDENTE"
+  | "SINCRONIZADO"
+  | "FALHOU"
+  | "CANCELADO";
 
 export type SessaoAgendadaResumo = {
   id: number;
@@ -1069,7 +1091,12 @@ export type SessaoCampanhaDetalhe = {
     integridadeAtual: number | null;
     rupturas: number;
     estadoBarreira:
-      "SELADA" | "FISSURA" | "BRECHA" | "COLAPSADA" | "ABERTO" | string;
+      | "SELADA"
+      | "FISSURA"
+      | "BRECHA"
+      | "COLAPSADA"
+      | "ABERTO"
+      | string;
     instavel: boolean;
     exteriorReforcado: boolean;
     incompleto?: boolean;
@@ -1247,7 +1274,10 @@ export type SessaoCampanhaDetalhe = {
 
 export type TipoItemSessao = "DOCUMENTO" | "PISTA" | "GERAL";
 export type StatusTransferenciaItemSessao =
-  "PENDENTE" | "ACEITA" | "RECUSADA" | "CANCELADA";
+  | "PENDENTE"
+  | "ACEITA"
+  | "RECUSADA"
+  | "CANCELADA";
 export type DestinoTransferenciaItemSessao = "PERSONAGEM" | "NPC";
 
 export type CategoriaEquipamentoCodigo =
@@ -1402,7 +1432,13 @@ export type EventoSessaoTimeline = {
     personagemNome: string | null;
   } | null;
   contexto?: {
-    categoria: "DOMINIO" | "RECURSO" | "CONDICAO" | "CENA" | "ROLAGEM" | "OUTRO";
+    categoria:
+      | "DOMINIO"
+      | "RECURSO"
+      | "CONDICAO"
+      | "CENA"
+      | "ROLAGEM"
+      | "OUTRO";
     dominios: Array<{ id: number; nome: string }>;
     personagens: Array<{ id: number; nome: string }>;
     npcs: Array<{ id: number; nome: string }>;

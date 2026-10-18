@@ -30,6 +30,26 @@ export function calcularBonusPorAtributoNarrativos(
   return deltas;
 }
 
+export function aplicarAtributosNarrativos<
+  T extends {
+    agilidade: number;
+    forca: number;
+    intelecto: number;
+    presenca: number;
+    vigor: number;
+  },
+>(base: T, modificadores: ModificadorNarrativoEfetivo[] | null | undefined): T {
+  const bonus = calcularBonusPorAtributoNarrativos(modificadores);
+  return {
+    ...base,
+    agilidade: Math.max(0, base.agilidade + (bonus.get('AGILIDADE') ?? 0)),
+    forca: Math.max(0, base.forca + (bonus.get('FORCA') ?? 0)),
+    intelecto: Math.max(0, base.intelecto + (bonus.get('INTELECTO') ?? 0)),
+    presenca: Math.max(0, base.presenca + (bonus.get('PRESENCA') ?? 0)),
+    vigor: Math.max(0, base.vigor + (bonus.get('VIGOR') ?? 0)),
+  };
+}
+
 export function calcularBonusPorResistenciaNarrativos(
   modificadores: ModificadorNarrativoEfetivo[] | null | undefined,
 ): Map<number, number> {

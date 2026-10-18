@@ -78,6 +78,9 @@ export class InventarioEngine {
    * Calcula espaço unitário (por unidade) sem quantidade
    */
   calcularEspacoUnitario(item: ItemInventarioComDados): number {
+    const override = extrairNumeroJson(item.estado, 'espacosOverride');
+    if (override !== undefined && Number.isFinite(override) && override >= 0)
+      return override;
     return calcularEspacoUnitarioInventario({
       espacosBase: item.equipamento.espacos,
       reduzirItensLeves: item.reduzirItensLeves,

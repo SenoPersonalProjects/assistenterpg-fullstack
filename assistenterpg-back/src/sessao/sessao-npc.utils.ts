@@ -83,6 +83,20 @@ export function calcularDadosPadraoPericia(atributo: number): number {
   return atributo > 0 ? atributo : 2 + Math.abs(atributo);
 }
 
+export function calcularDadosPericiaNpcEditada(
+  atual: number,
+  original: number,
+  dadosOriginais?: number | null,
+): number {
+  return Math.max(
+    1,
+    calcularDadosPadraoPericia(atual) +
+      (dadosOriginais == null
+        ? 0
+        : dadosOriginais - calcularDadosPadraoPericia(original)),
+  );
+}
+
 export function normalizarTipoFichaNpcAmeaca(
   valor: string | null,
 ): TipoFichaNpcAmeaca | null {

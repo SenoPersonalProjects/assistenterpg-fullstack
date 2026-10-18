@@ -1,0 +1,323 @@
+import type { ConfigDezSombras } from '../../../src/sessao/dez-sombras.engine';
+export const CONFIG_TAKARAMONO: ConfigDezSombras = {
+  dominadas: [
+    'CAES_DIVINOS',
+    'CAO_TOTALIDADE',
+    'GAMA',
+    'OROCHI',
+    'NUE',
+    'BANSHO',
+    'COELHO',
+    'MADOKA',
+    'KANGYU',
+  ],
+  destruidas: ['CAO_ORIGINAL_PERDIDO'], // A ficha não identifica a cor do cão perdido.
+  aspectos: [
+    'SAPO:LINGUADA',
+    'NUE:DESCARREGAR',
+    'MAX_ELEFANTE:JATO',
+    'MADOKA:BOOP',
+  ],
+  favorito: 'NUE',
+  melhorAmigo: 'OROCHI',
+  chamariz: true,
+  combo: true,
+  sinergia: true,
+  grauEfetivo: 4,
+  origemGraus: {
+    alocado: 1,
+    herdeiro: 1,
+    chamariz: 1,
+    treinamentoEspecifico: 1,
+  },
+  votoRessuscitacao: false,
+};
+export const NPCS_HAEINSA = [
+  {
+    nome: 'Daigo Shiranui',
+    atributos: [2, 5, 1, 2, 5],
+    pv: 175,
+    ea: 45,
+    pe: 0,
+    defesa: 24,
+    rd: 8,
+    pericias: {
+      fortitude: [5, 17],
+      reflexos: [2, 11],
+      vontade: [2, 10],
+      iniciativa: [2, 10],
+      percepcao: [2, 10],
+      luta: [5, 17],
+    },
+    acoes: [
+      {
+        nome: 'Martelada',
+        execucao: 'PADRAO',
+        teste: '5d20+17',
+        dano: '3d10+10 Impacto',
+      },
+      {
+        nome: 'Prego-Facão',
+        execucao: 'PADRAO',
+        teste: '5d20+16',
+        dano: '3d8+8 Perfuração',
+        efeito: 'Corpo a corpo 5d20+16; arremesso curto 2d20+16.',
+      },
+      {
+        nome: 'Martelo e Prego',
+        execucao: 'COMPLETA',
+        teste: '5d20+18',
+        dano: '4d12+10 Perfuração/Impacto',
+        resistencia: 'Fortitude',
+        dtResistencia: 28,
+      },
+      {
+        nome: 'Golpe de Demolição',
+        execucao: 'COMPLETA',
+        teste: '5d20+15',
+        dano: '5d10+10 Impacto',
+        resistencia: 'Fortitude',
+        dtResistencia: 28,
+        estado: 'DEFESA_MENOS_5',
+      },
+      {
+        nome: 'Aparar com o Martelo',
+        execucao: 'REACAO_ESPECIAL',
+        efeito: 'Bloqueio RD25; se zerar dano, pode empurrar atacante 1,5m.',
+      },
+    ],
+  },
+  {
+    nome: 'Mika Kurobane',
+    atributos: [4, 1, 3, 3, 2],
+    pv: 105,
+    ea: 60,
+    pe: 0,
+    defesa: 25,
+    rd: 3,
+    pericias: {
+      fortitude: [2, 11],
+      reflexos: [4, 16],
+      vontade: [3, 13],
+      iniciativa: [4, 16],
+      percepcao: [3, 13],
+      jujutsu: [3, 15],
+    },
+    acoes: [
+      {
+        nome: 'Erguer Biombo',
+        execucao: 'PADRAO',
+        custoEA: 2,
+        estado: 'BIOMBO',
+        quantidade: 1,
+      },
+      {
+        nome: 'Corredor de Cortinas',
+        execucao: 'COMPLETA',
+        custoEA: 6,
+        estado: 'BIOMBO',
+        quantidade: 3,
+      },
+      {
+        nome: 'Leque Cortante',
+        execucao: 'PADRAO',
+        teste: '4d20+14',
+        dano: '2d6+5 Corte',
+      },
+      {
+        nome: 'Fechar Sobre o Alvo',
+        execucao: 'PADRAO',
+        custoEA: 3,
+        dano: '3d8+5 Impacto',
+        resistencia: 'Reflexos',
+        dtResistencia: 26,
+        efeito:
+          'Falha: Imóvel até gastar Movimento; painéis momentâneos fora do limite persistente.',
+      },
+      {
+        nome: 'Cai o Pano',
+        execucao: 'REACAO',
+        custoEA: 3,
+        frequencia: 'RODADA',
+        estado: 'BIOMBO',
+        quantidade: 1,
+      },
+    ],
+  },
+  {
+    nome: 'Seo Min-jun',
+    atributos: [2, 1, 5, 3, 2],
+    pv: 95,
+    ea: 80,
+    pe: 0,
+    defesa: 22,
+    rd: 2,
+    pericias: {
+      fortitude: [2, 10],
+      reflexos: [2, 12],
+      vontade: [3, 17],
+      iniciativa: [2, 12],
+      percepcao: [3, 15],
+      jujutsu: [5, 18],
+    },
+    acoes: [
+      {
+        nome: 'Recinto Velado',
+        execucao: 'COMPLETA',
+        custoEA: 5,
+        sustentacaoEA: 2,
+        estado: 'RECINTO',
+        efeito:
+          'Raio 4,5m móvel. Oculta assinaturas; DT30. Um modo de som: silêncio para fora ou para dentro.',
+      },
+      {
+        nome: 'Trocar Modo do Recinto',
+        execucao: 'MOVIMENTO',
+        estado: 'TROCAR_MODO',
+      },
+      {
+        nome: 'Ofuda de Contenção',
+        execucao: 'PADRAO',
+        teste: '3d20+13',
+        dano: '2d6+4 Jujutsu',
+        resistencia: 'Reflexos',
+        dtResistencia: 24,
+        efeito: 'Falha: Lento por uma rodada.',
+      },
+      {
+        nome: 'Dobrar o Recinto',
+        execucao: 'PADRAO',
+        custoEA: 3,
+        estado: 'DOBRAR',
+        efeito:
+          'DT-base35 até início do próximo turno; penalidade de camada danificada continua.',
+      },
+      {
+        nome: 'Empurrão de Barreira',
+        execucao: 'PADRAO',
+        custoEA: 3,
+        resistencia: 'Fortitude',
+        dtResistencia: 25,
+        efeito: 'Adjacente. Falha: empurra4,5m.',
+      },
+      {
+        nome: 'Fechar o Recinto',
+        execucao: 'REACAO',
+        custoEA: 3,
+        frequencia: 'RODADA',
+        estado: 'DANIFICAR',
+        efeito:
+          'Reduz10 de uma ocorrência; -5 na DT até reparar, sem acumular.',
+      },
+      {
+        nome: 'Reparar Camada do Recinto',
+        execucao: 'PADRAO',
+        estado: 'REPARAR',
+      },
+      {
+        nome: 'Domínio Simples',
+        execucao: 'PADRAO',
+        custoEA: 2,
+        sustentacaoEA: 1,
+        estado: 'DOMINIO_SIMPLES',
+        grauAntiBarreira: 1,
+        efeito:
+          'Raio3m móvel. Integridade4. Protege qualquer criatura dentro contra Acerto Garantido, inclusive inimigos. Sem Focos, Flexibilidade ou Pés Enraizados.',
+      },
+    ],
+  },
+  {
+    nome: 'Tobari Sōma',
+    atributos: [4, 1, 4, 4, 2],
+    pv: 130,
+    ea: 85,
+    pe: 55,
+    defesa: 25,
+    rd: 3,
+    pericias: {
+      fortitude: [2, 12],
+      reflexos: [4, 17],
+      vontade: [4, 16],
+      iniciativa: [4, 17],
+      percepcao: [4, 15],
+      jujutsu: [4, 18],
+    },
+    acoes: [
+      {
+        nome: 'Marca de Cúmplice',
+        execucao: 'PADRAO',
+        custoEA: 1,
+        estado: 'MARCA',
+        efeito:
+          'Toque voluntário; até fim do dia; máximo4 marcados. Remover: Padrão+3PE ou3EA.',
+      },
+      {
+        nome: 'Desaparecer',
+        execucao: 'MOVIMENTO',
+        custoEA: 2,
+        efeito:
+          'Até12m para ponto conhecido/perceptível; exige quebrar observação; sem ataque de oportunidade.',
+      },
+      {
+        nome: 'Troca de Cena',
+        execucao: 'PADRAO',
+        custoEA: 3,
+        resistencia: 'Vontade',
+        dtResistencia: 28,
+        efeito:
+          'Destino desocupado até9m de Tobari, conhecido/percebido. Voluntário/objeto até Grande; involuntário VontadeDT28 anula. Regra de observação permanece.',
+      },
+      {
+        nome: 'Mudança de Palco',
+        execucao: 'COMPLETA',
+        custoEA: 6,
+        efeito:
+          'Tobari+até2 voluntários adjacentes; até90m para ponto conhecido pessoalmente ou marcado. Não exige visão do destino; observação dos alvos e barreiras continuam limitando.',
+      },
+      {
+        nome: 'Sumir com a Prova',
+        execucao: 'PADRAO',
+        custoEA: 4,
+        efeito:
+          'Objeto Pequeno/Médio tocado, não observado. Se carregado por inimigo: Jujutsu de Tobari contra Reflexos.',
+      },
+      {
+        nome: 'Bengala do Prestidigitador',
+        execucao: 'PADRAO',
+        teste: '3d20+14',
+        dano: '2d8+5 Impacto',
+      },
+      {
+        nome: 'Agora Você Não Vê',
+        execucao: 'REACAO',
+        custoEA: 2,
+        frequencia: 'RODADA',
+        efeito:
+          'Nova obstrução visual válida: Desaparecer imediato. Estes2EA já pagam o deslocamento.',
+      },
+      {
+        nome: 'Prestidigitação Defensiva',
+        execucao: 'REACAO_ESPECIAL',
+        custoEA: 3,
+        efeito:
+          'Esquiva47 na ocorrência, com interrupção visual válida. Se errar: deslocamento3m sem custo adicional.',
+      },
+      {
+        nome: 'O Último Ato — Isolamento quebrado',
+        execucao: 'NARRATIVA',
+        custoEA: 20,
+        estado: 'VOTO_PESSOAL',
+        efeito:
+          'Transferência única do Poema ao Japão mesmo observado. Tobari fica e nunca mais usa Ato Cego em si.',
+      },
+      {
+        nome: 'O Último Ato — Isolamento ativo',
+        execucao: 'NARRATIVA',
+        custoEA: 0,
+        estado: 'VOTO_TECNICA',
+        efeito:
+          'Apenas o Poema atravessa uma vez. Perde Ato Cego inteiro permanentemente. Não cobra20EA.',
+      },
+    ],
+  },
+] as const;

@@ -102,7 +102,7 @@ export function SessionRosterControlPanel({
       <Modal isOpen={alvo !== null} onClose={() => setAlvo(null)} title={alvo ? `Controle: ${alvo.nome}` : 'Controle'} size="sm">
         {alvo ? (
           <div className="space-y-3">
-            <p className="text-sm text-app-muted">O mestre mantém a edição estrutural. O jogador delegado opera recursos, ações e rolagens.</p>
+            <p className="text-sm text-app-muted">O controlador usa e edita a ficha nesta campanha, incluindo atributos, perícias e habilidades. O modelo original permanece com o mestre. Trocar o controlador revoga o acesso anterior.</p>
             <Button className="w-full justify-start" variant={alvo.controladorUsuarioId === null ? 'primary' : 'secondary'} disabled={atualizando} onClick={() => { onAtualizarControlador(alvo, null); setAlvo(null); }}>
               Mestre somente
             </Button>

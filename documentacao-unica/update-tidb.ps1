@@ -27,6 +27,7 @@ param(
   [string]$BackupDir = 'D:\',
   [switch]$PreflightOnly,
   [switch]$ValidateOnly,
+  [switch]$HaeinsaPreview,
   [string]$ConfirmationText = '',
   [switch]$SkipConnectionTest,
   [switch]$AllowFullSeed,
@@ -279,8 +280,14 @@ function Invoke-NativeCommand {
   )
 
   $psi = New-Object System.Diagnostics.ProcessStartInfo
-  $psi.FileName = $FilePath
-  $psi.Arguments = Join-NativeArguments $Arguments
+  # npm/npx podem resolver para .ps1 no Windows; Process.Start exige um executável.
+  if ([IO.Path]::GetExtension($FilePath) -eq '.ps1') {
+    $psi.FileName = (Get-Command powershell.exe -ErrorAction Stop).Source
+    $psi.Arguments = Join-NativeArguments (@('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $FilePath) + $Arguments)
+  } else {
+    $psi.FileName = $FilePath
+    $psi.Arguments = Join-NativeArguments $Arguments
+  }
   $psi.UseShellExecute = $false
   $psi.RedirectStandardOutput = $true
   $psi.RedirectStandardError = $true
@@ -340,6 +347,15 @@ function Get-SeedCommand {
   )
 
   switch ($Seed) {
+    'haeinsa' {
+      return [pscustomobject]@{
+        Name = 'haeinsa'
+        Tool = 'npm'
+        Arguments = @('run', 'import:haeinsa', '--', '--apply')
+        ValidatesCompendio = $false
+        DestructiveRelations = $false
+      }
+    }
     'compendio' {
       return [pscustomobject]@{
         Name = 'compendio'
@@ -747,6 +763,14 @@ try {
 
   if ($PreflightOnly) {
     Write-Ok 'Preflight concluído. Nenhuma migration, seed ou backup foi executado.'
+    return
+  }
+
+  if ($HaeinsaPreview) {
+    if ($Migrate -or $BackupBefore) { throw 'A prévia Haeinsa não permite migration ou backup.' }
+    Invoke-NativeCommand -FilePath $npmExe -Arguments @('run', 'import:haeinsa') `
+      -Label 'prévia Haeinsa sem escrita' -WorkingDirectory $backPath -Environment $prismaEnv
+    Write-Ok 'Prévia Haeinsa concluída sem escrita.'
     return
   }
 

@@ -564,6 +564,7 @@ export class NpcsAmeacasService {
       defesa: npcAmeaca.defesa,
       pontosVida: npcAmeaca.pontosVida,
       peMax: npcAmeaca.peMax,
+      eaMax: npcAmeaca.eaMax,
       criadoEm: npcAmeaca.criadoEm,
       atualizadoEm: npcAmeaca.atualizadoEm,
     };
@@ -690,6 +691,7 @@ export class NpcsAmeacasService {
       defesa: dto.defesa,
       pontosVida: dto.pontosVida,
       peMax: dto.peMax,
+      eaMax: dto.eaMax,
       machucado: dto.machucado ?? undefined,
       deslocamentoMetros: dto.deslocamentoMetros,
       periciasEspeciais: this.normalizarJsonParaPersistir(periciasEspeciais),
@@ -829,6 +831,7 @@ export class NpcsAmeacasService {
       if (dto.defesa !== undefined) data.defesa = dto.defesa;
       if (dto.pontosVida !== undefined) data.pontosVida = dto.pontosVida;
       if (dto.peMax !== undefined) data.peMax = dto.peMax;
+      if (dto.eaMax !== undefined) data.eaMax = dto.eaMax;
       if (dto.machucado !== undefined) data.machucado = dto.machucado;
       if (dto.deslocamentoMetros !== undefined) {
         data.deslocamentoMetros = dto.deslocamentoMetros;

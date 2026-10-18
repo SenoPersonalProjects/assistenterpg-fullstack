@@ -11,6 +11,8 @@ import { SessaoActivationService } from './sessao-activation.service';
 import { SessaoController } from './sessao.controller';
 import { SessaoService } from './sessao.service';
 import { SessaoGateway } from './sessao.gateway';
+import { DezSombrasService } from './dez-sombras.service';
+import { NpcAcoesService } from './npc-acoes.service';
 import { SessaoCondicoesAutomaticasModule } from 'src/sessao-condicoes-automaticas/sessao-condicoes-automaticas.module';
 
 @Module({
@@ -30,6 +32,8 @@ import { SessaoCondicoesAutomaticasModule } from 'src/sessao-condicoes-automatic
   controllers: [SessaoController, SessaoAgendadaController],
   providers: [
     SessaoService,
+    DezSombrasService,
+    NpcAcoesService,
     SessaoGateway,
     SessaoAgendadaService,
     SessaoActivationService,

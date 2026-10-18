@@ -84,6 +84,7 @@ export class CampanhaPersonagensService {
         sobrecarregado: true,
         tecnicaInataId: true,
         tecnicaInataPropriaId: true,
+        configuracaoDezSombras: true,
         resistencias: {
           select: {
             resistenciaTipoId: true,
@@ -517,6 +518,8 @@ export class CampanhaPersonagensService {
               espacosOcupados: personagemBase.espacosOcupados,
               sobrecarregado: personagemBase.sobrecarregado,
               tecnicaInataId: personagemBase.tecnicaInataId,
+              configuracaoDezSombras:
+                personagemBase.configuracaoDezSombras ?? undefined,
               tecnicaInataSincronizaBase: sincronizarTecnicaInata,
               resistencias:
                 personagemBase.resistencias.length > 0

@@ -73,6 +73,7 @@ Esse modo não roda migration, não roda seed e não cria backup. Ele testa cone
 Seeds liberados no `update-tidb.ps1`:
 
 - `compendio`: seguro e idempotente, recomendado para atualização do livro principal.
+- `haeinsa`: fichas e catálogo revisados; veja [Haeinsa](HAEINSA-IMPORTACAO.md). `-HaeinsaPreview` valida as fontes e consulta o destino sem escrita.
 - `sobrevivendo`: seed do suplemento oficial.
 - `técnicas-inatas`: seed focado de técnicas inatas.
 - `tecnicas-nao-inatas`: seed focado de técnicas não inatas.

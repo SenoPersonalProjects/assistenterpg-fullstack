@@ -741,6 +741,7 @@ model Campanha {
   templatesItensSessao      TemplateItemSessaoCampanha[]
   transferenciasItensSessao TransferenciaItemSessaoCampanha[]
   entidadesVinculadas       PersonagemCampanhaEntidadeVinculada[]
+  fichasNpcCampanha         NpcAmeacaCampanha[]
   habilidadesPersonalizadas PersonagemCampanhaHabilidadePersonalizada[]
   roletaPresets             CampanhaRoletaPreset[]
   roletaSorteios            CampanhaRoletaSorteio[]
@@ -987,6 +988,7 @@ model PersonagemBase {
   // ✅ NOVO: Configurações de escolhas das habilidades (ex.: perícias por habilidade)
   habilidadesConfig Json?
   fontesConteudo    Json?
+  configuracaoDezSombras Json?
 
   @@index([donoId])
   @@index([donoId, nome])
@@ -1027,6 +1029,7 @@ model NpcAmeaca {
   defesa     Int  @default(10)
   pontosVida Int  @default(1)
   peMax      Int?
+  eaMax      Int?
   machucado  Int?
 
   deslocamentoMetros Int @default(6)
@@ -1045,9 +1048,22 @@ model NpcAmeaca {
   instanciasSessao          NpcAmeacaSessao[]
   entidadesVinculadasOrigem PersonagemCampanhaEntidadeVinculada[] @relation("EntidadeVinculadaNpcOrigem")
   grupos                    NpcAmeacaGrupoItem[]
+  fichasCampanha            NpcAmeacaCampanha[]
 
   @@index([donoId])
   @@index([donoId, nome])
+}
+
+// A ficha de campanha pode ser editada pelo controlador sem alterar o original.
+model NpcAmeacaCampanha {
+  id          Int @id @default(autoincrement())
+  campanhaId  Int
+  npcAmeacaId Int
+  ficha       Json
+  atualizadoEm DateTime @updatedAt
+  campanha Campanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  npcAmeaca NpcAmeaca @relation(fields: [npcAmeacaId], references: [id], onDelete: Cascade)
+  @@unique([campanhaId, npcAmeacaId])
 }
 
 model PersonagemCampanha {
@@ -1113,6 +1129,8 @@ model PersonagemCampanha {
   // Perfil persistente usado pela Epifania quando a ficha ainda nao possui
   // uma Expansao completa catalogada. Nunca substitui uma habilidade real.
   perfilEpifaniaDominio     Json?
+  configuracaoDezSombras Json?
+  estadoDezSombras Json?
 
   campanha       Campanha       @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
   personagemBase PersonagemBase @relation(fields: [personagemBaseId], references: [id], onDelete: Cascade)
@@ -1520,6 +1538,7 @@ model NpcAmeacaSessao {
   deslocamentoMetros            Int                              @default(6)
   passivasGuia                  Json?
   acoesGuia                     Json?
+  estadoAcoes                   Json?
   notasCena                     String?                          @db.Text
   ocultoJogadores               Boolean                          @default(false)
   criadoEm                      DateTime                         @default(now())
@@ -1729,6 +1748,7 @@ model DefesaAntiDominioSessao {
   integridadeAtual        Int?
   pesEnraizados           Boolean   @default(false)
   variacao                String?   @db.VarChar(80)
+  zona                    Json?
   ativa                   Boolean   @default(true)
   sustentacaoHabilidadeId Int?
   criadoPorUsuarioId      Int

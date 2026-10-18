@@ -3,6 +3,7 @@ export type StatusPassoEfeitosTurno = 'PENDENTE' | 'ERRO' | 'CONCLUIDO';
 export type TipoPassoEfeitosTurno =
   | 'SUSTENTACOES_RODADA'
   | 'CONDICOES_RODADA'
+  | 'FIM_PARTICIPANTE'
   | 'CONDICOES_PARTICIPANTE';
 
 export type PassoEfeitosTurnoSessao = {
@@ -39,6 +40,7 @@ type CriarContextoEfeitosTurnoArgs = {
   rodadaAnterior: number;
   rodadaNova: number;
   participantesTurnoNovos: readonly ParticipanteEfeitosTurno[];
+  participantesTurnoAnteriores?: readonly ParticipanteEfeitosTurno[];
   processarCondicoes: boolean;
   cobrarSustentacoes: boolean;
   atualizadoEm?: string;
@@ -53,6 +55,18 @@ export function criarContextoEfeitosTurno(
   args: CriarContextoEfeitosTurnoArgs,
 ): ContextoEfeitosTurnoSessao {
   const passos: PassoEfeitosTurnoSessao[] = [];
+  if (args.processarCondicoes) {
+    for (const participante of args.participantesTurnoAnteriores ?? []) {
+      const id = participante.personagemSessaoId ?? participante.npcSessaoId;
+      if (id)
+        passos.push({
+          ...participante,
+          chave: `FIM_PARTICIPANTE:${participante.tipoParticipante}:${id}`,
+          tipo: 'FIM_PARTICIPANTE',
+          status: 'PENDENTE',
+        });
+    }
+  }
   if (args.cobrarSustentacoes) {
     passos.push({
       chave: 'SUSTENTACOES_RODADA',

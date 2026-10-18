@@ -10,13 +10,20 @@ import type {
  * ✅ Mapeamento de códigos de erro para mensagens amigáveis
  */
 export const ERROR_MESSAGES: Record<string, string> = {
-  BACKUP_STATUS_TOKEN_INVALIDO: "O registro automático de backup não foi autorizado.",
-  BARREIRA_NARRATIVA_NAO_ENCONTRADA: "A barreira narrativa não está mais ativa nesta cena.",
-  BARREIRA_NARRATIVA_NOME_INVALIDO: "Informe um nome válido para a barreira narrativa.",
-  BARREIRA_NARRATIVA_RESPONSAVEL_INVALIDO: "O responsável escolhido não participa desta cena.",
-  SESSAO_CONCENTRACAO_JA_ATIVA: "Encerre ou perca a Concentração atual antes de manter outro efeito importante.",
-  SESSAO_AJUSTE_RITUALISTICO_INVALIDO: "O Ajuste Ritualístico não é compatível com essa regra.",
-  SESSAO_AJUSTE_RITUALISTICO_LIMITE: "A quantidade de Ajustes Ritualísticos excede o grau da Técnica.",
+  BACKUP_STATUS_TOKEN_INVALIDO:
+    "O registro automático de backup não foi autorizado.",
+  BARREIRA_NARRATIVA_NAO_ENCONTRADA:
+    "A barreira narrativa não está mais ativa nesta cena.",
+  BARREIRA_NARRATIVA_NOME_INVALIDO:
+    "Informe um nome válido para a barreira narrativa.",
+  BARREIRA_NARRATIVA_RESPONSAVEL_INVALIDO:
+    "O responsável escolhido não participa desta cena.",
+  SESSAO_CONCENTRACAO_JA_ATIVA:
+    "Encerre ou perca a Concentração atual antes de manter outro efeito importante.",
+  SESSAO_AJUSTE_RITUALISTICO_INVALIDO:
+    "O Ajuste Ritualístico não é compatível com essa regra.",
+  SESSAO_AJUSTE_RITUALISTICO_LIMITE:
+    "A quantidade de Ajustes Ritualísticos excede o grau da Técnica.",
   // SAÚDE DO SERVIÇO
   HEALTH_NOT_READY:
     "O serviço ainda está iniciando. Aguarde alguns instantes e tente novamente.",
@@ -368,6 +375,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Esta perícia não pode ser usada como ataque de NPC/Ameaça.",
   SESSAO_NPC_ACAO_ROLAGEM_INVALIDA:
     "A ação selecionada não possui um teste válido para rolagem no servidor.",
+  SESSAO_NPC_ACAO_INVALIDA:
+    "A ação não pode ser executada no estado atual do NPC.",
+  DEZ_SOMBRAS_REGRA_INVALIDA:
+    "A ação não atende às regras ou aos recursos disponíveis das Dez Sombras.",
   SESSAO_NPC_ACAO_NAO_ENCONTRADA:
     "A ação selecionada não foi encontrada neste NPC/Ameaça.",
   SESSAO_NPC_ACAO_SEM_DANO:

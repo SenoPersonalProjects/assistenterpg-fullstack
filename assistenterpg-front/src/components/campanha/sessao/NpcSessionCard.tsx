@@ -242,7 +242,7 @@ export function NpcSessionCard({
     });
   }
 
-  const podeAjustar = podeControlarSessao && npc.podeEditar;
+  const podeAjustar = (podeControlarSessao || Boolean(npc.podeControlar)) && npc.podeEditar;
   const podeOperar = Boolean(npc.podeControlar) || podeAjustar;
   const iniciativaTexto =
     typeof iniciativaValor === 'number' ? String(iniciativaValor) : '--';
@@ -887,7 +887,7 @@ export function NpcSessionCard({
                 </Button>
               )
             )}
-            {podeAjustar && onAlternarVisibilidade ? (
+            {podeControlarSessao && onAlternarVisibilidade ? (
               <Button
                 size="xs"
                 variant="ghost"
@@ -1116,7 +1116,7 @@ export function NpcSessionCard({
         ) : null}
       </div>
 
-      {podeAjustar ? (
+      {podeControlarSessao ? (
         <div className="flex items-center gap-2">
           <Button
             variant="secondary"

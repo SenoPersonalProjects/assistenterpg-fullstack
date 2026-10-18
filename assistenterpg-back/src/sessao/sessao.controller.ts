@@ -1,3 +1,6 @@
+import { DezSombrasService } from './dez-sombras.service';
+import { AcaoDezSombrasDto } from './dto/dez-sombras.dto';
+import { NpcAcoesService, UsarAcaoNpcDto } from './npc-acoes.service';
 import {
   Body,
   Controller,
@@ -70,7 +73,74 @@ export class SessaoController {
     private readonly sessaoService: SessaoService,
     private readonly sessaoGateway: SessaoGateway,
     private readonly sessaoActivationService: SessaoActivationService,
+    private readonly dezSombrasService: DezSombrasService,
+    private readonly npcAcoesService: NpcAcoesService,
   ) {}
+
+  @Post(':sessaoId/npcs/:npcSessaoId/acoes')
+  async usarAcaoNpc(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('npcSessaoId', ParseIntPipe) npcSessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: UsarAcaoNpcDto,
+  ) {
+    await this.npcAcoesService.usar(
+      campanhaId,
+      sessaoId,
+      npcSessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'NPC_ATUALIZADO',
+    );
+    return this.sessaoService.buscarDetalheSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+    );
+  }
+
+  @Get(':sessaoId/personagens/:personagemSessaoId/dez-sombras')
+  async obterDezSombras(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('personagemSessaoId', ParseIntPipe) personagemSessaoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.dezSombrasService.obter(
+      campanhaId,
+      sessaoId,
+      personagemSessaoId,
+      req.user.id,
+    );
+  }
+
+  @Post(':sessaoId/personagens/:personagemSessaoId/dez-sombras')
+  async usarDezSombras(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('personagemSessaoId', ParseIntPipe) personagemSessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AcaoDezSombrasDto,
+  ) {
+    const resultado = await this.dezSombrasService.executar(
+      campanhaId,
+      sessaoId,
+      personagemSessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'NPC_ATUALIZADO',
+    );
+    return resultado;
+  }
 
   @Get()
   async listarSessoesCampanha(

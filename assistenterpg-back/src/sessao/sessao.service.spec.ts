@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SessaoService } from './sessao.service';
+import * as sombras from './dez-sombras.service';
+import * as acoesNpc from './npc-acoes.service';
+import * as condicoesSombras from './dez-sombras.condicoes';
+import * as vitalidadeSombras from './dez-sombras.vitalidade';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   SessaoCampanhaNaoEncontradaException,
@@ -158,7 +162,20 @@ describe('SessaoService', () => {
   }
 
   beforeEach(async () => {
+    jest
+      .spyOn(vitalidadeSombras, 'sincronizarVitalidadeSombrasTx')
+      .mockResolvedValue(null);
+    jest
+      .spyOn(vitalidadeSombras, 'desfazerVitalidadeSombrasTx')
+      .mockResolvedValue(undefined);
+    jest
+      .spyOn(condicoesSombras, 'processarCondicoesSombrasTx')
+      .mockResolvedValue(undefined);
     jest.clearAllMocks();
+    jest.spyOn(sombras, 'processarTurnoSombrasTx').mockResolvedValue(undefined);
+    jest.spyOn(sombras, 'dormirSombrasTx').mockResolvedValue(undefined);
+    jest.spyOn(acoesNpc, 'sustentarAcoesNpcTx').mockResolvedValue(undefined);
+    jest.spyOn(acoesNpc, 'iniciarTurnoNpcTx').mockResolvedValue(undefined);
     prisma.executarTransacao.mockImplementation(
       (_contexto: string, callback: (tx: typeof prisma) => Promise<unknown>) =>
         prisma.$transaction(callback),
@@ -171,6 +188,12 @@ describe('SessaoService', () => {
     delete (prisma as any).condicao;
     delete (prisma as any).personagemSessao;
     delete (prisma as any).npcAmeacaSessao;
+    (prisma as any).npcAmeacaSessao = {
+      findFirst: jest.fn().mockResolvedValue(null),
+    };
+    (prisma as any).personagemCampanhaEntidadeVinculada = {
+      findFirst: jest.fn().mockResolvedValue(null),
+    };
     delete (prisma as any).sessaoRegraOpcional;
     delete (prisma as any).sessaoIniciativaAlternada;
     delete (prisma as any).sessaoIniciativaAlternadaParticipante;

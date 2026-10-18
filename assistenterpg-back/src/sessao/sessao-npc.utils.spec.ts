@@ -1,5 +1,6 @@
 import {
   calcularDadosPadraoPericia,
+  calcularDadosPericiaNpcEditada,
   criarSnapshotNpcSessao,
   filtrarNpcsVisiveisCenaAtual,
   filtrarEventosVisiveisParaJogador,
@@ -14,6 +15,11 @@ import {
 } from './sessao-npc.utils';
 
 describe('utilitários de NPC da sessão', () => {
+  it('atributo editado altera os dados sem apagar bônus de dados da ficha original', () => {
+    expect(calcularDadosPericiaNpcEditada(3, 2, 2)).toBe(3);
+    expect(calcularDadosPericiaNpcEditada(4, 2, 3)).toBe(5);
+    expect(calcularDadosPericiaNpcEditada(0, 2, 2)).toBe(2);
+  });
   it('normaliza atributos e mantém NPC persistido fora da cópia local', () => {
     const atributos = montarAtributosNpc({ agilidade: 3, vigor: null });
 

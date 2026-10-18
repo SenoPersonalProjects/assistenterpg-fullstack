@@ -1,5 +1,23 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { processarCondicoesSombrasTx } from './dez-sombras.condicoes';
+import { parseDanoSombras } from './dez-sombras.rolagens';
+import {
+  sincronizarVitalidadeSombrasTx,
+  desfazerVitalidadeSombrasTx,
+} from './dez-sombras.vitalidade';
+import {
+  configSombras,
+  lerEstadoSombras,
+  consumirAcaoUsuario,
+} from './dez-sombras.engine';
+import { resolverEfeitosArma } from './sessao-arma-efeitos';
+import {
+  DezSombrasService,
+  dormirSombrasTx,
+  processarTurnoSombrasTx,
+} from './dez-sombras.service';
+import { sustentarAcoesNpcTx, iniciarTurnoNpcTx } from './npc-acoes.service';
 import {
   CampoModificadorPersonagemCampanha,
   EstadoEntidadeVinculadaPersonagem,
@@ -108,6 +126,7 @@ import {
   equipamentoUsaPericiaPersonalizada,
 } from 'src/inventario/utils/item-personalizado';
 import {
+  aplicarAtributosNarrativos,
   calcularDeltasGrausNarrativos,
   resolverGrausAprimoramentoEfetivosCampanha,
   resolverPericiasEfetivasCampanha,
@@ -124,6 +143,7 @@ import {
 import { assertSessaoMutavel } from './sessao-mutabilidade';
 import {
   calcularDadosPadraoPericia as calcularDadosPadraoPericiaNpc,
+  calcularDadosPericiaNpcEditada,
   criarSnapshotNpcSessao,
   filtrarEventosVisiveisParaJogador as filtrarEventosVisiveisParaJogadorBase,
   filtrarNpcsVisiveisCenaAtual as filtrarNpcsVisiveisCenaAtualBase,
@@ -878,6 +898,10 @@ export class SessaoService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly condicoesAutomaticasService: SessaoCondicoesAutomaticasService,
+    @Optional()
+    private readonly dezSombrasService: DezSombrasService = new DezSombrasService(
+      prisma,
+    ),
   ) {}
 
   async listarSessoesCampanha(campanhaId: number, usuarioId: number) {
@@ -1266,6 +1290,7 @@ export class SessaoService {
                     valor: true,
                     periciaCodigo: true,
                     tipoGrauCodigo: true,
+                    atributoCodigo: true,
                   },
                 },
                 entidadesVinculadas: {
@@ -1494,6 +1519,7 @@ export class SessaoService {
             entidadeVinculada: {
               select: {
                 id: true,
+                config: true,
                 tipo: true,
                 estado: true,
                 nome: true,
@@ -2121,23 +2147,26 @@ export class SessaoService {
           }))
           .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
         const atributosPersonagem = personagem.personagemCampanha.personagemBase
-          ? {
-              agilidade: Number(
-                personagem.personagemCampanha.personagemBase.agilidade ?? 0,
-              ),
-              forca: Number(
-                personagem.personagemCampanha.personagemBase.forca ?? 0,
-              ),
-              intelecto: Number(
-                personagem.personagemCampanha.personagemBase.intelecto ?? 0,
-              ),
-              presenca: Number(
-                personagem.personagemCampanha.personagemBase.presenca ?? 0,
-              ),
-              vigor: Number(
-                personagem.personagemCampanha.personagemBase.vigor ?? 0,
-              ),
-            }
+          ? aplicarAtributosNarrativos(
+              {
+                agilidade: Number(
+                  personagem.personagemCampanha.personagemBase.agilidade ?? 0,
+                ),
+                forca: Number(
+                  personagem.personagemCampanha.personagemBase.forca ?? 0,
+                ),
+                intelecto: Number(
+                  personagem.personagemCampanha.personagemBase.intelecto ?? 0,
+                ),
+                presenca: Number(
+                  personagem.personagemCampanha.personagemBase.presenca ?? 0,
+                ),
+                vigor: Number(
+                  personagem.personagemCampanha.personagemBase.vigor ?? 0,
+                ),
+              },
+              personagem.personagemCampanha.modificadores,
+            )
           : null;
 
         const infoPv = calcularPvBarraMaximos(
@@ -2218,7 +2247,7 @@ export class SessaoService {
                   origem: personagem.personagemCampanha.origem
                     ? {
                         id: personagem.personagemCampanha.origem.id,
-                        nome: personagem.personagemCampanha.origem.nome,
+                        nome: personagem.personagemCampanha.origem?.nome,
                       }
                     : null,
                   trilha: personagem.personagemCampanha.trilha
@@ -2337,9 +2366,13 @@ export class SessaoService {
         if (!podeControlarNpc) {
           return this.montarResumoNpcSessao(npc);
         }
-        const atributosNpc = npc.npcAmeaca
-          ? this.montarAtributosNpc(npc.npcAmeaca)
-          : this.montarAtributosNpcSessao(npc);
+        const atributosNpc = this.montarAtributosNpc({
+          agilidade: npc.agilidade ?? npc.npcAmeaca?.agilidade,
+          forca: npc.forca ?? npc.npcAmeaca?.forca,
+          intelecto: npc.intelecto ?? npc.npcAmeaca?.intelecto,
+          presenca: npc.presenca ?? npc.npcAmeaca?.presenca,
+          vigor: npc.vigor ?? npc.npcAmeaca?.vigor,
+        });
         const resolverDadosPericiaNpc = (
           campoDadosBase:
             | 'percepcaoDados'
@@ -2360,15 +2393,18 @@ export class SessaoService {
           atributoBase: 'AGI' | 'FOR' | 'INT' | 'PRE' | 'VIG',
         ) => {
           if (!atributosNpc) return 0;
-          const valor = npc.npcAmeaca
-            ? npc.npcAmeaca[campoDadosBase]
-            : npc[campoBonusSessao];
-          if (typeof valor === 'number') return valor;
+          const valor = npc.npcAmeaca?.[campoDadosBase];
           const atributo = this.obterAtributoNpcPorBase(
             atributosNpc,
             atributoBase,
           );
-          return this.calcularDadosPadraoPericia(atributo);
+          return calcularDadosPericiaNpcEditada(
+            atributo,
+            npc.npcAmeaca
+              ? this.obterAtributoNpcPorBase(npc.npcAmeaca, atributoBase)
+              : atributo,
+            valor,
+          );
         };
 
         const periciasNpc = npc.npcAmeaca
@@ -2382,7 +2418,7 @@ export class SessaoService {
                   'percepcao',
                   'PRE',
                 ),
-                bonus: npc.npcAmeaca?.percepcao ?? npc.percepcao,
+                bonus: npc.percepcao ?? npc.npcAmeaca?.percepcao,
               },
               {
                 codigo: 'INICIATIVA',
@@ -2393,7 +2429,7 @@ export class SessaoService {
                   'iniciativa',
                   'AGI',
                 ),
-                bonus: npc.npcAmeaca?.iniciativa ?? npc.iniciativa,
+                bonus: npc.iniciativa ?? npc.npcAmeaca?.iniciativa,
               },
               {
                 codigo: 'FORTITUDE',
@@ -2404,7 +2440,7 @@ export class SessaoService {
                   'fortitude',
                   'VIG',
                 ),
-                bonus: npc.npcAmeaca?.fortitude ?? npc.fortitude,
+                bonus: npc.fortitude ?? npc.npcAmeaca?.fortitude,
               },
               {
                 codigo: 'REFLEXOS',
@@ -2415,7 +2451,7 @@ export class SessaoService {
                   'reflexos',
                   'AGI',
                 ),
-                bonus: npc.npcAmeaca?.reflexos ?? npc.reflexos,
+                bonus: npc.reflexos ?? npc.npcAmeaca?.reflexos,
               },
               {
                 codigo: 'VONTADE',
@@ -2426,14 +2462,14 @@ export class SessaoService {
                   'vontade',
                   'PRE',
                 ),
-                bonus: npc.npcAmeaca?.vontade ?? npc.vontade,
+                bonus: npc.vontade ?? npc.npcAmeaca?.vontade,
               },
               {
                 codigo: 'LUTA',
                 nome: 'Luta',
                 atributoBase: 'FOR',
                 dados: resolverDadosPericiaNpc('lutaDados', 'luta', 'FOR'),
-                bonus: npc.npcAmeaca?.luta ?? npc.luta,
+                bonus: npc.luta ?? npc.npcAmeaca?.luta,
               },
               {
                 codigo: 'JUJUTSU',
@@ -2444,7 +2480,7 @@ export class SessaoService {
                   'jujutsu',
                   'INT',
                 ),
-                bonus: npc.npcAmeaca?.jujutsu ?? npc.jujutsu,
+                bonus: npc.jujutsu ?? npc.npcAmeaca?.jujutsu,
               },
             ]
           : npc.npcAmeacaId === null && atributosNpc
@@ -2559,7 +2595,7 @@ export class SessaoService {
           nome: npc.nomeExibicao,
           fichaTipo: npc.fichaTipo,
           tipo: npc.tipo,
-          tamanho: npc.npcAmeaca?.tamanho ?? npc.tamanho ?? 'MEDIO',
+          tamanho: npc.tamanho ?? npc.npcAmeaca?.tamanho ?? 'MEDIO',
           vd: npc.vd,
           defesa: npc.defesa,
           pontosVidaAtual: npc.pontosVidaAtual,
@@ -2574,7 +2610,14 @@ export class SessaoService {
           deslocamentoMetros: npc.deslocamentoMetros,
           notasCena: npc.notasCena,
           atributos: atributosNpc,
-          pericias: periciasNpc,
+          pericias: periciasNpc.filter((p) => {
+            const informadas = (
+              npc.npcAmeaca?.periciasEspeciais as {
+                periciasInformadas?: string[];
+              } | null
+            )?.periciasInformadas;
+            return !informadas || informadas.includes(p.codigo);
+          }),
           periciasEspeciais: npc.npcAmeaca
             ? this.mapearListaObjeto(npc.npcAmeaca.periciasEspeciais)
             : npc.entidadeVinculada
@@ -2582,9 +2625,10 @@ export class SessaoService {
               : [],
           passivas: this.mapearListaObjeto(npc.passivasGuia),
           acoes: this.mapearListaObjeto(npc.acoesGuia),
+          estadoAcoes: npc.estadoAcoes,
           condicoesAtivas: this.mapearCondicoesAtivasSessao(npc.condicoes),
           visibilidade: 'completa' as const,
-          podeEditar: acesso.ehMestre,
+          podeEditar: podeControlarNpc,
           podeControlar: podeControlarNpc,
           ocultoJogadores: npc.ocultoJogadores,
         };
@@ -2618,6 +2662,7 @@ export class SessaoService {
           select: {
             donoId: true,
             nome: true,
+            origem: { select: { nome: true } },
             personagemBase: {
               select: {
                 agilidade: true,
@@ -2657,6 +2702,7 @@ export class SessaoService {
                 valor: true,
                 periciaCodigo: true,
                 tipoGrauCodigo: true,
+                atributoCodigo: true,
               },
             },
           },
@@ -2692,8 +2738,10 @@ export class SessaoService {
           personagemCampanhaId: personagem.personagemCampanhaId,
           equipado: true,
           equipamento: {
-            tipo: 'ARMA',
-            tipoAmaldicoado: null,
+            OR: [
+              { tipo: 'ARMA', tipoAmaldicoado: null },
+              { tipo: 'FERRAMENTA_AMALDICOADA', tipoAmaldicoado: 'ARMA' },
+            ],
             tipoArma: { in: ['CORPO_A_CORPO', 'A_DISTANCIA'] },
           },
         },
@@ -2701,9 +2749,13 @@ export class SessaoService {
           id: true,
           equipamentoId: true,
           nomeCustomizado: true,
+          modificacoes: {
+            select: { modificacao: { select: { efeitosMecanicos: true } } },
+          },
           equipamento: {
             select: {
               nome: true,
+              habilidadeEspecial: true,
               tipoArma: true,
               agil: true,
               empunhaduras: true,
@@ -2774,7 +2826,10 @@ export class SessaoService {
         )
       ).get(personagem.personagemCampanhaId) ?? new Map<string, number>();
     const personagemCampanha = personagem.personagemCampanha;
-    const base = personagemCampanha.personagemBase;
+    const base = aplicarAtributosNarrativos(
+      personagemCampanha.personagemBase,
+      personagemCampanha.modificadores,
+    );
     const periciasEfetivas = resolverPericiasEfetivasCampanha(
       base.pericias,
       personagemCampanha.modificadores,
@@ -2814,6 +2869,12 @@ export class SessaoService {
 
     const armas = itens.map((item) => {
       const equipamento = item.equipamento;
+      const efeitosArma = resolverEfeitosArma({
+        ...equipamento,
+        modificacoes: item.modificacoes,
+        origemNome: personagem.personagemCampanha.origem?.nome,
+        forca: base.forca,
+      });
       const periciaCodigo = resolverPericiaMacroArma(equipamento.tipoArma);
       if (!periciaCodigo || !equipamento.tipoArma) {
         throw new SessaoRolagemInvalidaException(
@@ -2853,17 +2914,22 @@ export class SessaoService {
           ? (['FOR', 'AGI'] as const)
           : ([atributoPadrao] as AtributoMacroArma[]),
         empunhaduras,
-        danos: equipamento.danos,
+        danos: equipamento.danos.map((d, i) => ({
+          ...d,
+          valorFlat: d.valorFlat + (i === 0 ? efeitosArma.bonusDano : 0),
+        })),
         critico: {
-          valor: equipamento.criticoValor,
+          valor: efeitosArma.criticoValor,
           multiplicador: equipamento.criticoMultiplicador,
         },
         preview: {
           dadosLogicos,
-          quantidadeDados: this.calcularDadosPadraoPericia(dadosLogicos),
+          quantidadeDados:
+            this.calcularDadosPadraoPericia(dadosLogicos) +
+            efeitosArma.bonusDados,
           keepMode:
             dadosLogicos > 0 ? ('HIGHEST' as const) : ('LOWEST' as const),
-          bonus: pericia.bonusTotal,
+          bonus: pericia.bonusTotal + efeitosArma.bonusAtaque,
           ajustesAutomaticos,
         },
       };
@@ -4130,7 +4196,18 @@ export class SessaoService {
                 [...PERICIAS_ATAQUE_SESSAO],
               );
             }
-            if (!acesso.ehMestre && pericia.donoId !== usuarioId) {
+            if (
+              !acesso.ehMestre &&
+              pericia.donoId !== usuarioId &&
+              !(await tx.personagemSessao.findFirst({
+                where: {
+                  id: dto.personagemSessaoId,
+                  sessaoId,
+                  controladorUsuarioId: usuarioId,
+                },
+                select: { id: true },
+              }))
+            ) {
               throw new CampanhaPersonagemEdicaoNegadaException(
                 campanhaId,
                 pericia.personagemCampanhaId,
@@ -4419,7 +4496,18 @@ export class SessaoService {
               ehAtaque ? dto.atributoEscolhido : undefined,
               ehAtaque ? dto.ajusteDadosManual : 0,
             );
-            if (!acesso.ehMestre && macro.pericia.donoId !== usuarioId) {
+            if (
+              !acesso.ehMestre &&
+              macro.pericia.donoId !== usuarioId &&
+              !(await tx.personagemSessao.findFirst({
+                where: {
+                  id: dto.personagemSessaoId,
+                  sessaoId,
+                  controladorUsuarioId: usuarioId,
+                },
+                select: { id: true },
+              }))
+            ) {
               throw new CampanhaPersonagemEdicaoNegadaException(
                 campanhaId,
                 macro.pericia.personagemCampanhaId,
@@ -5307,7 +5395,18 @@ export class SessaoService {
               dto.personagemSessaoId,
               dto.habilidadeTecnicaId,
             );
-            if (!acesso.ehMestre && fonte.donoId !== usuarioId) {
+            if (
+              !acesso.ehMestre &&
+              fonte.donoId !== usuarioId &&
+              !(await tx.personagemSessao.findFirst({
+                where: {
+                  id: dto.personagemSessaoId,
+                  sessaoId,
+                  controladorUsuarioId: usuarioId,
+                },
+                select: { id: true },
+              }))
+            ) {
               throw new CampanhaPersonagemEdicaoNegadaException(
                 campanhaId,
                 fonte.personagemCampanhaId,
@@ -6180,6 +6279,7 @@ export class SessaoService {
             );
           }
 
+          await desfazerVitalidadeSombrasTx(tx, dadosEvento.vitalidadeSombras);
           await tx.npcAmeacaSessao.update({
             where: {
               id: npcSessaoId,
@@ -7243,7 +7343,7 @@ export class SessaoService {
         'adicionar NPC ou ameaça',
       );
 
-      const npcBase = await tx.npcAmeaca.findFirst({
+      let npcBase = await tx.npcAmeaca.findFirst({
         where: {
           id: dto.npcAmeacaId,
           donoId: usuarioId,
@@ -7252,6 +7352,18 @@ export class SessaoService {
 
       if (!npcBase) {
         throw new NpcAmeacaNaoEncontradaException(dto.npcAmeacaId);
+      }
+
+      const fichaCampanha = await tx.npcAmeacaCampanha.findUnique({
+        where: {
+          campanhaId_npcAmeacaId: { campanhaId, npcAmeacaId: npcBase.id },
+        },
+      });
+      if (fichaCampanha) {
+        npcBase = {
+          ...npcBase,
+          ...this.extrairRegistro(fichaCampanha.ficha),
+        } as typeof npcBase;
       }
 
       const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
@@ -7270,8 +7382,8 @@ export class SessaoService {
       const energiaAmaldicoada = this.resolverRecursoOpcional(
         dto.eaAtual,
         dto.eaMax,
-        null,
-        null,
+        npcBase.eaMax ?? null,
+        npcBase.eaMax ?? null,
       );
       const energiaFisica = this.resolverRecursoOpcional(
         dto.peAtual,
@@ -7290,6 +7402,19 @@ export class SessaoService {
           nomeExibicao,
           fichaTipo: npcBase.fichaTipo,
           tipo: npcBase.tipo,
+          tamanho: npcBase.tamanho,
+          agilidade: npcBase.agilidade,
+          forca: npcBase.forca,
+          intelecto: npcBase.intelecto,
+          presenca: npcBase.presenca,
+          vigor: npcBase.vigor,
+          percepcao: npcBase.percepcao,
+          iniciativa: npcBase.iniciativa,
+          fortitude: npcBase.fortitude,
+          reflexos: npcBase.reflexos,
+          vontade: npcBase.vontade,
+          luta: npcBase.luta,
+          jujutsu: npcBase.jujutsu,
           vd: dto.vd ?? npcBase.vd,
           iniciativaValor:
             dto.iniciativaValor === undefined ? null : dto.iniciativaValor,
@@ -7308,6 +7433,10 @@ export class SessaoService {
             dto.deslocamentoMetros ?? npcBase.deslocamentoMetros,
           passivasGuia: this.jsonParaPersistencia(npcBase.passivas),
           acoesGuia: this.jsonParaPersistencia(npcBase.acoes),
+          estadoAcoes: this.jsonParaPersistencia(
+            this.extrairRegistro(fichaCampanha?.ficha ?? null).estadoAcoes ??
+              null,
+          ),
           notasCena,
           ocultoJogadores: dto.ocultoJogadores === true,
         },
@@ -7501,34 +7630,6 @@ export class SessaoService {
       usuarioId,
       'editar NPC ou ameaça',
     );
-    const camposRestritosAoMestre = [
-      'nomeExibicao',
-      'vd',
-      'fichaTipo',
-      'tipo',
-      'tamanho',
-      'defesa',
-      'pontosVidaMax',
-      'sanMax',
-      'eaMax',
-      'peMax',
-      'machucado',
-      'deslocamentoMetros',
-      'agilidade',
-      'forca',
-      'intelecto',
-      'presenca',
-      'vigor',
-      'percepcao',
-      'iniciativa',
-      'fortitude',
-      'reflexos',
-      'vontade',
-      'luta',
-      'jujutsu',
-      'notasCena',
-      'ocultoJogadores',
-    ] as const;
     if (!acesso.ehMestre) {
       const npcControle = await this.prisma.npcAmeacaSessao.findFirst({
         where: { id: npcSessaoId, sessaoId },
@@ -7545,7 +7646,7 @@ export class SessaoService {
         usuarioId,
         npcControle,
       );
-      const tentouEditarFicha = camposRestritosAoMestre.some(
+      const tentouEditarFicha = ['ocultoJogadores'].some(
         (campo) => dto[campo] !== undefined,
       );
       if (!podeControlar || tentouEditarFicha) {
@@ -7597,12 +7698,19 @@ export class SessaoService {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
       assertSessaoMutavel(sessao, campanhaId, sessaoId, 'editar NPC ou ameaça');
+      await bloquearSessaoTx(tx, campanhaId, sessaoId);
       await bloquearNpcSessaoTx(tx, campanhaId, sessaoId, npcSessaoId);
 
       const npcSessaoAtual = await tx.npcAmeacaSessao.findFirst({
         where: {
           id: npcSessaoId,
           sessaoId,
+        },
+        include: {
+          personagemDono: { select: { donoId: true } },
+          personagemControladorSessao: {
+            select: { controladorUsuarioId: true },
+          },
         },
       });
 
@@ -7611,6 +7719,15 @@ export class SessaoService {
           npcSessaoId,
           sessaoId,
           campanhaId,
+        );
+      }
+      if (
+        !acesso.ehMestre &&
+        !this.podeControlarNpcSessao(false, usuarioId, npcSessaoAtual)
+      ) {
+        throw new BusinessException(
+          'Você não controla mais este NPC.',
+          'SESSAO_NPC_EDICAO_NEGADA',
         );
       }
       const recursoObsoleto =
@@ -7717,6 +7834,80 @@ export class SessaoService {
         },
         data,
       });
+      const vitalidadeSombras =
+        npcSessaoAtual.entidadeVinculadaId &&
+        npcSessaoAtual.pontosVidaAtual !== npcSessaoAtualizado.pontosVidaAtual
+          ? await sincronizarVitalidadeSombrasTx(tx, npcSessaoAtualizado)
+          : null;
+
+      if (npcSessaoAtual.npcAmeacaId) {
+        const camposFicha = [
+          'defesa',
+          'pontosVidaMax',
+          'eaMax',
+          'peMax',
+          'deslocamentoMetros',
+          'agilidade',
+          'forca',
+          'intelecto',
+          'presenca',
+          'vigor',
+          'percepcao',
+          'iniciativa',
+          'fortitude',
+          'reflexos',
+          'vontade',
+          'luta',
+          'jujutsu',
+          'tamanho',
+          'tipo',
+          'fichaTipo',
+          'vd',
+        ] as const;
+        const camposEditados = camposFicha.filter(
+          (campo) => dto[campo] !== undefined,
+        );
+        if (camposEditados.length > 0) {
+          const fichaAnterior = await tx.npcAmeacaCampanha.findUnique({
+            where: {
+              campanhaId_npcAmeacaId: {
+                campanhaId,
+                npcAmeacaId: npcSessaoAtual.npcAmeacaId,
+              },
+            },
+          });
+          const ficha = {
+            ...this.extrairRegistro(fichaAnterior?.ficha ?? null),
+            ...Object.fromEntries(
+              camposEditados.map((campo) => [
+                campo === 'pontosVidaMax' ? 'pontosVida' : campo,
+                campo === 'defesa'
+                  ? npcSessaoAtualizado.defesa +
+                    ((
+                      npcSessaoAtualizado.estadoAcoes as {
+                        penalidadeDefesa?: number;
+                      } | null
+                    )?.penalidadeDefesa ?? 0)
+                  : npcSessaoAtualizado[campo],
+              ]),
+            ),
+          };
+          await tx.npcAmeacaCampanha.upsert({
+            where: {
+              campanhaId_npcAmeacaId: {
+                campanhaId,
+                npcAmeacaId: npcSessaoAtual.npcAmeacaId,
+              },
+            },
+            create: {
+              campanhaId,
+              npcAmeacaId: npcSessaoAtual.npcAmeacaId,
+              ficha: this.jsonParaPersistencia(ficha),
+            },
+            update: { ficha: this.jsonParaPersistencia(ficha) },
+          });
+        }
+      }
 
       await tx.eventoSessao.create({
         data: {
@@ -7724,6 +7915,7 @@ export class SessaoService {
           cenaId: npcSessaoAtual.cenaId,
           tipoEvento: 'NPC_ATUALIZADO',
           dados: {
+            vitalidadeSombras,
             npcSessaoId,
             anterior: this.snapshotNpcSessao(npcSessaoAtual),
             atual: this.snapshotNpcSessao(npcSessaoAtualizado),
@@ -7827,8 +8019,11 @@ export class SessaoService {
         });
 
         if (npcSessaoAtual.entidadeVinculadaId) {
-          await tx.personagemCampanhaEntidadeVinculada.update({
-            where: { id: npcSessaoAtual.entidadeVinculadaId },
+          await tx.personagemCampanhaEntidadeVinculada.updateMany({
+            where: {
+              id: npcSessaoAtual.entidadeVinculadaId,
+              estado: { not: EstadoEntidadeVinculadaPersonagem.DESTRUIDO },
+            },
             data: { estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL },
           });
         }
@@ -7868,6 +8063,43 @@ export class SessaoService {
       usuarioId,
       'invocar entidade vinculada',
     );
+
+    const sombraCatalogada =
+      await this.prisma.personagemCampanhaEntidadeVinculada.findFirst({
+        where: {
+          id: vinculadoId,
+          campanhaId,
+          tecnicaOrigem: { codigo: 'DEZ_SOMBRAS' },
+        },
+        select: {
+          personagemCampanhaId: true,
+          config: true,
+          tecnicaOrigem: { select: { codigo: true } },
+        },
+      });
+    if (sombraCatalogada?.tecnicaOrigem?.codigo === 'DEZ_SOMBRAS') {
+      const codigo = (sombraCatalogada.config as { dezSombras?: string } | null)
+        ?.dezSombras;
+      const ps = await this.prisma.personagemSessao.findFirst({
+        where: {
+          sessaoId,
+          personagemCampanhaId: sombraCatalogada.personagemCampanhaId,
+        },
+      });
+      if (!codigo || !ps)
+        throw new BusinessException(
+          'Use uma sombra completa do catálogo e adicione seu invocador à sessão.',
+          'DEZ_SOMBRAS_REGRA_INVALIDA',
+        );
+      await this.dezSombrasService.executar(
+        campanhaId,
+        sessaoId,
+        ps.id,
+        usuarioId,
+        { acao: 'INVOCAR', sombra: codigo, clientRequestId: randomUUID() },
+      );
+      return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+    }
 
     await executarComRetryConcorrencia('invocar entidade vinculada', () =>
       this.prisma.$transaction(async (tx) => {
@@ -8073,6 +8305,35 @@ export class SessaoService {
       usuarioId,
       'desinvocar entidade vinculada',
     );
+
+    const sombraManifestada = await this.prisma.npcAmeacaSessao.findFirst({
+      where: {
+        id: npcSessaoId,
+        sessaoId,
+        entidadeVinculada: { tecnicaOrigem: { codigo: 'DEZ_SOMBRAS' } },
+      },
+      include: { entidadeVinculada: { select: { config: true } } },
+    });
+    if (sombraManifestada?.personagemControladorSessaoId) {
+      const codigo = (
+        sombraManifestada.entidadeVinculada?.config as {
+          dezSombras?: string;
+        } | null
+      )?.dezSombras;
+      if (!codigo)
+        throw new BusinessException(
+          'Modelo de sombra incompleto.',
+          'DEZ_SOMBRAS_REGRA_INVALIDA',
+        );
+      await this.dezSombrasService.executar(
+        campanhaId,
+        sessaoId,
+        sombraManifestada.personagemControladorSessaoId,
+        usuarioId,
+        { acao: 'LIBERAR', sombra: codigo, clientRequestId: randomUUID() },
+      );
+      return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+    }
 
     await executarComRetryConcorrencia('desinvocar entidade vinculada', () =>
       this.prisma.$transaction(async (tx) => {
@@ -8570,6 +8831,48 @@ export class SessaoService {
             mecanicaSessao.dominio as Prisma.JsonValue,
           );
           const ehExpansaoDominio = mecanicaSessao.tipo === 'EXPANSAO_DOMINIO';
+          if (
+            [
+              'INATA_DEZ_SOMBRAS_JARDIM',
+              'NAOINATA_EMOCAO_FLOR_CAIDA_ATIVAR',
+            ].includes(habilidade.codigo ?? '')
+          ) {
+            const atualSombras = await tx.personagemCampanha.findUniqueOrThrow({
+              where: { id: personagemSessao.personagemCampanha.id },
+            });
+            const cfgSombras = configSombras(
+              atualSombras.configuracaoDezSombras,
+            );
+            if (cfgSombras) {
+              const estadoSombras = lerEstadoSombras(
+                atualSombras.estadoDezSombras,
+                cfgSombras,
+              );
+              if (
+                habilidade.codigo === 'INATA_DEZ_SOMBRAS_JARDIM' &&
+                !estadoSombras.dominio?.habilidade
+              )
+                throw new BusinessException(
+                  'Defina a habilidade ofensiva vinculada no painel Dez Sombras antes de abrir o Jardim.',
+                  'DEZ_SOMBRAS_REGRA_INVALIDA',
+                );
+              const execucao =
+                habilidade.variacoes.find(
+                  (v) => v.id === dto.variacaoHabilidadeId,
+                )?.execucao ?? habilidade.execucao;
+              consumirAcaoUsuario(estadoSombras, execucao.replace('ACAO_', ''));
+              await tx.personagemCampanha.update({
+                where: { id: atualSombras.id },
+                data: {
+                  estadoDezSombras: this.jsonParaPersistencia(estadoSombras),
+                },
+              });
+            } else if (habilidade.codigo === 'INATA_DEZ_SOMBRAS_JARDIM')
+              throw new BusinessException(
+                'Configure as Dez Sombras antes de abrir o Jardim.',
+                'DEZ_SOMBRAS_REGRA_INVALIDA',
+              );
+          }
           const investimentoIntegridade =
             ehExpansaoDominio && mecanicaDominio.tipo === 'FECHADO'
               ? Math.min(
@@ -12162,6 +12465,7 @@ export class SessaoService {
         controladorUsuarioId: true,
         personagemDono: { select: { donoId: true } },
         personagemControladorSessao: { select: { controladorUsuarioId: true } },
+        personagemControladorSessaoId: true,
         ocultoJogadores: true,
         agilidade: true,
         forca: true,
@@ -12201,7 +12505,7 @@ export class SessaoService {
           },
         },
         entidadeVinculada: {
-          select: { periciasEspeciais: true },
+          select: { periciasEspeciais: true, config: true },
         },
       },
     });
@@ -12220,6 +12524,20 @@ export class SessaoService {
       );
     }
 
+    const dominioSombra =
+      dto.tipo === 'ATAQUE_NPC' &&
+      npc.personagemControladorSessaoId &&
+      this.extrairRegistro(npc.entidadeVinculada?.config ?? null).dezSombras
+        ? await tx.dominioSessao.findFirst({
+            where: {
+              sessaoId,
+              personagemSessaoId: npc.personagemControladorSessaoId,
+              estado: 'ATIVO',
+              habilidadeTecnica: { codigo: 'INATA_DEZ_SOMBRAS_JARDIM' },
+            },
+            select: { id: true },
+          })
+        : null;
     if (dto.tipo === 'DANO_NPC') {
       const acao = this.mapearListaObjeto(npc.acoesGuia)[dto.acaoIndice];
       const nome = typeof acao?.nome === 'string' ? acao.nome.trim() : '';
@@ -12236,7 +12554,11 @@ export class SessaoService {
           dto.acaoIndice,
         );
       }
-      const expressaoPersistida = parseDiceFontePersistidaServidor(dano);
+      const expressaoPersistida = this.extrairRegistro(
+        npc.entidadeVinculada?.config ?? null,
+      ).dezSombras
+        ? parseDanoSombras(dano)
+        : parseDiceFontePersistidaServidor(dano);
       if (!expressaoPersistida) {
         throw new SessaoNpcAcaoDanoInvalidoException(
           dto.npcSessaoId,
@@ -12281,6 +12603,11 @@ export class SessaoService {
       }
       const expressao = {
         ...parse.expressions[0],
+        quantidade: parse.expressions[0].quantidade + (dominioSombra ? 1 : 0),
+        keepMode:
+          parse.expressions[0].faces === 20
+            ? ('HIGHEST' as const)
+            : parse.expressions[0].keepMode,
         label: `${npc.nomeExibicao} · ${nome}`
           .trim()
           .slice(0, LIMITES_DICE_SESSAO.label),
@@ -12333,9 +12660,13 @@ export class SessaoService {
         npc.npcAmeaca?.[metaPrincipal.campoBonus] ??
         0;
       const atributo = this.obterAtributoNpcPorBase(atributos, atributoBase);
-      quantidadeDados =
-        npc.npcAmeaca?.[metaPrincipal.campoDados] ??
-        this.calcularDadosPadraoPericia(atributo);
+      quantidadeDados = calcularDadosPericiaNpcEditada(
+        atributo,
+        npc.npcAmeaca
+          ? this.obterAtributoNpcPorBase(npc.npcAmeaca, atributoBase)
+          : atributo,
+        npc.npcAmeaca?.[metaPrincipal.campoDados],
+      );
     } else {
       const especiais = npc.npcAmeaca
         ? this.mapearListaObjeto(npc.npcAmeaca.periciasEspeciais)
@@ -12376,7 +12707,7 @@ export class SessaoService {
 
     const valorAtributo = this.obterAtributoNpcPorBase(atributos, atributoBase);
     const expressao: DiceExpressionServidor = {
-      quantidade: quantidadeDados,
+      quantidade: quantidadeDados + (dominioSombra ? 1 : 0),
       faces: 20,
       modificador: Math.abs(bonusBase),
       operador: bonusBase < 0 ? '-' : '+',
@@ -12470,6 +12801,7 @@ export class SessaoService {
                 valor: true,
                 periciaCodigo: true,
                 tipoGrauCodigo: true,
+                atributoCodigo: true,
               },
             },
             personagemBase: {
@@ -12798,6 +13130,7 @@ export class SessaoService {
       },
       select: {
         personagemCampanhaId: true,
+        personagemCampanha: { select: { origem: { select: { nome: true } } } },
         condicoes: {
           where: { ativo: true },
           select: { condicao: { select: { nome: true } } },
@@ -12821,10 +13154,14 @@ export class SessaoService {
         id: true,
         equipamentoId: true,
         nomeCustomizado: true,
+        modificacoes: {
+          select: { modificacao: { select: { efeitosMecanicos: true } } },
+        },
         equipamento: {
           select: {
             id: true,
             nome: true,
+            habilidadeEspecial: true,
             tipo: true,
             tipoAmaldicoado: true,
             tipoArma: true,
@@ -12854,8 +13191,11 @@ export class SessaoService {
     const equipamento = item.equipamento;
     const periciaCodigo = resolverPericiaMacroArma(equipamento.tipoArma);
     if (
-      equipamento.tipo !== 'ARMA' ||
-      equipamento.tipoAmaldicoado !== null ||
+      !(
+        (equipamento.tipo === 'ARMA' && equipamento.tipoAmaldicoado === null) ||
+        (equipamento.tipo === 'FERRAMENTA_AMALDICOADA' &&
+          equipamento.tipoAmaldicoado === 'ARMA')
+      ) ||
       !periciaCodigo ||
       (equipamento.tipoArma !== 'CORPO_A_CORPO' &&
         equipamento.tipoArma !== 'A_DISTANCIA')
@@ -12890,6 +13230,13 @@ export class SessaoService {
       periciaCodigo,
       atributoEscolhido,
     );
+    const efeitosArma = resolverEfeitosArma({
+      ...equipamento,
+      modificacoes: item.modificacoes,
+      origemNome: personagem.personagemCampanha.origem?.nome,
+      forca: pericia.valorAtributo,
+    });
+    pericia.bonusTotal += efeitosArma.bonusAtaque;
     const ajustesAutomaticos = resolverAjustesAutomaticosMacroArma(
       personagem.condicoes.map((condicao) => condicao.condicao),
       tipoArma,
@@ -12906,7 +13253,7 @@ export class SessaoService {
       pericia.valorAtributo + ajusteAutomaticoDados + ajusteManualNormalizado;
     const quantidadeDados = this.calcularDadosPadraoPericia(dadosLogicos);
     const quantidadeDadosComBonusAtivos =
-      quantidadeDados + pericia.bonusDadosAtivos;
+      quantidadeDados + pericia.bonusDadosAtivos + efeitosArma.bonusDados;
     if (quantidadeDadosComBonusAtivos > LIMITES_DICE_SESSAO.dados) {
       throw new SessaoRolagemInvalidaException(
         `A macro excede o limite de ${LIMITES_DICE_SESSAO.dados} dados.`,
@@ -12926,9 +13273,12 @@ export class SessaoService {
         agil: equipamento.agil,
         tipoArma,
         empunhaduras,
-        criticoValor: equipamento.criticoValor,
+        criticoValor: efeitosArma.criticoValor,
         criticoMultiplicador: equipamento.criticoMultiplicador,
-        danos: equipamento.danos,
+        danos: equipamento.danos.map((d, i) => ({
+          ...d,
+          valorFlat: d.valorFlat + (i === 0 ? efeitosArma.bonusDano : 0),
+        })),
       },
     };
   }
@@ -13137,6 +13487,7 @@ export class SessaoService {
                   valor: true,
                   periciaCodigo: true,
                   tipoGrauCodigo: true,
+                  atributoCodigo: true,
                 },
               },
             },
@@ -13159,7 +13510,10 @@ export class SessaoService {
       throw new SessaoPericiaNaoEncontradaException(periciaCodigo);
     }
 
-    const base = personagem.personagemCampanha.personagemBase;
+    const base = aplicarAtributosNarrativos(
+      personagem.personagemCampanha.personagemBase,
+      personagem.personagemCampanha.modificadores,
+    );
     const periciasEfetivas = resolverPericiasEfetivasCampanha(
       base.pericias,
       personagem.personagemCampanha.modificadores,
@@ -13255,12 +13609,16 @@ export class SessaoService {
         cenaId,
         personagemSessaoId,
         estado: 'ATIVO',
-        incompleto: true,
+        OR: [
+          { incompleto: true },
+          { habilidadeTecnica: { codigo: 'INATA_DEZ_SOMBRAS_JARDIM' } },
+        ],
       },
       select: {
         id: true,
         nome: true,
         atributoEpifania: true,
+        habilidadeTecnica: { select: { codigo: true } },
         bonusDadosEfeito: true,
       },
     });
@@ -13271,6 +13629,13 @@ export class SessaoService {
     let bonusDadosEfeito = 0;
     const ajustes: Array<Record<string, unknown>> = [];
     for (const dominio of dominios) {
+      if (dominio.habilidadeTecnica?.codigo === 'INATA_DEZ_SOMBRAS_JARDIM') {
+        if (codigo === 'JUJUTSU') {
+          bonusDadosAtributo++;
+          ajustes.push({ tipo: 'POTENCIAL_120', bonusDadosAtributo: 1 });
+        }
+        continue;
+      }
       const aplicaPericia = codigo === 'JUJUTSU' || codigo === 'LUTA';
       const aplicaAtributo = dominio.atributoEpifania === atributo;
       const dadosEfeito = Math.max(0, dominio.bonusDadosEfeito ?? 0);
@@ -13285,6 +13650,29 @@ export class SessaoService {
         bonusDadosAtributo: aplicaAtributo ? 1 : 0,
         bonusDadosEfeito: dadosEfeito,
       });
+    }
+    if (codigo === 'LUTA' || codigo === 'JUJUTSU') {
+      const ps = await tx.personagemSessao.findUnique({
+        where: { id: personagemSessaoId },
+        select: {
+          personagemCampanha: {
+            select: { configuracaoDezSombras: true, estadoDezSombras: true },
+          },
+        },
+      });
+      const cfg = configSombras(ps?.personagemCampanha.configuracaoDezSombras);
+      const estado = cfg
+        ? lerEstadoSombras(ps?.personagemCampanha.estadoDezSombras, cfg)
+        : null;
+      const orochiAtivo =
+        estado &&
+        ['SERPENTE_OROCHI', 'NUE_AMPLIADO', 'AGITO'].some(
+          (c) => !!estado.sombras[c]?.npcSessaoId && estado.sombras[c].pv > 0,
+        );
+      if (cfg?.melhorAmigo && estado?.melhorAmigoEmCurto && orochiAtivo) {
+        bonusDadosAtributo++;
+        ajustes.push({ tipo: 'MELHOR_AMIGO', bonusDadosAtributo: 1 });
+      }
     }
     return { bonusPericia, bonusDadosAtributo, bonusDadosEfeito, ajustes };
   }
@@ -14806,6 +15194,16 @@ export class SessaoService {
       cenaId: args.cenaId,
       rodadaAnterior,
       rodadaNova,
+      participantesTurnoAnteriores:
+        args.acao === 'VOLTAR'
+          ? []
+          : lados[indiceAtual].participantes
+              .map((p) =>
+                participantes.find(
+                  (atual) => atual.token === p.participanteToken,
+                ),
+              )
+              .filter((p): p is ParticipanteIniciativa => !!p),
       participantesTurnoNovos:
         args.acao === 'VOLTAR' ? [] : participantesTurnoNovos,
       processarCondicoes: args.acao !== 'VOLTAR',
@@ -16862,6 +17260,14 @@ export class SessaoService {
         personagem.personagemCampanha.donoId !== usuarioId)
     )
       throw new CampanhaAcessoNegadoException(campanhaId, usuarioId);
+    await this.prisma.$transaction(async (tx) => {
+      await bloquearPersonagemCampanhaTx(
+        tx,
+        campanhaId,
+        personagem.personagemCampanhaId,
+      );
+      await dormirSombrasTx(tx, personagem.personagemCampanhaId);
+    });
     const codigos = ['ESGOTAMENTO_DOMINIO', 'SOBRECARGA_NEURAL'];
     const condicoes = await this.prisma.condicao.findMany({
       where: { codigo: { in: codigos } },
@@ -18473,7 +18879,13 @@ export class SessaoService {
       where: {
         sessaoId,
         personagemAtorId: personagemSessaoId,
-        tipoEvento: 'HABILIDADE_USADA',
+        tipoEvento: {
+          in: [
+            'HABILIDADE_USADA',
+            'DEZ_SOMBRAS_ACAO',
+            'DEZ_SOMBRAS_SUSTENTACAO',
+          ],
+        },
       },
       orderBy: {
         id: 'desc',
@@ -18729,6 +19141,7 @@ export class SessaoService {
       nomeExibicao: string;
       iniciativaValor: number | null;
       controladorUsuarioId: number | null;
+      entidadeVinculada?: { config: Prisma.JsonValue | null } | null;
       personagemControladorSessao?: {
         controladorUsuarioId: number | null;
       } | null;
@@ -18759,21 +19172,28 @@ export class SessaoService {
       },
     );
 
-    const participantesNpcs: ParticipanteIniciativa[] = npcs.map((npc) => ({
-      tipoParticipante: 'NPC',
-      token: this.criarTokenParticipante('NPC', npc.id),
-      personagemSessaoId: null,
-      npcSessaoId: npc.id,
-      personagemCampanhaId: null,
-      donoId: null,
-      nomeJogador: null,
-      nomePersonagem: npc.nomeExibicao,
-      podeEditar:
-        ehMestre ||
-        npc.controladorUsuarioId === usuarioId ||
-        npc.personagemControladorSessao?.controladorUsuarioId === usuarioId,
-      iniciativaValor: npc.iniciativaValor ?? null,
-    }));
+    const participantesNpcs: ParticipanteIniciativa[] = npcs
+      .filter(
+        (npc) =>
+          !npc.personagemControladorSessao ||
+          !(npc.entidadeVinculada?.config as { dezSombras?: string } | null)
+            ?.dezSombras,
+      )
+      .map((npc) => ({
+        tipoParticipante: 'NPC',
+        token: this.criarTokenParticipante('NPC', npc.id),
+        personagemSessaoId: null,
+        npcSessaoId: npc.id,
+        personagemCampanhaId: null,
+        donoId: null,
+        nomeJogador: null,
+        nomePersonagem: npc.nomeExibicao,
+        podeEditar:
+          ehMestre ||
+          npc.controladorUsuarioId === usuarioId ||
+          npc.personagemControladorSessao?.controladorUsuarioId === usuarioId,
+        iniciativaValor: npc.iniciativaValor ?? null,
+      }));
 
     return [...participantesPersonagens, ...participantesNpcs];
   }
@@ -18913,6 +19333,7 @@ export class SessaoService {
           nomeExibicao: true,
           iniciativaValor: true,
           controladorUsuarioId: true,
+          entidadeVinculada: { select: { config: true } },
           personagemControladorSessao: {
             select: { controladorUsuarioId: true },
           },
@@ -19088,6 +19509,8 @@ export class SessaoService {
         cenaId: cenaAtual.id,
         rodadaAnterior: sessao.rodadaAtual,
         rodadaNova,
+        participantesTurnoAnteriores:
+          acao === 'VOLTAR' ? [] : [participantes[indiceAnterior]],
         participantesTurnoNovos:
           acao === 'VOLTAR'
             ? []
@@ -19241,7 +19664,20 @@ export class SessaoService {
     contexto: ContextoEfeitosTurnoSessao,
     passo: PassoEfeitosTurnoSessao,
   ): Promise<void> {
+    if (passo.tipo === 'FIM_PARTICIPANTE') {
+      await processarCondicoesSombrasTx(
+        tx,
+        sessaoId,
+        {
+          personagemSessaoId: passo.personagemSessaoId,
+          npcSessaoId: passo.npcSessaoId,
+        },
+        'FIM',
+      );
+      return;
+    }
     if (passo.tipo === 'SUSTENTACOES_RODADA') {
+      await sustentarAcoesNpcTx(tx, sessaoId, contexto.rodadaNova);
       await this.cobrarSustentacoesAtivasRodadaTx(tx, {
         sessaoId,
         cenaId: contexto.cenaId,
@@ -19272,6 +19708,25 @@ export class SessaoService {
       podeEditar: false,
       iniciativaValor: null,
     };
+    await processarCondicoesSombrasTx(
+      tx,
+      sessaoId,
+      {
+        personagemSessaoId: passo.personagemSessaoId,
+        npcSessaoId: passo.npcSessaoId,
+      },
+      'INICIO',
+    );
+    if (passo.personagemSessaoId) {
+      await processarTurnoSombrasTx(
+        tx,
+        sessaoId,
+        passo.personagemSessaoId,
+        contexto.rodadaNova,
+      );
+    }
+    if (passo.npcSessaoId)
+      await iniciarTurnoNpcTx(tx, sessaoId, passo.npcSessaoId);
     await this.processarCondicoesNoAvancoTurnoTx(tx, {
       sessaoId,
       cenaId: contexto.cenaId,
@@ -19393,6 +19848,7 @@ export class SessaoService {
         typeof passo.chave !== 'string' ||
         (passo.tipo !== 'SUSTENTACOES_RODADA' &&
           passo.tipo !== 'CONDICOES_RODADA' &&
+          passo.tipo !== 'FIM_PARTICIPANTE' &&
           passo.tipo !== 'CONDICOES_PARTICIPANTE')
       ) {
         return null;
@@ -19415,7 +19871,8 @@ export class SessaoService {
           ? passo.npcSessaoId
           : null;
       if (
-        passo.tipo === 'CONDICOES_PARTICIPANTE' &&
+        (passo.tipo === 'CONDICOES_PARTICIPANTE' ||
+          passo.tipo === 'FIM_PARTICIPANTE') &&
         (!tipoParticipante ||
           (tipoParticipante === 'PERSONAGEM' && !personagemSessaoId) ||
           (tipoParticipante === 'NPC' && !npcSessaoId))
@@ -20795,6 +21252,21 @@ export class SessaoService {
         ? args.participante.npcSessaoId
         : null;
     if (!personagemSessaoId && !npcSessaoId) return;
+    const zonaProtetora = await tx.defesaAntiDominioSessao.findFirst({
+      where: {
+        sessaoId: args.sessaoId,
+        cenaId: args.cenaId,
+        ativa: true,
+        tipo: 'DOMINIO_SIMPLES',
+        integridadeAtual: { gt: 0 },
+        zona: {
+          path: personagemSessaoId ? '$.personagens' : '$.npcs',
+          array_contains: personagemSessaoId ?? npcSessaoId!,
+        },
+      },
+      select: { id: true },
+    });
+    if (zonaProtetora) return;
     const defesa = await tx.defesaAntiDominioSessao.findFirst({
       where: {
         sessaoId: args.sessaoId,
@@ -20847,9 +21319,16 @@ export class SessaoService {
           },
         },
       },
-      select: { id: true, nome: true, descricaoAcertoGarantido: true },
+      select: {
+        id: true,
+        nome: true,
+        descricaoAcertoGarantido: true,
+        habilidadeTecnica: { select: { codigo: true } },
+      },
     });
     for (const dominio of dominios) {
+      if (dominio.habilidadeTecnica?.codigo === 'INATA_DEZ_SOMBRAS_JARDIM')
+        continue;
       await tx.eventoSessao.create({
         data: {
           sessaoId: args.sessaoId,

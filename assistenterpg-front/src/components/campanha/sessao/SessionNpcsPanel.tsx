@@ -124,7 +124,7 @@ export function SessionNpcsPanel({
   return (
     <SessionPanel
       title="Aliados ou ameaças na cena"
-      subtitle="Mestre adiciona e ajusta aliados ou ameaças por cena. Jogadores visualizam em modo leitura."
+      subtitle="O mestre organiza a cena. Cada jogador pode operar e editar os NPCs sob seu controle nesta campanha."
       tone="aside"
       right={
         podeControlarSessao ? (

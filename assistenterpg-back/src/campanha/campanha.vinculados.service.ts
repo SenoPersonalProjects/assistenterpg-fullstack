@@ -158,7 +158,12 @@ export class CampanhaVinculadosService {
         usuarioId,
         false,
       );
-    this.validarPodeVerPersonagem(acesso, personagem.donoId, usuarioId);
+    await this.validarPodeVerPersonagem(
+      acesso,
+      personagem.donoId,
+      usuarioId,
+      personagem.id,
+    );
 
     const entidades =
       await this.prisma.personagemCampanhaEntidadeVinculada.findMany({
@@ -183,7 +188,12 @@ export class CampanhaVinculadosService {
         usuarioId,
         false,
       );
-    this.validarPodeVerPersonagem(acesso, personagem.donoId, usuarioId);
+    await this.validarPodeVerPersonagem(
+      acesso,
+      personagem.donoId,
+      usuarioId,
+      personagem.id,
+    );
     const entidade = await this.obterEntidadeOuFalhar(
       campanhaId,
       personagemCampanhaId,
@@ -204,7 +214,12 @@ export class CampanhaVinculadosService {
         usuarioId,
         false,
       );
-    this.validarPodeVerPersonagem(acesso, personagem.donoId, usuarioId);
+    await this.validarPodeVerPersonagem(
+      acesso,
+      personagem.donoId,
+      usuarioId,
+      personagem.id,
+    );
     const contexto = await this.carregarContextoAutomacao(personagemCampanhaId);
     const entidades =
       await this.prisma.personagemCampanhaEntidadeVinculada.findMany({
@@ -267,7 +282,12 @@ export class CampanhaVinculadosService {
         usuarioId,
         false,
       );
-    this.validarPodeVerPersonagem(acesso, personagem.donoId, usuarioId);
+    await this.validarPodeVerPersonagem(
+      acesso,
+      personagem.donoId,
+      usuarioId,
+      personagem.id,
+    );
     const contexto = await this.carregarContextoAutomacao(personagemCampanhaId);
     const tecnicaIds = contexto.configs
       .filter((config) => config.usaTemplates)
@@ -404,14 +424,15 @@ export class CampanhaVinculadosService {
           ...base,
           ...this.normalizarSnapshotTemplate(template.snapshotJson),
         };
-        const calculo = config
-          ? this.calcularAutomaticoDados(
-              comSnapshot,
-              contexto,
-              config,
-              'Template associado',
-            )
-          : null;
+        const calculo =
+          config && config.tecnicaCodigo !== 'DEZ_SOMBRAS'
+            ? this.calcularAutomaticoDados(
+                comSnapshot,
+                contexto,
+                config,
+                'Template associado',
+              )
+            : null;
         const entidade = await tx.personagemCampanhaEntidadeVinculada.create({
           data: {
             ...comSnapshot,
@@ -1602,7 +1623,12 @@ export class CampanhaVinculadosService {
     if (resolucao.overrideMestre) {
       return { ...data, overrideMestre: true };
     }
-    if (!resolucao.config || !resolucao.contexto) return data;
+    if (
+      !resolucao.config ||
+      !resolucao.contexto ||
+      resolucao.config.tecnicaCodigo === 'DEZ_SOMBRAS'
+    )
+      return data;
     if (dto.tipo === TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA) {
       return {
         ...data,
@@ -2087,12 +2113,27 @@ export class CampanhaVinculadosService {
     return null;
   }
 
-  private validarPodeVerPersonagem(
+  private async validarPodeVerPersonagem(
     acesso: AcessoCampanha,
     donoId: number,
     usuarioId: number,
+    personagemCampanhaId: number,
   ) {
-    if (!acesso.ehMestre && donoId !== usuarioId) {
+    const delegado =
+      !acesso.ehMestre && donoId !== usuarioId
+        ? await this.prisma.personagemSessao.findFirst({
+            where: {
+              personagemCampanhaId,
+              controladorUsuarioId: usuarioId,
+              sessao: {
+                campanhaId: acesso.campanha.id,
+                status: { not: 'ENCERRADA' },
+              },
+            },
+            select: { id: true },
+          })
+        : null;
+    if (!acesso.ehMestre && donoId !== usuarioId && !delegado) {
       throw new BusinessException(
         'Voce nao pode ver vinculados deste personagem',
         'ENTIDADE_ACESSO_NEGADO',

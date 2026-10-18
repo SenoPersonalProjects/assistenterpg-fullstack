@@ -12,12 +12,14 @@ describe('CampanhaAccessService', () => {
   let prisma: {
     campanha: { findUnique: jest.Mock };
     personagemCampanha: { findUnique: jest.Mock };
+    personagemSessao: { findFirst: jest.Mock };
   };
 
   beforeEach(async () => {
     prisma = {
       campanha: { findUnique: jest.fn() },
       personagemCampanha: { findUnique: jest.fn() },
+      personagemSessao: { findFirst: jest.fn().mockResolvedValue(null) },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -74,6 +76,36 @@ describe('CampanhaAccessService', () => {
       donoId: 3,
     });
 
+    await expect(
+      service.obterPersonagemCampanhaComPermissao(10, 50, 2, true),
+    ).rejects.toBeInstanceOf(CampanhaPersonagemEdicaoNegadaException);
+  });
+  it('permite editar a campanha durante delegação e revoga o acesso quando ela termina', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 10,
+      donoId: 1,
+      membros: [{ usuarioId: 2, papel: 'JOGADOR' }],
+    });
+    prisma.personagemCampanha.findUnique.mockResolvedValue({
+      id: 50,
+      campanhaId: 10,
+      donoId: 1,
+    });
+    prisma.personagemSessao.findFirst
+      .mockResolvedValueOnce({ id: 70 })
+      .mockResolvedValueOnce(null);
+    await expect(
+      service.obterPersonagemCampanhaComPermissao(10, 50, 2, true),
+    ).resolves.toMatchObject({ controleDelegado: true });
+    expect(prisma.personagemSessao.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          personagemCampanhaId: 50,
+          controladorUsuarioId: 2,
+          sessao: { campanhaId: 10, status: { not: 'ENCERRADA' } },
+        }),
+      }),
+    );
     await expect(
       service.obterPersonagemCampanhaComPermissao(10, 50, 2, true),
     ).rejects.toBeInstanceOf(CampanhaPersonagemEdicaoNegadaException);

@@ -5,6 +5,8 @@ import { SessaoController } from './sessao.controller';
 import { SessaoService } from './sessao.service';
 import { SessaoGateway } from './sessao.gateway';
 import { SessaoActivationService } from './sessao-activation.service';
+import { DezSombrasService } from './dez-sombras.service';
+import { NpcAcoesService } from './npc-acoes.service';
 
 describe('SessaoController', () => {
   let controller: SessaoController;
@@ -54,6 +56,11 @@ describe('SessaoController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SessaoController],
       providers: [
+        {
+          provide: DezSombrasService,
+          useValue: { obter: jest.fn(), executar: jest.fn() },
+        },
+        { provide: NpcAcoesService, useValue: { usar: jest.fn() } },
         {
           provide: SessaoService,
           useValue: sessaoServiceMock,

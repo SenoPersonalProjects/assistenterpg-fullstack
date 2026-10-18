@@ -4,6 +4,8 @@ import {
   PrismaClient,
   TipoEntidadeVinculadaPersonagem,
 } from '@prisma/client';
+import { CATALOGO_DEZ_SOMBRAS } from '../../../src/sessao/dez-sombras.catalogo';
+import { snapshotSombra } from '../../../src/sessao/dez-sombras.service';
 
 type ConfigSeed = {
   tecnicaCodigo: string;
@@ -35,8 +37,8 @@ const CONFIGURACOES: ConfigSeed[] = [
     tipoVinculado: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
     modo: ModoVinculadoTecnica.PREDEFINIDOS,
     limitesJson: {
-      cadastro: { tipo: 'QUANTIDADE', valor: 10 },
-      ativo: { tipo: 'QUANTIDADE', valor: 1 },
+      cadastro: { tipo: 'ILIMITADO' }, // Dez famílias fixas; variantes não são novos shikigamis.
+      ativo: { tipo: 'ILIMITADO' }, // Capacidade validada por Carga, nunca por quantidade.
     },
     regrasJson: {
       permiteCriarNovos: false,
@@ -44,7 +46,7 @@ const CONFIGURACOES: ConfigSeed[] = [
       exigeDesbloqueio: true,
       tipoGrauCodigo: 'TECNICA_SHIKIGAMI',
     },
-    calculoJson: { regra: 'SHIKIGAMI_V2', versao: '1.4.0' },
+    calculoJson: { regra: 'DEZ_SOMBRAS_V1', versao: '2026.10.18' },
   },
   {
     tecnicaCodigo: 'NAOINATA_TECNICA_CORPOS_AMALDICOADOS',
@@ -96,15 +98,6 @@ const CONFIGURACOES: ConfigSeed[] = [
     calculoJson: { regra: 'MALDICAO_CONTROLADA_V1', versao: '1.0.0' },
   },
 ];
-
-const TEMPLATES_DEZ_SOMBRAS = [
-  { codigo: 'CAES_DIVINOS', nome: 'Caes Divinos', ordem: 10, conceito: 'Dupla de caes shikigami.' },
-  { codigo: 'NUE', nome: 'Nue', ordem: 20, conceito: 'Shikigami alado.' },
-  { codigo: 'SAPO', nome: 'Sapo', ordem: 30, conceito: 'Shikigami sapo de suporte.' },
-  { codigo: 'SERPENTE_OROCHI', nome: 'Serpente Orochi', ordem: 40, conceito: 'Shikigami serpente.' },
-  { codigo: 'MAX_ELEFANTE', nome: 'Max Elefante', ordem: 50, conceito: 'Shikigami elefante de grande porte.' },
-  { codigo: 'MAHORAGA', nome: 'Mahoraga', ordem: 60, conceito: 'Shikigami de adaptacao extrema.' },
-] as const;
 
 export async function seedConfiguracoesVinculadosTecnicas(
   prisma: PrismaClient,
@@ -159,7 +152,13 @@ export async function seedConfiguracoesVinculadosTecnicas(
   });
   if (!dezSombras) return;
 
-  for (const template of TEMPLATES_DEZ_SOMBRAS) {
+  for (const [indice, sombra] of CATALOGO_DEZ_SOMBRAS.entries()) {
+    const template = {
+      codigo: sombra.codigo,
+      nome: sombra.nome,
+      conceito: sombra.nome,
+      ordem: (indice + 1) * 10,
+    };
     const templatePersistido = await prisma.tecnicaVinculadoTemplate.upsert({
       where: {
         tecnicaId_codigo: {
@@ -171,7 +170,7 @@ export async function seedConfiguracoesVinculadosTecnicas(
         nome: template.nome,
         conceito: template.conceito,
         tipoVinculado: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
-        snapshotJson: { incompleto: true },
+        snapshotJson: snapshotSombra(sombra),
         requisitosJson: { exigeDesbloqueio: true },
         bloqueadoPorPadrao: true,
         ordem: template.ordem,
@@ -183,7 +182,7 @@ export async function seedConfiguracoesVinculadosTecnicas(
         nome: template.nome,
         conceito: template.conceito,
         tipoVinculado: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
-        snapshotJson: { incompleto: true },
+        snapshotJson: snapshotSombra(sombra),
         requisitosJson: { exigeDesbloqueio: true },
         bloqueadoPorPadrao: true,
         ordem: template.ordem,

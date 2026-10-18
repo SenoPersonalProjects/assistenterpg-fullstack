@@ -34,7 +34,7 @@ export function SessionAccessNotice({
     : observador
       ? 'Você está observando esta cena. Recursos, ações e alterações estruturais ficam disponíveis somente ao mestre ou ao controlador delegado.'
       : possuiControleDelegado
-        ? 'Você pode operar recursos atuais, habilidades, ações e rolagens dos participantes indicados. O mestre mantém a edição estrutural, condições e composição da cena.'
+        ? 'Você pode operar e editar as fichas indicadas nesta campanha, incluindo atributos, perícias, habilidades, recursos e rolagens. As alterações ficam na campanha. O mestre controla a composição da cena.'
         : elencoControladoPeloMestre
           ? 'Esta sessão usa elenco do mestre. Aguarde uma delegação para operar um personagem ou NPC na cena.'
           : 'Associe ou adicione seu personagem à cena para operar recursos, habilidades e rolagens.';
