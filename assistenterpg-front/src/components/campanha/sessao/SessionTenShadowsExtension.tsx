@@ -1,13 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
-import { SessionPanel } from "./SessionPanel";
+import { SessionLinkedEntitiesControl } from "./SessionLinkedEntitiesControl";
+import { useSessaoAcaoVinculado } from "@/hooks/useSessaoAcaoVinculado";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ErrorAlert } from "@/components/ui/ErrorAlert";
 import { criarErroUsuario } from "@/lib/api/error-handler";
-import type { UserFacingError } from "@/lib/types";
 import {
   obterDezSombras,
   executarDezSombras,
@@ -42,7 +42,7 @@ const DANOS_SOMBRA: Record<string, string> = {
   ENERGIA_AMALDICOADA: "Energia Amaldiçoada",
 };
 const mensagemErro = criarErroUsuario;
-export function SessionTenShadowsPanel({
+export function SessionTenShadowsExtension({
   campanhaId,
   sessaoId,
   personagemSessaoId,
@@ -51,8 +51,7 @@ export function SessionTenShadowsPanel({
   onAtualizar,
 }: Props) {
   const [painel, setPainel] = useState<PainelDezSombras | null>(null);
-  const [erro, setErro] = useState<UserFacingError | null>(null);
-  const [pendente, setPendente] = useState(false);
+  const { erro, setErro, pendente, executarAcao } = useSessaoAcaoVinculado();
   const [selecionada, setSelecionada] = useState("");
   const [habilidade, setHabilidade] = useState("");
   const [alvo, setAlvo] = useState("");
@@ -75,7 +74,7 @@ export function SessionTenShadowsPanel({
         if (!controller.signal.aborted) setErro(mensagemErro(e));
       });
     return () => controller.abort();
-  }, [campanhaId, sessaoId, personagemSessaoId, revisao]);
+  }, [campanhaId, sessaoId, personagemSessaoId, revisao, setErro]);
   const codigoSelecionado = selecionada.startsWith("COELHO_")
     ? (painel?.catalogo.find(
         (s) =>
@@ -97,8 +96,6 @@ export function SessionTenShadowsPanel({
       pendente
     )
       return;
-    setPendente(true);
-    setErro(null);
     const [tipoAlvo, id] = alvo.split(":");
     const comando: ComandoSombra = {
       acao: tipo,
@@ -117,7 +114,7 @@ export function SessionTenShadowsPanel({
       ...(observacao ? { observacao } : {}),
       ...(tipo === "ADAPTACAO" ? { complexidade: Number(complexidade) } : {}),
     };
-    try {
+    await executarAcao(async () => {
       setPainel(
         await executarDezSombras(
           campanhaId,
@@ -128,187 +125,182 @@ export function SessionTenShadowsPanel({
         ),
       );
       await onAtualizar();
-    } catch (e: unknown) {
-      setErro(mensagemErro(e));
-    } finally {
-      setPendente(false);
-    }
+    });
   }
   return (
-    <SessionPanel
-      title="Dez Sombras"
-      subtitle={
-        painel
-          ? `${painel.nome} · Grau ${painel.config.grauEfetivo}`
-          : "Carregando manifestações…"
-      }
-      tone="control"
-      collapsible
-    >
-      <div className="space-y-3">
-        {erro ? <ErrorAlert error={erro} /> : null}
-        {painel ? (
-          <>
-            <div className="flex flex-wrap gap-3 text-sm" aria-live="polite">
-              <span>
-                Carga {painel.recursos.carga}/{painel.recursos.limite}
-              </span>
-              <span>EA {painel.recursos.ea}</span>
-              <span>PE {painel.recursos.pe}</span>
-              <span>
-                Comando: {painel.estado.comandoUsado ? "usado" : "disponível"}
-              </span>
-              <span>
-                Reação das Sombras:{" "}
-                {painel.estado.reacaoSombrasUsada ? "usada" : "disponível"}
-              </span>
-            </div>
-            {painel.dominioAtivo ? (
-              <p className="text-sm">
-                Potencial 120%: +1d20 nos ataques dos shikigamis e Jujutsu da
-                técnica; DTs exibidas com +2.
-              </p>
-            ) : null}
-            {painel.config.melhorAmigo ? (
-              <Checkbox
-                label="Orochi ou sua quimera está em alcance curto (confirmar posição)"
-                checked={painel.estado.melhorAmigoEmCurto ?? false}
-                disabled={indisponivel}
-                onChange={async (e) => {
-                  setPendente(true);
-                  setErro(null);
-                  try {
-                    setPainel(
-                      await executarDezSombras(
-                        campanhaId,
-                        sessaoId,
-                        personagemSessaoId,
-                        {
-                          acao: "VINCULO_OROCHI",
-                          sombra: "SERPENTE_OROCHI",
-                          sustentado: e.target.checked,
-                        },
-                        crypto.randomUUID(),
-                      ),
-                    );
-                    await onAtualizar();
-                  } catch (error: unknown) {
-                    setErro(mensagemErro(error));
-                  } finally {
-                    setPendente(false);
-                  }
-                }}
-              />
-            ) : null}
-            <div className="flex flex-wrap items-end gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={indisponivel}
-                onClick={() => void executar("MOVIMENTO_USUARIO")}
-              >
-                Registrar deslocamento voluntário
-              </Button>
-              {painel.flor.ativa ? (
-                <>
-                  <Select
-                    label="EA para esta defesa da Flor Caída"
-                    value={gastoFlor}
-                    onChange={(e) => setGastoFlor(e.target.value)}
-                  >
-                    {Array.from(
-                      { length: painel.flor.gastoMaximoEA },
-                      (_, i) => (
-                        <option key={i + 1} value={i + 1}>
-                          {i + 1} EA · RD {(i + 1) * painel.flor.rdPorEA}
-                        </option>
-                      ),
-                    )}
-                  </Select>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={indisponivel}
-                    onClick={() => void executar("FLOR_DEFESA")}
-                  >
-                    Defender ocorrência de Acerto Garantido
-                  </Button>
-                </>
-              ) : null}
-            </div>
-            {painel.estado.podePrepararAspectos &&
-            painel.config.grauEfetivo >= 4 ? (
-              <details className="rounded border border-app-border p-3">
-                <summary className="cursor-pointer text-sm">
-                  Preparar Aspectos do dia · até {painel.config.grauEfetivo}
-                </summary>
-                <div className="mt-2 space-y-1">
-                  {painel.catalogo
-                    .filter(
-                      (s) =>
-                        !s.componentes &&
-                        !(
-                          s.familia === "CAES_DIVINOS" &&
-                          s.codigo !== "CAO_TOTALIDADE" &&
-                          painel.config.dominadas.includes("CAO_TOTALIDADE")
-                        ) &&
-                        painel.config.dominadas.includes(s.familia) &&
-                        !painel.estado.sombras[s.codigo]?.destruido,
-                    )
-                    .flatMap((s) =>
-                      s.acoes
-                        .filter((a) => a.extraivel && a.execucao !== "PASSIVA")
-                        .map((a) => {
-                          const key = `${s.codigo}:${a.codigo}`;
-                          return (
-                            <Checkbox
-                              key={key}
-                              label={`${s.nome} · ${a.nome}`}
-                              checked={aspectosPreparados.includes(key)}
-                              disabled={indisponivel}
-                              onChange={(e) =>
-                                setAspectosPreparados((prev) =>
-                                  e.target.checked
-                                    ? [...prev, key]
-                                    : prev.filter((v) => v !== key),
-                                )
-                              }
-                            />
-                          );
-                        }),
-                    )}
-                  <Button
-                    size="sm"
-                    disabled={
-                      indisponivel ||
-                      aspectosPreparados.length > painel.config.grauEfetivo
-                    }
-                    onClick={() => void executar("PREPARAR_ASPECTOS")}
-                  >
-                    Confirmar Aspectos do dia ({aspectosPreparados.length})
-                  </Button>
-                </div>
-              </details>
-            ) : null}
-            <Select
-              label="Shikigami ou fusão"
-              value={codigoSelecionado}
-              onChange={(e) => {
-                setSelecionada(e.target.value);
-                setHabilidade("");
-                setDestino("");
+    <div className="space-y-3">
+      {erro ? <ErrorAlert error={erro} /> : null}
+      {painel ? (
+        <>
+          <div className="flex flex-wrap gap-3 text-sm" aria-live="polite">
+            <span>
+              Carga {painel.recursos.carga}/{painel.recursos.limite}
+            </span>
+            <span>EA {painel.recursos.ea}</span>
+            <span>PE {painel.recursos.pe}</span>
+            <span>
+              Comando: {painel.estado.comandoUsado ? "usado" : "disponível"}
+            </span>
+            <span>
+              Reação das Sombras:{" "}
+              {painel.estado.reacaoSombrasUsada ? "usada" : "disponível"}
+            </span>
+          </div>
+          {painel.dominioAtivo ? (
+            <p className="text-sm">
+              Potencial 120%: +1d20 nos ataques dos shikigamis e Jujutsu da
+              técnica; DTs exibidas com +2.
+            </p>
+          ) : null}
+          {painel.config.melhorAmigo ? (
+            <Checkbox
+              label="Orochi ou sua quimera está em alcance curto (confirmar posição)"
+              checked={painel.estado.melhorAmigoEmCurto ?? false}
+              disabled={indisponivel}
+              onChange={async (e) => {
+                await executarAcao(async () => {
+                  setPainel(
+                    await executarDezSombras(
+                      campanhaId,
+                      sessaoId,
+                      personagemSessaoId,
+                      {
+                        acao: "VINCULO_OROCHI",
+                        sombra: "SERPENTE_OROCHI",
+                        sustentado: e.target.checked,
+                      },
+                      crypto.randomUUID(),
+                    ),
+                  );
+                  await onAtualizar();
+                });
               }}
+            />
+          ) : null}
+          <div className="flex flex-wrap items-end gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={indisponivel}
+              onClick={() => void executar("MOVIMENTO_USUARIO")}
             >
-              <option value="">Selecione uma sombra</option>
-              {painel.catalogo.map((s) => (
-                <option key={s.codigo} value={s.codigo}>
-                  {s.nome}
-                  {painel.estado.sombras[s.codigo]?.npcSessaoId
-                    ? " · manifestado"
-                    : ""}
-                </option>
-              ))}
-            </Select>
+              Registrar deslocamento voluntário
+            </Button>
+            {painel.flor.ativa ? (
+              <>
+                <Select
+                  label="EA para esta defesa da Flor Caída"
+                  value={gastoFlor}
+                  onChange={(e) => setGastoFlor(e.target.value)}
+                >
+                  {Array.from({ length: painel.flor.gastoMaximoEA }, (_, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      {i + 1} EA · RD {(i + 1) * painel.flor.rdPorEA}
+                    </option>
+                  ))}
+                </Select>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={indisponivel}
+                  onClick={() => void executar("FLOR_DEFESA")}
+                >
+                  Defender ocorrência de Acerto Garantido
+                </Button>
+              </>
+            ) : null}
+          </div>
+          {painel.estado.podePrepararAspectos &&
+          painel.config.grauEfetivo >= 4 ? (
+            <details className="rounded border border-app-border p-3">
+              <summary className="cursor-pointer text-sm">
+                Preparar Aspectos do dia · até {painel.config.grauEfetivo}
+              </summary>
+              <div className="mt-2 space-y-1">
+                {painel.catalogo
+                  .filter(
+                    (s) =>
+                      !s.componentes &&
+                      !(
+                        s.familia === "CAES_DIVINOS" &&
+                        s.codigo !== "CAO_TOTALIDADE" &&
+                        painel.config.dominadas.includes("CAO_TOTALIDADE")
+                      ) &&
+                      painel.config.dominadas.includes(s.familia) &&
+                      !painel.estado.sombras[s.codigo]?.destruido,
+                  )
+                  .flatMap((s) =>
+                    s.acoes
+                      .filter((a) => a.extraivel && a.execucao !== "PASSIVA")
+                      .map((a) => {
+                        const key = `${s.codigo}:${a.codigo}`;
+                        return (
+                          <Checkbox
+                            key={key}
+                            label={`${s.nome} · ${a.nome}`}
+                            checked={aspectosPreparados.includes(key)}
+                            disabled={indisponivel}
+                            onChange={(e) =>
+                              setAspectosPreparados((prev) =>
+                                e.target.checked
+                                  ? [...prev, key]
+                                  : prev.filter((v) => v !== key),
+                              )
+                            }
+                          />
+                        );
+                      }),
+                  )}
+                <Button
+                  size="sm"
+                  disabled={
+                    indisponivel ||
+                    aspectosPreparados.length > painel.config.grauEfetivo
+                  }
+                  onClick={() => void executar("PREPARAR_ASPECTOS")}
+                >
+                  Confirmar Aspectos do dia ({aspectosPreparados.length})
+                </Button>
+              </div>
+            </details>
+          ) : null}
+          <SessionLinkedEntitiesControl
+            entidades={painel.catalogo.map((item) => {
+              const estado = painel.estado.sombras[item.codigo];
+              return {
+                id: item.codigo,
+                nome: item.nome,
+                tipo: "Shikigami",
+                estado: estado?.destruido
+                  ? "Destruído"
+                  : estado?.indisponivelAteDormir
+                    ? "Indisponível até Dormir"
+                    : estado?.npcSessaoId
+                      ? "ATIVO"
+                      : "DISPONIVEL",
+                ativa: !!estado?.npcSessaoId,
+                podeInvocar:
+                  !estado?.npcSessaoId &&
+                  !estado?.destruido &&
+                  !estado?.indisponivelAteDormir,
+                pvAtual: estado?.pv ?? item.pv,
+                pvMax: item.pv,
+                defesa: item.defesa,
+                movimento: item.movimento,
+                custo: `Invocar: ${item.invocacao.ea} EA + ${item.invocacao.pe} PE · ${LABEL_ACAO[item.invocacao.execucao]} · Carga ${item.carga} · Sustentação ${item.sustentacao} EA/rodada`,
+              };
+            })}
+            selecionada={codigoSelecionado}
+            onSelecionar={(codigo) => {
+              setSelecionada(codigo);
+              setHabilidade("");
+              setDestino("");
+            }}
+            indisponivel={!!indisponivel}
+            podeControlar
+            onInvocar={() => void executar("INVOCAR")}
+            onLiberar={() => void executar("LIBERAR")}
+          >
             {sombra ? (
               <>
                 <p className="text-sm text-app-muted">
@@ -329,13 +321,6 @@ export function SessionTenShadowsPanel({
                     ? " — Enxame: ocupa outros espaços; imune a manobras e efeitos sem dano contra uma criatura; metade do dano de armas e +50% em área."
                     : ""}
                 </p>
-                <p className="text-sm text-app-muted">
-                  Invocar: {sombra.invocacao.ea} EA + {sombra.invocacao.pe} PE ·{" "}
-                  {LABEL_ACAO[sombra.invocacao.execucao]} · Carga {sombra.carga}{" "}
-                  · Sustentação {sombra.sustentacao} EA · PV{" "}
-                  {registro?.pv ?? sombra.pv}/{sombra.pv} · Defesa{" "}
-                  {sombra.defesa}
-                </p>
                 {registro?.destruido ? (
                   <p className="text-sm">
                     Destruído permanentemente. Herança exige compatibilidade
@@ -347,26 +332,6 @@ export function SessionTenShadowsPanel({
                   </p>
                 ) : null}
                 <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    disabled={
-                      indisponivel ||
-                      !!registro?.npcSessaoId ||
-                      registro?.destruido ||
-                      registro?.indisponivelAteDormir
-                    }
-                    onClick={() => void executar("INVOCAR")}
-                  >
-                    Invocar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={indisponivel || !registro?.npcSessaoId}
-                    onClick={() => void executar("LIBERAR")}
-                  >
-                    Liberar
-                  </Button>
                   <Button
                     size="sm"
                     variant="secondary"
@@ -634,46 +599,40 @@ export function SessionTenShadowsPanel({
                 ) : null}
               </>
             ) : null}
-            {painel.estado.aspectosSustentados.map((a) => {
-              const [codigo, habilidadeCodigo] = a.split(":");
-              return (
-                <Button
-                  key={a}
-                  size="sm"
-                  variant="secondary"
-                  disabled={indisponivel}
-                  onClick={async () => {
-                    setPendente(true);
-                    setErro(null);
-                    try {
-                      setPainel(
-                        await executarDezSombras(
-                          campanhaId,
-                          sessaoId,
-                          personagemSessaoId,
-                          {
-                            acao: "ENCERRAR_ASPECTO",
-                            sombra: codigo,
-                            habilidade: habilidadeCodigo,
-                          },
-                          crypto.randomUUID(),
-                        ),
-                      );
-                      await onAtualizar();
-                    } catch (e: unknown) {
-                      setErro(mensagemErro(e));
-                    } finally {
-                      setPendente(false);
-                    }
-                  }}
-                >
-                  Encerrar Aspecto: {a}
-                </Button>
-              );
-            })}
-          </>
-        ) : null}
-      </div>
-    </SessionPanel>
+          </SessionLinkedEntitiesControl>
+          {painel.estado.aspectosSustentados.map((a) => {
+            const [codigo, habilidadeCodigo] = a.split(":");
+            return (
+              <Button
+                key={a}
+                size="sm"
+                variant="secondary"
+                disabled={indisponivel}
+                onClick={async () => {
+                  await executarAcao(async () => {
+                    setPainel(
+                      await executarDezSombras(
+                        campanhaId,
+                        sessaoId,
+                        personagemSessaoId,
+                        {
+                          acao: "ENCERRAR_ASPECTO",
+                          sombra: codigo,
+                          habilidade: habilidadeCodigo,
+                        },
+                        crypto.randomUUID(),
+                      ),
+                    );
+                    await onAtualizar();
+                  });
+                }}
+              >
+                Encerrar Aspecto: {a}
+              </Button>
+            );
+          })}
+        </>
+      ) : null}
+    </div>
   );
 }

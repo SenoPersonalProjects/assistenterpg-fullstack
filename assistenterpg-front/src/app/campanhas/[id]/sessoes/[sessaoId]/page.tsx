@@ -46,7 +46,6 @@ import {
   apiAtualizarRegraOpcionalSessaoCampanha,
   apiConsumirItemSessaoCampanha,
   apiGastarInspiracaoSessaoCampanha,
-  apiInvocarEntidadeVinculadaSessaoCampanha,
   apiMarcarParticipanteIniciativaAlternadaSessaoCampanha,
   criarErroUsuario,
 } from "@/lib/api";
@@ -96,7 +95,6 @@ import { SessionDomainsPanel } from "@/components/campanha/sessao/SessionDomains
 import { SessionPlayerSummaryPanel } from "@/components/campanha/sessao/SessionPlayerSummaryPanel";
 import { SessionAccessNotice } from "@/components/campanha/sessao/SessionAccessNotice";
 import { SessionRosterControlPanel } from "@/components/campanha/sessao/SessionRosterControlPanel";
-import { SessionTenShadowsPanel } from "@/components/campanha/sessao/SessionTenShadowsPanel";
 import { SessionSceneRosterPanel } from "@/components/campanha/sessao/SessionSceneRosterPanel";
 import { AddNpcModal } from "@/components/campanha/sessao/modals/AddNpcModal";
 import { AddSimpleNpcModal } from "@/components/campanha/sessao/modals/AddSimpleNpcModal";
@@ -1842,24 +1840,6 @@ export default function SessaoCampanhaPage() {
     ],
   );
 
-  const handleInvocarVinculado = useCallback(
-    async (vinculadoId: number) => {
-      setErroCards(null);
-      try {
-        const atualizado = await apiInvocarEntidadeVinculadaSessaoCampanha(
-          campanhaId,
-          sessaoId,
-          vinculadoId,
-        );
-        setDetalhe(atualizado);
-        sincronizarEstadosDerivados(atualizado);
-        showToast("Vinculado inserido na cena.", "success");
-      } catch (error) {
-        setErroCards(criarErroUsuario(error));
-      }
-    },
-    [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
-  );
 
   const handleAtualizarSocial = useCallback(
     async (alvos: AlvoEncontroSocialSessao[]) => {
@@ -3894,9 +3874,7 @@ export default function SessaoCampanhaPage() {
       onSacrificarNucleo={handleSacrificarNucleo}
       onAbrirEdicaoPersonagem={handleAbrirEdicaoPersonagem}
       onAbrirFichaCompleta={handleAbrirFichaCompleta}
-      onInvocarVinculado={(vinculadoId) =>
-        void handleInvocarVinculado(vinculadoId)
-      }
+      onAtualizarVinculados={atualizarSessaoAposAcaoNpc}
       onRolarPericia={handleRolarPericia}
       onRolarTesteHabilidade={handleRolarTesteHabilidade}
       onRolarDanoHabilidade={handleRolarDanoHabilidade}
@@ -4546,6 +4524,7 @@ export default function SessaoCampanhaPage() {
                       setMacrosPersonalizadas
                     }
                     onRolarMacroPersonalizada={handleRolarMacroPersonalizada}
+                    onAtualizarVinculados={atualizarSessaoAposAcaoNpc}
                     controladoPorDelegacao={personagemDelegado}
                   />
                 </>
@@ -4555,41 +4534,7 @@ export default function SessaoCampanhaPage() {
 
           <section className="space-y-3">
             {podeControlarSessao ? renderCardsSessao() : null}
-            {cards
-              .filter(
-                (card) =>
-                  card.podeEditar &&
-                  (card.possuiDezSombras ||
-                    card.tecnicaInata?.codigo === "DEZ_SOMBRAS"),
-              )
-              .map((card) => (
-                <SessionTenShadowsPanel
-                  key={card.personagemSessaoId}
-                  campanhaId={campanhaId}
-                  sessaoId={sessaoId}
-                  personagemSessaoId={card.personagemSessaoId}
-                  revisao={detalhe}
-                  alvos={[
-                    ...cards.map((c) => ({
-                      tipo: "PERSONAGEM" as const,
-                      id: c.personagemSessaoId,
-                      nome: c.nomePersonagem,
-                    })),
-                    ...detalhe.npcs.map((n) => ({
-                      tipo: "NPC" as const,
-                      id: n.npcSessaoId,
-                      nome: n.nome,
-                    })),
-                  ]}
-                  onAtualizar={async () => {
-                    const atualizado = await apiGetSessaoCampanha(
-                      campanhaId,
-                      sessaoId,
-                    );
-                    setDetalhe(atualizado);
-                  }}
-                />
-              ))}
+
 
             {!podeControlarSessao ? (
               <SessionDomainsPanel

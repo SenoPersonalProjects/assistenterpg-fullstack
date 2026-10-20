@@ -167,6 +167,17 @@ Endpoints relacionados (módulo de sessão):
 
 ## UI/UX (frontend)
 
+### Shikigamis e outros vinculados na sessão
+
+A ficha do invocador concentra as manifestações na aba **Vinculados**. Não adicionar painéis de invocação paralelos por técnica.
+
+- `SessionCharacterLinkedEntities` compõe os vinculados comuns e extensões de técnica na mesma aba, tanto no card do mestre quanto no resumo do jogador delegado.
+- `SessionLinkedEntitiesControl` é o componente compartilhado de seleção, estado, PV, Defesa, movimento e controles Invocar/Liberar. `useSessaoAcaoVinculado` centraliza trava contra requisições simultâneas e erros inline.
+- `SessionTenShadowsExtension` acrescenta apenas as regras próprias das Dez Sombras (catálogo, custos, Carga, Comandar, fusões, Aspectos, herança e rituais), usando os mesmos controles de manifestação.
+- `criarManifestacaoVinculadaTx` cria o snapshot de NPC e o vínculo com dono/controlador para todas as técnicas. Regras e cobranças específicas são resolvidas antes pela estratégia da técnica; as rotas gerais de invocar/desinvocar já encaminham as sombras cadastradas a essa estratégia.
+- A manifestação usa `NpcSessionCard`, recursos, condições e rolagens já existentes. Liberar um vinculado comum também conserva seus PV; o controlador delegado pode liberá-lo, e terceiros continuam sem autorização.
+- A API marca a estratégia de uma entidade em `regraInvocacao`. Assim, formas das Dez Sombras não aparecem novamente na lista de vinculados comuns. Uma ficha pode manter outros vinculados junto da extensão.
+
 Nome da secao na navegação:
 
 - `NPC`

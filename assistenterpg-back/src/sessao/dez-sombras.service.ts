@@ -1,3 +1,4 @@
+import { criarManifestacaoVinculadaTx } from './entidades-vinculadas-manifestacao';
 import { Injectable } from '@nestjs/common';
 import { randomInt } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
@@ -444,45 +445,28 @@ export class DezSombrasService {
                 },
               });
             const snap = snapshotSombra(sombra);
-            const npc = await tx.npcAmeacaSessao.create({
-              data: {
+            const npc = await criarManifestacaoVinculadaTx(
+              tx,
+              {
+                ...entidade,
+                ...snap,
+                passivas: snap.passivas as Prisma.JsonValue,
+                acoes: snap.acoes as Prisma.JsonValue,
+              },
+              {
                 sessaoId,
                 cenaId: cena.id,
-                entidadeVinculadaId: entidade.id,
-                personagemDonoId: ritual ? null : pc.id,
-                personagemControladorSessaoId: ritual
-                  ? null
-                  : personagemSessaoId,
+                personagemSessaoId,
+                hostil: ritual,
                 nomeExibicao: ritual
                   ? `${sombra.nome} — Ritual hostil`
                   : sombra.nome,
-                fichaTipo: 'NPC',
-                tipo: 'OUTRO',
-                tipoVinculo: 'SHIKIGAMI',
-                tamanho: snap.tamanho,
-                defesa: snap.defesa,
-                pontosVidaMax: snap.pontosVidaMax,
                 pontosVidaAtual: ritual ? sombra.pv : registro.pv,
-                deslocamentoMetros: snap.deslocamentoMetros,
-                agilidade: snap.agilidade,
-                forca: snap.forca,
-                intelecto: snap.intelecto,
-                presenca: snap.presenca,
-                vigor: snap.vigor,
-                percepcao: snap.percepcao,
-                iniciativa: snap.iniciativa,
-                fortitude: snap.fortitude,
-                reflexos: snap.reflexos,
-                vontade: snap.vontade,
-                luta: snap.luta,
-                jujutsu: snap.jujutsu,
-                acoesGuia: snap.acoes,
-                passivasGuia: snap.passivas,
                 notasCena: ritual
                   ? 'Ritual de Exorcismo: hostil, independente; ajuda externa invalida dominação.'
                   : null,
               },
-            });
+            );
             if (!ritual) {
               registro.npcSessaoId = npc.id;
               registro.sessaoId = sessaoId;
@@ -511,10 +495,6 @@ export class DezSombrasService {
             } else {
               (estado.rituais ??= {})[sombra.codigo] = { npcSessaoId: npc.id };
             }
-            await tx.personagemCampanhaEntidadeVinculada.update({
-              where: { id: entidade.id },
-              data: { estado: 'ATIVO', pontosVidaAtual: npc.pontosVidaAtual },
-            });
             efeitos.npcSessaoId = npc.id;
           };
           const removerManifestacao = async (codigo: string) => {

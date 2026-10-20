@@ -103,6 +103,7 @@ type SessionPlayerSummaryPanelProps = {
   ) => ReactNode;
   onAbrirFichaCompleta: () => void;
   onAbrirEdicaoPersonagem?: () => void;
+  onAtualizarVinculados?: (detalhe: SessaoCampanhaDetalhe) => void;
   onSolicitarRemover: () => void;
   onAtualizarAjusteRecurso: (campo: CampoAjusteRecurso, valor: string) => void;
   onAplicarDeltaRecurso: (campo: CampoAjusteRecurso, delta: number) => void;
@@ -183,6 +184,7 @@ export function SessionPlayerSummaryPanel({
   renderPainelCondicoes,
   onAbrirFichaCompleta,
   onAbrirEdicaoPersonagem,
+  onAtualizarVinculados,
   onSolicitarRemover,
   onAtualizarAjusteRecurso,
   onAplicarDeltaRecurso,
@@ -320,6 +322,7 @@ export function SessionPlayerSummaryPanel({
               onAtualizarAcumulosHabilidade={onAtualizarAcumulosHabilidade}
               onUsarHabilidade={onUsarHabilidade}
               onUsarHabilidadeClasse={onUsarHabilidadeClasse}
+              onAtualizarVinculados={onAtualizarVinculados}
               acaoHabilidadePendente={acaoHabilidadePendente}
               sessaoEncerrada={sessaoEncerrada}
               onEncerrarSustentacao={onEncerrarSustentacao}

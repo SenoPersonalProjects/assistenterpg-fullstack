@@ -116,7 +116,7 @@ type SessionCharactersPanelProps = {
   onRolarMacroPersonalizada: (solicitacao: SolicitacaoMacroPersonalizada) => Promise<void>;
   onAbrirEdicaoPersonagem: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
   onAbrirFichaCompleta: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
-  onInvocarVinculado?: (vinculadoId: number) => void;
+  onAtualizarVinculados?: (detalhe: SessaoCampanhaDetalhe) => void;
   renderPainelCondicoes: (
     alvoTipo: 'PERSONAGEM' | 'NPC',
     alvoId: number,
@@ -199,7 +199,7 @@ export function SessionCharactersPanel({
   onRolarMacroPersonalizada,
   onAbrirEdicaoPersonagem,
   onAbrirFichaCompleta,
-  onInvocarVinculado,
+  onAtualizarVinculados,
   renderPainelCondicoes,
   limitesCategoriaAtivo,
   consumirComCalmaAtivo,
@@ -324,7 +324,7 @@ export function SessionCharactersPanel({
               }
               onAbrirEdicaoPersonagem={() => onAbrirEdicaoPersonagem(card)}
               onAbrirFichaCompleta={() => onAbrirFichaCompleta(card)}
-              onInvocarVinculado={onInvocarVinculado}
+              onAtualizarVinculados={onAtualizarVinculados}
               onSolicitarRemover={() => onSolicitarRemoverPersonagem(card)}
               renderPainelCondicoes={renderPainelCondicoes}
               acumulosHabilidade={acumulosHabilidade}

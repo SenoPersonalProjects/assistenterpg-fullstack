@@ -7,6 +7,7 @@ export type AbaDetalheCard =
   | 'MACROS'
   | 'TECNICAS'
   | 'SUSTENTACOES'
+  | 'VINCULADOS'
   | 'CONDICOES'
   | 'INSPIRACAO';
 
@@ -40,6 +41,7 @@ const ABAS_VALIDAS = new Set<AbaDetalheCard>([
   'MACROS',
   'TECNICAS',
   'SUSTENTACOES',
+  'VINCULADOS',
   'CONDICOES',
   'INSPIRACAO',
 ]);

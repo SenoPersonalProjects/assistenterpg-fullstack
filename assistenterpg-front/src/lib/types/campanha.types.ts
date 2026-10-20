@@ -1259,7 +1259,7 @@ export type SessaoCampanhaDetalhe = {
         | "npcAmeacaOrigemId"
         | "instanciasAtivas"
         | "ativoNestaSessao"
-      >
+      > & { regraInvocacao?: { tipo: string; codigo: string } | null }
     >;
     aprimoramentosTemporarios: AprimoramentoTemporarioSessaoCampanha[];
     opcoesAprimoramentoTecnicasNaoInatas: OpcaoAprimoramentoTecnicaSessaoCampanha[];

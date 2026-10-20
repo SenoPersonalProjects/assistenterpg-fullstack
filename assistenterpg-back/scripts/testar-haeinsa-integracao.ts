@@ -1279,12 +1279,74 @@ async function main() {
         .eaAtual,
       141,
     );
+    const vinculadoGeral = await db.personagemCampanhaEntidadeVinculada.create({
+      data: {
+        campanhaId: campanha.id,
+        personagemCampanhaId: pc.id,
+        criadoPorId: admin.id,
+        tipo: 'SHIKIGAMI',
+        nome: 'Shikigami comum de integração',
+        overrideMestre: true,
+        limites: { ativoMaximo: 99 },
+        pontosVidaMax: 50,
+        pontosVidaAtual: 37,
+      },
+    });
+    await sessaoService.invocarEntidadeVinculadaSessao(
+      campanha.id,
+      sessao.id,
+      vinculadoGeral.id,
+      jogador.id,
+      {},
+    );
+    const manifestacaoGeral = await db.npcAmeacaSessao.findFirstOrThrow({
+      where: { entidadeVinculadaId: vinculadoGeral.id, sessaoId: sessao.id },
+    });
+    assert.equal(manifestacaoGeral.personagemControladorSessaoId, ps.id);
+    assert.equal(manifestacaoGeral.pontosVidaAtual, 37);
+    await db.npcAmeacaSessao.update({
+      where: { id: manifestacaoGeral.id },
+      data: { pontosVidaAtual: 22 },
+    });
+    await assert.rejects(
+      sessaoService.desinvocarEntidadeVinculadaSessao(
+        campanha.id,
+        sessao.id,
+        manifestacaoGeral.id,
+        outro.id,
+      ),
+      /pode desinvocar/,
+    );
+    await sessaoService.desinvocarEntidadeVinculadaSessao(
+      campanha.id,
+      sessao.id,
+      manifestacaoGeral.id,
+      jogador.id,
+    );
+    await sessaoService.invocarEntidadeVinculadaSessao(
+      campanha.id,
+      sessao.id,
+      vinculadoGeral.id,
+      jogador.id,
+      {},
+    );
+    const reinvocadoGeral = await db.npcAmeacaSessao.findFirstOrThrow({
+      where: { entidadeVinculadaId: vinculadoGeral.id, sessaoId: sessao.id },
+    });
+    assert.equal(reinvocadoGeral.pontosVidaAtual, 22);
+    await sessaoService.desinvocarEntidadeVinculadaSessao(
+      campanha.id,
+      sessao.id,
+      reinvocadoGeral.id,
+      jogador.id,
+    );
     console.log(
       JSON.stringify(
         {
           resultado: 'PASSOU',
           bancoLocalIsolado: nomeBanco,
           cenarios: [
+            'Shikigami comum: manifestação compartilhada, controle delegado, liberação autorizada e reinvocação conserva PV',
             'Dez Sombras: copia editavel aparece para mestre/controlador, oculta controles de terceiro e invoca descontando EA do dono',
             'Dez Sombras: modo livre nao esgota acoes ou limite por turno; combate preserva limite de Comandar',
             'NPC: usos consecutivos livre e combate, idempotencia, PE zero, EA insuficiente sem cobranca e sem efeitos automaticos',

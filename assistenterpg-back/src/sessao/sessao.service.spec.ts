@@ -4048,7 +4048,10 @@ describe('SessaoService', () => {
     });
     expect(tx.personagemCampanhaEntidadeVinculada.update).toHaveBeenCalledWith({
       where: { id: 500 },
-      data: { estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL },
+      data: {
+        estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL,
+        pontosVidaAtual: 10,
+      },
     });
   });
 
@@ -4202,7 +4205,10 @@ describe('SessaoService', () => {
     );
     expect(tx.personagemCampanhaEntidadeVinculada.update).toHaveBeenCalledWith({
       where: { id: 500 },
-      data: { estado: EstadoEntidadeVinculadaPersonagem.ATIVO },
+      data: {
+        estado: EstadoEntidadeVinculadaPersonagem.ATIVO,
+        pontosVidaAtual: 10,
+      },
     });
   });
 

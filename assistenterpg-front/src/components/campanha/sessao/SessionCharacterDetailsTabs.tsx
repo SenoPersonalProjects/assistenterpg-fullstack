@@ -42,10 +42,7 @@ import {
   resolverValorAtributoBase,
   type AtributoBaseCodigo,
 } from "@/lib/utils/pericias";
-import {
-  entidadeVinculadaAtivaNestaSessao,
-  podeInvocarEntidadeVinculada,
-} from "@/lib/campanha/entidades-vinculadas";
+import { SessionCharacterLinkedEntities } from "./SessionCharacterLinkedEntities";
 import { periciaPermiteAtaquePersonagem } from "@/lib/campanha/sessao-rolagem-pericia";
 
 type AprimoradoModalState = {
@@ -111,7 +108,7 @@ type SessionCharacterDetailsTabsProps = {
   sessaoEncerrada: boolean;
   onAbrirEdicaoPersonagem?: () => void;
   onAbrirFichaCompleta?: () => void;
-  onInvocarVinculado?: (vinculadoId: number) => void;
+  onAtualizarVinculados?: (detalhe: SessaoCampanhaDetalhe) => void;
   onEncerrarSustentacao: (
     personagemSessaoId: number,
     sustentacaoId: number,
@@ -216,15 +213,6 @@ function formatarVersaoHabilidadeClasse(
   return `${versao.custoPE} PE | +${versao.graus ?? 0} grau(s)`;
 }
 
-function formatarTipoVinculado(tipo: string): string {
-  const labels: Record<string, string> = {
-    SHIKIGAMI: "Shikigami",
-    CORPO_AMALDICOADO: "Corpo",
-    MALDICAO_CONTROLADA: "Maldicao",
-  };
-  return labels[tipo] ?? tipo;
-}
-
 export function SessionCharacterDetailsTabs({
   card,
   campanhaId,
@@ -255,7 +243,7 @@ export function SessionCharacterDetailsTabs({
   sessaoEncerrada,
   onAbrirEdicaoPersonagem,
   onAbrirFichaCompleta,
-  onInvocarVinculado,
+  onAtualizarVinculados,
   onEncerrarSustentacao,
   formatarCustos,
   limitesCategoriaAtivo,
@@ -482,6 +470,9 @@ export function SessionCharacterDetailsTabs({
   if (card.podeEditar) {
     tabs.push({ id: "INVENTARIO", label: "Inventário", icon: "inventory" });
     tabs.push({ id: "MACROS", label: "Macros", icon: "dice" });
+    if (card.vinculados.length || card.possuiDezSombras || card.tecnicaInata?.codigo === "DEZ_SOMBRAS") {
+      tabs.push({ id: "VINCULADOS", label: "Vinculados", icon: "technique" });
+    }
   }
   tabs.push(
     {
@@ -576,53 +567,6 @@ export function SessionCharacterDetailsTabs({
               </p>
             </div>
           </div>
-          {card.vinculados.length > 0 ? (
-            <div className="space-y-1.5">
-              <p className="session-text-xxs font-semibold text-app-muted uppercase">
-                Vinculados
-              </p>
-              <div className="space-y-1.5">
-                {card.vinculados.map((vinculado) => {
-                  const ativoNestaSessao =
-                    entidadeVinculadaAtivaNestaSessao(vinculado);
-                  const podeInvocar = podeInvocarEntidadeVinculada(
-                    vinculado,
-                    sessaoEncerrada,
-                  );
-                  return (
-                    <div
-                      key={vinculado.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded border border-app-border/70 px-2 py-1.5"
-                    >
-                      <div>
-                        <p className="text-xs font-semibold text-app-fg">
-                          {vinculado.nome}
-                        </p>
-                        <p className="session-text-xxs text-app-muted">
-                          {formatarTipoVinculado(vinculado.tipo)} -{" "}
-                          {ativoNestaSessao ? "ATIVO" : vinculado.estado} - PV{" "}
-                          {vinculado.pontosVidaAtual}/{vinculado.pontosVidaMax}
-                        </p>
-                      </div>
-                      {card.podeEditar &&
-                      vinculado.estado !== "ARQUIVADO" &&
-                      onInvocarVinculado ? (
-                        <Button
-                          type="button"
-                          size="xs"
-                          variant="ghost"
-                          disabled={!podeInvocar}
-                          onClick={() => onInvocarVinculado(vinculado.id)}
-                        >
-                          {ativoNestaSessao ? "Ativo" : "Invocar"}
-                        </Button>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
           {mostrarAcoesResumo && card.podeEditar ? (
             <div className="flex items-center gap-2 flex-wrap">
               {onAbrirEdicaoPersonagem ? (
@@ -1338,6 +1282,7 @@ export function SessionCharacterDetailsTabs({
         </div>
       ) : null}
 
+      {abaDetalheCard === "VINCULADOS" ? <SessionCharacterLinkedEntities card={card} campanhaId={campanhaId} sessaoId={sessaoId} sessaoEncerrada={sessaoEncerrada} onAtualizarSessao={onAtualizarVinculados} alvosPersonagens={alvosPersonagens} alvosNpcs={alvosNpcs} /> : null}
       {abaDetalheCard === "SUSTENTACOES" ? (
         <div className="rounded border border-app-border p-2 space-y-1.5">
           <p className="text-xs font-semibold text-app-fg">

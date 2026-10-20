@@ -1,3 +1,4 @@
+import { criarManifestacaoVinculadaTx } from './entidades-vinculadas-manifestacao';
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { processarCondicoesSombrasTx } from './dez-sombras.condicoes';
@@ -1308,6 +1309,7 @@ export class SessaoService {
                   orderBy: [{ tipo: 'asc' }, { nome: 'asc' }],
                   select: {
                     id: true,
+                    config: true,
                     tipo: true,
                     estado: true,
                     nome: true,
@@ -2338,6 +2340,15 @@ export class SessaoService {
                   (entidade) => ({
                     id: entidade.id,
                     tipo: entidade.tipo,
+                    regraInvocacao:
+                      typeof this.extrairRegistro(entidade.config)
+                        .dezSombras === 'string'
+                        ? {
+                            tipo: 'DEZ_SOMBRAS',
+                            codigo: this.extrairRegistro(entidade.config)
+                              .dezSombras as string,
+                          }
+                        : null,
                     estado: entidade.estado,
                     nome: entidade.nome,
                     descricao: entidade.descricao,
@@ -8264,56 +8275,11 @@ export class SessaoService {
         const cenaAtual = dto.cenaId
           ? await this.obterCenaSessaoOuFalharTx(tx, sessaoId, dto.cenaId)
           : await this.obterCenaAtualSessaoTx(tx, sessaoId);
-        const npcSessao = await tx.npcAmeacaSessao.create({
-          data: {
-            sessaoId,
-            cenaId: cenaAtual.id,
-            npcAmeacaId: null,
-            entidadeVinculadaId: entidade.id,
-            personagemDonoId: entidade.personagemCampanhaId,
-            personagemControladorSessaoId: personagemSessao.id,
-            tipoVinculo: entidade.tipo,
-            nomeExibicao: entidade.nome,
-            fichaTipo: entidade.fichaTipo,
-            tipo: entidade.tipoNpc,
-            tamanho: entidade.tamanho,
-            vd: entidade.vd,
-            iniciativaValor: null,
-            defesa: entidade.defesa,
-            pontosVidaAtual: this.clampNumero(
-              entidade.pontosVidaAtual,
-              0,
-              entidade.pontosVidaMax,
-            ),
-            pontosVidaMax: entidade.pontosVidaMax,
-            sanAtual: null,
-            sanMax: null,
-            eaAtual: entidade.cargasAtual,
-            eaMax: entidade.cargasMax,
-            machucado: null,
-            deslocamentoMetros: entidade.deslocamentoMetros,
-            agilidade: entidade.agilidade,
-            forca: entidade.forca,
-            intelecto: entidade.intelecto,
-            presenca: entidade.presenca,
-            vigor: entidade.vigor,
-            percepcao: entidade.percepcao,
-            iniciativa: entidade.iniciativa,
-            fortitude: entidade.fortitude,
-            reflexos: entidade.reflexos,
-            vontade: entidade.vontade,
-            luta: entidade.luta,
-            jujutsu: entidade.jujutsu,
-            passivasGuia: this.jsonParaPersistencia(entidade.passivas),
-            acoesGuia: this.jsonParaPersistencia(entidade.acoes),
-            notasCena: entidade.descricao ?? entidade.conceito ?? null,
-            ocultoJogadores: dto.ocultoJogadores === true,
-          },
-        });
-
-        await tx.personagemCampanhaEntidadeVinculada.update({
-          where: { id: entidade.id },
-          data: { estado: EstadoEntidadeVinculadaPersonagem.ATIVO },
+        const npcSessao = await criarManifestacaoVinculadaTx(tx, entidade, {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          personagemSessaoId: personagemSessao.id,
+          ocultoJogadores: dto.ocultoJogadores,
         });
 
         await tx.eventoSessao.create({
@@ -8448,7 +8414,20 @@ export class SessaoService {
         }
         const donoId =
           npcSessaoAtual.entidadeVinculada?.personagemCampanha.donoId ?? null;
-        if (!acesso.ehMestre && donoId !== usuarioId) {
+        const controladorDelegado =
+          !acesso.ehMestre &&
+          donoId !== usuarioId &&
+          npcSessaoAtual.personagemControladorSessaoId
+            ? await tx.personagemSessao.findFirst({
+                where: {
+                  id: npcSessaoAtual.personagemControladorSessaoId,
+                  sessaoId,
+                  controladorUsuarioId: usuarioId,
+                },
+                select: { id: true },
+              })
+            : null;
+        if (!acesso.ehMestre && donoId !== usuarioId && !controladorDelegado) {
           throw new BusinessException(
             'Voce nao pode desinvocar este vinculado',
             'ENTIDADE_ACESSO_NEGADO',
@@ -8459,7 +8438,10 @@ export class SessaoService {
         await tx.npcAmeacaSessao.delete({ where: { id: npcSessaoId } });
         await tx.personagemCampanhaEntidadeVinculada.update({
           where: { id: entidadeVinculadaId },
-          data: { estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL },
+          data: {
+            estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL,
+            pontosVidaAtual: npcSessaoAtual.pontosVidaAtual,
+          },
         });
         await tx.eventoSessao.create({
           data: {
