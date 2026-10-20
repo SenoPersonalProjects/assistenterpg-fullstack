@@ -19,9 +19,14 @@ Os seis documentos originais e seus SHA-256 ficam em `assistenterpg-back/prisma/
 2. Em controle do elenco, delegue Takaramono e os três NPCs aos respectivos jogadores. Mantenha Tobari com o mestre.
 3. O controlador edita atributos, perícias e habilidades na campanha. O modelo original permanece com o administrador. Revogar a delegação revoga o acesso.
    Ocultar um NPC dos jogadores preserva a ficha para o mestre e seu controlador autorizado; os demais jogadores não o veem. As ações dos NPCs permanecem na própria ficha, sem painéis extras de escolha de alvos. A resolução fica com a mesa. Passivas contêm apenas traços permanentes, sem cópia integral dos documentos.
+   Na aba **Ações**, **Usar habilidade** paga o custo de PE/EA e registra a sustentação; os botões de rolagem são independentes. **Encerrar sustentação** interrompe as cobranças futuras. O custo de abertura é imediato e a sustentação é cobrada nas rodadas seguintes com turnos ativos, uma vez por rodada. Em modo livre/BASE não há cobrança por passagem de tempo nem bloqueio por orçamento de Padrão/Movimento/Reação. A economia geral de ações fica com a mesa, inclusive no combate. Frequências explícitas por rodada continuam valendo com turnos ativos.
+   O controlador autorizado também pode consultar no histórico suas rolagens de NPC oculto. Revogar o controle volta a ocultar esses resultados.
 4. Use o painel **Dez Sombras** para invocar, comandar, mover, usar habilidades e liberar. A Carga é independente de descontos de EA; as sombras acompanham o turno do usuário.
+   Os limites específicos da técnica, como um Comandar e a Reação compartilhada, continuam ativos em combate. Em modo livre/BASE, os marcadores de ação não bloqueiam usos posteriores; PV, destruição, custos e condições são preservados.
 5. Escolha o Aspecto Vinculado antes de abrir o Jardim pelo controle normal de habilidades. O mestre confirma a formação no painel de Domínios. Aplique o Acerto Garantido a um alvo por rodada.
-6. Para Seo, selecione Domínio Simples e informe todos os ocupantes a até 3m, inclusive inimigos. Atualize os ocupantes ao mudarem as posições. A zona é móvel e sua Integridade usa o painel normal de Domínios.
+6. Para Seo, **Usar habilidade** no Domínio Simples registra os 2 EA de abertura e 1 EA/rodada de sustentação. A mesa resolve a proteção de todos os ocupantes a até 3m, inclusive inimigos, e a Integridade 4. O registro de uso não exige seleção de alvos nem cria efeitos automaticamente.
+
+Ao desfazer uma troca de cena, a cena restaurada volta a ser a atual para fichas, ações, condições e novas transições. O histórico permanece preservado.
 
 Ataques, danos e resistências usam as rolagens da sessão. O mestre decide alcance, posição, observação, espaço e efeitos narrativos. A aplicação de dano aos PV usa o controle normal da sessão, após resolver as defesas. O veneno gera a rolagem de 2d8 no início do turno e solicita Fortitude DT30 no fim; registre o sucesso para encerrá-lo. Condições de Nue são aplicadas após confirmar a falha na resistência e expiram no fim do próximo turno do alvo.
 
@@ -46,6 +51,7 @@ O script aborta em fonte alterada, catálogo obrigatório ausente, administrador
 ## Validação
 
 O script `scripts/testar-haeinsa-integracao.ts` só aceita MySQL local e cria um banco isolado próprio. Exercita a importação duas vezes, delegação/revogação, conservação de PV, carga/rollback, Coelho, destruição, condições, veneno, Domínio Simples, edição de NPC, Dadao, Jardim, Flor Caída e penalidade de Defesa de Daigo.
+Também cobre usos consecutivos em modo livre/combate, idempotência e recursos insuficientes, sustentação/encerramento, histórico de rolagens ocultas por controlador, transição/desfazer de cena e limites específicos das Dez Sombras.
 
 ```powershell
 cd assistenterpg-back

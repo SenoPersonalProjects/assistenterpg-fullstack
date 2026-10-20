@@ -44,6 +44,7 @@ export type NpcAmeacaPassiva = {
 };
 
 export type NpcAmeacaAcao = {
+  sustentacaoEA?: number;
   nome: string;
   tipoExecucao?: string;
   alcance?: string;

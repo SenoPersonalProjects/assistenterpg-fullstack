@@ -19,6 +19,10 @@ import {
 } from './dez-sombras.service';
 import { sustentarAcoesNpcTx, iniciarTurnoNpcTx } from './npc-acoes.service';
 import {
+  buscarCenaAtualSessao,
+  controleTurnosAtivo,
+} from './sessao-cena-atual';
+import {
   CampoModificadorPersonagemCampanha,
   EstadoEntidadeVinculadaPersonagem,
   MacroPersonalizadaTipo,
@@ -1088,7 +1092,7 @@ export class SessaoService {
       await tx.eventoSessao.create({
         data: {
           sessaoId,
-          cenaId: sessao.cenas[0]?.id ?? null,
+          cenaId: (await buscarCenaAtualSessao(tx, sessaoId))?.id ?? null,
           tipoEvento: 'SESSAO_ENCERRADA',
           dados: {
             encerradoPorId: usuarioId,
@@ -1649,7 +1653,14 @@ export class SessaoService {
       throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
     }
 
-    const cenaAtualId = sessao.cenas[0]?.id ?? null;
+    const cenaAtualEfetiva = await buscarCenaAtualSessao(this.prisma, sessaoId);
+    if (!cenaAtualEfetiva)
+      throw new BusinessException(
+        'Sessão sem cena disponível.',
+        'SESSAO_CENA_INVALIDA',
+        { sessaoId },
+      );
+    const cenaAtualId = cenaAtualEfetiva.id;
     const personagensOrdenados = sessao.personagens.filter(
       (personagem) => personagem.cenaId === cenaAtualId,
     );
@@ -3039,9 +3050,35 @@ export class SessaoService {
       take: 150,
     });
 
-    return eventos.map((evento) =>
-      this.mapearEventoChat(evento, acesso.ehMestre),
+    const npcsControlados = acesso.ehMestre
+      ? []
+      : await this.prisma.npcAmeacaSessao.findMany({
+          where: { sessaoId },
+          select: {
+            id: true,
+            controladorUsuarioId: true,
+            personagemDono: { select: { donoId: true } },
+            personagemControladorSessao: {
+              select: { controladorUsuarioId: true },
+            },
+          },
+        });
+    const idsControlados = new Set(
+      npcsControlados
+        .filter((npc) => this.podeControlarNpcSessao(false, usuarioId, npc))
+        .map((npc) => npc.id),
     );
+    return eventos.map((evento) => {
+      const dados = this.extrairRegistro(evento.dados);
+      const rolagem = this.extrairRegistro(
+        (dados.dadosRolagem ?? null) as Prisma.JsonValue,
+      );
+      const npcId = this.lerInteiroRegistro(rolagem, 'npcSessaoId');
+      return this.mapearEventoChat(
+        evento,
+        acesso.ehMestre || (npcId !== null && idsControlados.has(npcId)),
+      );
+    });
   }
 
   async buscarRelatorioSessao(
@@ -9828,7 +9865,8 @@ export class SessaoService {
             dto.duracaoModo,
             dto.duracaoValor,
           );
-          const cenaAtualId = sessao.cenas[0]?.id ?? alvo.cenaId;
+          const cenaAtualId =
+            (await buscarCenaAtualSessao(tx, sessaoId))?.id ?? alvo.cenaId;
           const fonteCodigo = this.normalizarFonteCondicao(dto.fonteCodigo);
           const limiteFonte =
             fonteCodigo === FONTE_KOKUSEN
@@ -17726,15 +17764,7 @@ export class SessaoService {
     tx: Prisma.TransactionClient,
     sessaoId: number,
   ): Promise<{ id: number }> {
-    const cenaAtual = await tx.cena.findFirst({
-      where: { sessaoId },
-      orderBy: {
-        id: 'desc',
-      },
-      select: {
-        id: true,
-      },
-    });
+    const cenaAtual = await buscarCenaAtualSessao(tx, sessaoId);
 
     if (cenaAtual) {
       return cenaAtual;
@@ -18869,7 +18899,7 @@ export class SessaoService {
     rodadaAtual: number;
     indiceTurnoAtual: number;
   }): string | null {
-    if (sessao.cenaAtualTipo === 'LIVRE') return null;
+    if (!controleTurnosAtivo(sessao.cenaAtualTipo)) return null;
     return `${sessao.rodadaAtual}:${sessao.indiceTurnoAtual}`;
   }
 
@@ -20702,12 +20732,11 @@ export class SessaoService {
         }
       }
     }
-    const cenas = Array.isArray(sessao.cenas) ? sessao.cenas : [];
     const personagens = Array.isArray(sessao.personagens)
       ? sessao.personagens
       : [];
     const npcs = Array.isArray(sessao.npcs) ? sessao.npcs : [];
-    const cenaAtualId = cenas[0]?.id ?? null;
+    const cenaAtualId = (await buscarCenaAtualSessao(tx, sessaoId))?.id ?? null;
 
     for (const personagem of personagens) {
       const pvAtual = personagem.personagemCampanha.pvAtual;

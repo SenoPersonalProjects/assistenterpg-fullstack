@@ -738,6 +738,14 @@ export default function SessaoCampanhaPage() {
     [aplicarEstadoCena, setAjustesRecursosPorCard, setEdicaoNpcs],
   );
 
+  const atualizarSessaoAposAcaoNpc = useCallback(
+    (atualizado: SessaoCampanhaDetalhe) => {
+      setDetalhe(atualizado);
+      sincronizarEstadosDerivados(atualizado);
+    },
+    [sincronizarEstadosDerivados],
+  );
+
   const carregarPersonagensDisponiveis = useCallback(async () => {
     if (!idsValidos || !usuario) return;
 
@@ -4290,6 +4298,9 @@ export default function SessaoCampanhaPage() {
                   />
 
                   <SessionNpcsPanel
+                    campanhaId={campanhaId}
+                    sessaoId={sessaoId}
+                    onAtualizarSessao={atualizarSessaoAposAcaoNpc}
                     npcs={npcs}
                     podeControlarSessao={podeControlarSessao}
                     sessaoEncerrada={sessaoEncerrada}
@@ -4595,6 +4606,9 @@ export default function SessaoCampanhaPage() {
             socialAtivo &&
             npcsAlvosSociais.length > 0 ? (
               <SessionNpcsPanel
+                campanhaId={campanhaId}
+                sessaoId={sessaoId}
+                onAtualizarSessao={atualizarSessaoAposAcaoNpc}
                 npcs={npcsAlvosSociais}
                 podeControlarSessao={false}
                 sessaoEncerrada={sessaoEncerrada}
@@ -4637,6 +4651,9 @@ export default function SessaoCampanhaPage() {
 
             {!podeControlarSessao && npcsSobMeuControle.length > 0 ? (
               <SessionNpcsPanel
+                campanhaId={campanhaId}
+                sessaoId={sessaoId}
+                onAtualizarSessao={atualizarSessaoAposAcaoNpc}
                 npcs={npcsSobMeuControle}
                 podeControlarSessao={false}
                 sessaoEncerrada={sessaoEncerrada}

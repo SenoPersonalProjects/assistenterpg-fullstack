@@ -13,6 +13,7 @@ import type {
   NpcSessaoCampanhaCompleto,
   AlvoEncontroSocialSessao,
   UserErrorState,
+  SessaoCampanhaDetalhe,
 } from '@/lib/types';
 import { ehNpcSessaoCampanhaCompleto } from '@/lib/campanha/sessao-atualizacoes';
 import type {
@@ -28,6 +29,9 @@ import type {
 import { NpcSessionCard } from '@/components/campanha/sessao/NpcSessionCard';
 
 type SessionNpcsPanelProps = {
+  campanhaId: number;
+  sessaoId: number;
+  onAtualizarSessao: (detalhe: SessaoCampanhaDetalhe) => void;
   npcs: NpcSessaoCampanha[];
   podeControlarSessao: boolean;
   sessaoEncerrada: boolean;
@@ -85,6 +89,7 @@ type SessionNpcsPanelProps = {
 };
 
 export function SessionNpcsPanel({
+  campanhaId, sessaoId, onAtualizarSessao,
   npcs,
   podeControlarSessao,
   sessaoEncerrada,
@@ -164,6 +169,7 @@ export function SessionNpcsPanel({
         <>
           {npcsCompletos.map((npc) => (
             <NpcSessionCard
+              campanhaId={campanhaId} sessaoId={sessaoId} onAtualizarSessao={onAtualizarSessao}
               key={npc.npcSessaoId}
               npc={npc}
             iniciativaValor={iniciativaPorNpcSessao.get(npc.npcSessaoId) ?? null}

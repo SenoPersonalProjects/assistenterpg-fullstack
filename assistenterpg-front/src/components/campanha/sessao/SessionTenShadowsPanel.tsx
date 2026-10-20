@@ -4,6 +4,10 @@ import { SessionPanel } from "./SessionPanel";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
+import { Checkbox } from "@/components/ui/Checkbox";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { criarErroUsuario } from "@/lib/api/error-handler";
+import type { UserFacingError } from "@/lib/types";
 import {
   obterDezSombras,
   executarDezSombras,
@@ -37,15 +41,7 @@ const DANOS_SOMBRA: Record<string, string> = {
   ELETRICIDADE: "Eletricidade",
   ENERGIA_AMALDICOADA: "Energia Amaldiçoada",
 };
-function mensagemErro(error: unknown): string {
-  const response = (
-    error as { response?: { data?: { message?: string | string[] } } }
-  )?.response?.data?.message;
-  return Array.isArray(response)
-    ? response.join(" ")
-    : (response ??
-        "Não foi possível executar a ação. Atualize a sessão e tente novamente.");
-}
+const mensagemErro = criarErroUsuario;
 export function SessionTenShadowsPanel({
   campanhaId,
   sessaoId,
@@ -55,7 +51,7 @@ export function SessionTenShadowsPanel({
   onAtualizar,
 }: Props) {
   const [painel, setPainel] = useState<PainelDezSombras | null>(null);
-  const [erro, setErro] = useState("");
+  const [erro, setErro] = useState<UserFacingError | null>(null);
   const [pendente, setPendente] = useState(false);
   const [selecionada, setSelecionada] = useState("");
   const [habilidade, setHabilidade] = useState("");
@@ -69,7 +65,12 @@ export function SessionTenShadowsPanel({
   useEffect(() => {
     const controller = new AbortController();
     obterDezSombras(campanhaId, sessaoId, personagemSessaoId, controller.signal)
-      .then(setPainel)
+      .then((atualizado) => {
+        if (!controller.signal.aborted) {
+          setPainel(atualizado);
+          setErro(null);
+        }
+      })
       .catch((e: unknown) => {
         if (!controller.signal.aborted) setErro(mensagemErro(e));
       });
@@ -97,7 +98,7 @@ export function SessionTenShadowsPanel({
     )
       return;
     setPendente(true);
-    setErro("");
+    setErro(null);
     const [tipoAlvo, id] = alvo.split(":");
     const comando: ComandoSombra = {
       acao: tipo,
@@ -145,11 +146,7 @@ export function SessionTenShadowsPanel({
       collapsible
     >
       <div className="space-y-3">
-        {erro ? (
-          <p role="alert" className="text-sm text-red-400">
-            {erro}
-          </p>
-        ) : null}
+        {erro ? <ErrorAlert error={erro} /> : null}
         {painel ? (
           <>
             <div className="flex flex-wrap gap-3 text-sm" aria-live="polite">
@@ -173,38 +170,35 @@ export function SessionTenShadowsPanel({
               </p>
             ) : null}
             {painel.config.melhorAmigo ? (
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={painel.estado.melhorAmigoEmCurto ?? false}
-                  disabled={indisponivel}
-                  onChange={async (e) => {
-                    setPendente(true);
-                    setErro("");
-                    try {
-                      setPainel(
-                        await executarDezSombras(
-                          campanhaId,
-                          sessaoId,
-                          personagemSessaoId,
-                          {
-                            acao: "VINCULO_OROCHI",
-                            sombra: "SERPENTE_OROCHI",
-                            sustentado: e.target.checked,
-                          },
-                          crypto.randomUUID(),
-                        ),
-                      );
-                      await onAtualizar();
-                    } catch (error: unknown) {
-                      setErro(mensagemErro(error));
-                    } finally {
-                      setPendente(false);
-                    }
-                  }}
-                />
-                Orochi ou sua quimera está em alcance curto (confirmar posição)
-              </label>
+              <Checkbox
+                label="Orochi ou sua quimera está em alcance curto (confirmar posição)"
+                checked={painel.estado.melhorAmigoEmCurto ?? false}
+                disabled={indisponivel}
+                onChange={async (e) => {
+                  setPendente(true);
+                  setErro(null);
+                  try {
+                    setPainel(
+                      await executarDezSombras(
+                        campanhaId,
+                        sessaoId,
+                        personagemSessaoId,
+                        {
+                          acao: "VINCULO_OROCHI",
+                          sombra: "SERPENTE_OROCHI",
+                          sustentado: e.target.checked,
+                        },
+                        crypto.randomUUID(),
+                      ),
+                    );
+                    await onAtualizar();
+                  } catch (error: unknown) {
+                    setErro(mensagemErro(error));
+                  } finally {
+                    setPendente(false);
+                  }
+                }}
+              />
             ) : null}
             <div className="flex flex-wrap items-end gap-2">
               <Button
@@ -267,24 +261,19 @@ export function SessionTenShadowsPanel({
                         .map((a) => {
                           const key = `${s.codigo}:${a.codigo}`;
                           return (
-                            <label
+                            <Checkbox
                               key={key}
-                              className="flex items-center gap-2 text-sm"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={aspectosPreparados.includes(key)}
-                                disabled={indisponivel}
-                                onChange={(e) =>
-                                  setAspectosPreparados((prev) =>
-                                    e.target.checked
-                                      ? [...prev, key]
-                                      : prev.filter((v) => v !== key),
-                                  )
-                                }
-                              />
-                              {s.nome} · {a.nome}
-                            </label>
+                              label={`${s.nome} · ${a.nome}`}
+                              checked={aspectosPreparados.includes(key)}
+                              disabled={indisponivel}
+                              onChange={(e) =>
+                                setAspectosPreparados((prev) =>
+                                  e.target.checked
+                                    ? [...prev, key]
+                                    : prev.filter((v) => v !== key),
+                                )
+                              }
+                            />
                           );
                         }),
                     )}
@@ -525,14 +514,11 @@ export function SessionTenShadowsPanel({
                       ) : null}
                     </div>
                     {acao.extraivel ? (
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={sustentado}
-                          onChange={(e) => setSustentado(e.target.checked)}
-                        />
-                        Manter Aspecto por mais de uma rodada
-                      </label>
+                      <Checkbox
+                        label="Manter Aspecto por mais de uma rodada"
+                        checked={sustentado}
+                        onChange={(e) => setSustentado(e.target.checked)}
+                      />
                     ) : null}
                   </div>
                 ) : null}
@@ -658,7 +644,7 @@ export function SessionTenShadowsPanel({
                   disabled={indisponivel}
                   onClick={async () => {
                     setPendente(true);
-                    setErro("");
+                    setErro(null);
                     try {
                       setPainel(
                         await executarDezSombras(

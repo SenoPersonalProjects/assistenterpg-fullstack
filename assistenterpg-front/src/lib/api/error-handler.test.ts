@@ -9,6 +9,10 @@ import {
 } from './error-handler';
 
 describe('error-handler context helpers', () => {
+  it('preserva o motivo de negocio e a referencia do erro normalizado', () => {
+    expect(criarErroUsuario({ status: 400, code: 'SESSAO_NPC_ACAO_INVALIDA', requestId: 'ref-npc', body: { code: 'SESSAO_NPC_ACAO_INVALIDA', message: 'EA ou PE insuficientes.' } })).toMatchObject({ message: 'EA ou PE insuficientes.', referenceId: 'ref-npc', code: 'SESSAO_NPC_ACAO_INVALIDA' });
+    expect(criarErroUsuario({ status: 400, code: 'DEZ_SOMBRAS_REGRA_INVALIDA', message: 'Use Comandar Shikigami para conceder Ação Padrão.' }).message).toContain('Comandar Shikigami');
+  });
   it('extracts status, code, method, endpoint and requestId', () => {
     const error = {
       status: 422,

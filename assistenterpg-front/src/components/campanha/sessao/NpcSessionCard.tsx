@@ -9,12 +9,15 @@ import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Textarea } from '@/components/ui/Textarea';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { useSessaoAcoesNpc } from '@/hooks/useSessaoAcoesNpc';
 import { SessionTabs, type SessionTabItem } from '@/components/campanha/sessao/SessionTabs';
 import { SessionSegmentedBar } from '@/components/campanha/sessao/SessionSegmentedBar';
 import type {
   AlvoEncontroSocialSessao,
   CondicaoAtivaSessaoCampanha,
   NpcSessaoCampanhaCompleto,
+  SessaoCampanhaDetalhe,
 } from '@/lib/types';
 import type {
   AjustesRecursosNpc,
@@ -117,6 +120,9 @@ function formatarVinculoNpc(npc: NpcSessaoCampanhaCompleto): string | null {
 }
 
 type NpcSessionCardProps = {
+  campanhaId: number;
+  sessaoId: number;
+  onAtualizarSessao: (detalhe: SessaoCampanhaDetalhe) => void;
   npc: NpcSessaoCampanhaCompleto;
   iniciativaValor: number | null;
   podeControlarSessao: boolean;
@@ -168,6 +174,7 @@ type AbaDetalheNpc =
   | 'ACOES';
 
 export function NpcSessionCard({
+  campanhaId, sessaoId, onAtualizarSessao,
   npc,
   iniciativaValor,
   podeControlarSessao,
@@ -195,6 +202,7 @@ export function NpcSessionCard({
   onRemoverAlvoSocial,
   onAtualizarAlvoSocial,
 }: NpcSessionCardProps) {
+  const acoesNpc = useSessaoAcoesNpc(campanhaId, sessaoId, npc.npcSessaoId, onAtualizarSessao);
   const nomeTipoFicha = npc.fichaTipo === 'NPC' ? 'Aliado' : 'Ameaça';
   const vinculoLabel = formatarVinculoNpc(npc);
   // A API omite coleções privadas nos resumos de NPC. Mesmo que um cartão seja
@@ -434,6 +442,8 @@ export function NpcSessionCard({
 
   const renderAcoesNpc = () => (
     <div className="session-npc-section">
+      {acoesNpc.erro ? <ErrorAlert error={acoesNpc.erro} /> : null}
+      {acoesNpc.feedback ? <p role="status" className="text-sm text-app-success">{acoesNpc.feedback}</p> : null}
       <div className="session-npc-section__header">
         <div className="space-y-1">
           <p className="session-npc-section__title">Ações</p>
@@ -513,6 +523,17 @@ export function NpcSessionCard({
                 {renderGrupoMetadados(primario)}
                 {renderGrupoMetadados(resistencia, 'session-npc-meta-group--muted')}
                 {renderGrupoMetadados(rolagem, 'session-npc-meta-group--strong')}
+                {acao.sustentacaoEA ? <Badge size="sm" color="cyan">Sustentação {acao.sustentacaoEA} EA/rodada</Badge> : null}
+                {podeOperar && !npc.entidadeVinculadaId ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button size="xs" disabled={sessaoEncerrada || acoesNpc.pendente !== null} onClick={() => void acoesNpc.usar(acaoIndex)}>
+                      {acoesNpc.pendente === acaoIndex ? 'Registrando…' : 'Usar habilidade'}
+                    </Button>
+                    {npc.estadoAcoes?.sustentacoes?.[acao.nome] ? (
+                      <Button size="xs" variant="secondary" disabled={sessaoEncerrada || acoesNpc.pendente !== null} onClick={() => void acoesNpc.usar(acaoIndex, true)}>Encerrar sustentação</Button>
+                    ) : null}
+                  </div>
+                ) : null}
                 {podeRolarAcao && (expressaoTeste || expressaoDano) ? (
                   <div className="flex flex-wrap items-center gap-1.5">
                     {expressaoTeste ? (

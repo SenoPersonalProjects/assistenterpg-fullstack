@@ -284,6 +284,7 @@ async function main() {
       161,
     );
     await usar('COMANDAR', 'NUE');
+    await assert.rejects(usar('COMANDAR', 'NUE'), /já utilizado/);
     await usar('USAR', 'NUE', { habilidade: 'RASGAR' });
     let painel = await sombras.obter(campanha.id, sessao.id, ps.id, jogador.id);
     const nueId = painel.estado.sombras.NUE.npcSessaoId!;
@@ -1042,7 +1043,14 @@ async function main() {
       ).cenaId,
       cena.id,
     );
-    await db.cena.create({ data: { sessaoId: sessao.id } });
+    await db.personagemSessao.updateMany({
+      where: { sessaoId: sessao.id, cenaId: cenaSeguinte.id },
+      data: { cenaId: null },
+    });
+    await db.npcAmeacaSessao.updateMany({
+      where: { sessaoId: sessao.id, cenaId: cenaSeguinte.id },
+      data: { cenaId: null },
+    });
     await sessaoService.atualizarCenaSessao(campanha.id, sessao.id, admin.id, {
       tipo: 'LIVRE',
     });
@@ -1062,12 +1070,187 @@ async function main() {
       }),
       0,
     );
+    await sessaoService.adicionarPersonagemSessao(
+      campanha.id,
+      sessao.id,
+      admin.id,
+      { personagemCampanhaId: pc.id },
+    );
+    await db.npcAmeacaSessao.update({
+      where: { id: seoSessao.id },
+      data: {
+        cenaId: cenaVazia.id,
+        controladorUsuarioId: jogador.id,
+        ocultoJogadores: true,
+        eaAtual: 80,
+        estadoAcoes: Prisma.DbNull,
+      },
+    });
+    const registrarNpc = (
+      indice: number,
+      pedido = randomUUID(),
+      operacao = 'REGISTRAR_USO',
+    ) =>
+      npcs.usar(campanha.id, sessao.id, seoSessao.id, jogador.id, {
+        acaoIndice: indice,
+        clientRequestId: pedido,
+        operacao,
+      });
+    const requestRecinto = randomUUID();
+    await registrarNpc(0, requestRecinto);
+    await registrarNpc(0, requestRecinto);
+    await registrarNpc(4);
+    let seoAtual = await db.npcAmeacaSessao.findUniqueOrThrow({
+      where: { id: seoSessao.id },
+    });
+    assert.equal(seoAtual.eaAtual, 72);
+    assert.equal(
+      (seoAtual.estadoAcoes as { recinto?: unknown }).recinto,
+      undefined,
+    );
+    await assert.rejects(
+      npcs.usar(campanha.id, sessao.id, seoSessao.id, outro.id, {
+        acaoIndice: 4,
+        clientRequestId: randomUUID(),
+        operacao: 'REGISTRAR_USO',
+      }),
+      /controla/,
+    );
+    await db.sessao.update({
+      where: { id: sessao.id },
+      data: { cenaAtualTipo: 'COMBATE' },
+    });
+    await registrarNpc(4);
+    await registrarNpc(4);
+    assert.equal(
+      (
+        await db.npcAmeacaSessao.findUniqueOrThrow({
+          where: { id: seoSessao.id },
+        })
+      ).eaAtual,
+      66,
+    );
+    await db.$transaction((tx) => sustentarAcoesNpcTx(tx, sessao.id, 2));
+    await db.$transaction((tx) => sustentarAcoesNpcTx(tx, sessao.id, 2));
+    seoAtual = await db.npcAmeacaSessao.findUniqueOrThrow({
+      where: { id: seoSessao.id },
+    });
+    assert.equal(seoAtual.eaAtual, 64);
+    await registrarNpc(0, randomUUID(), 'ENCERRAR');
+    await db.$transaction((tx) => sustentarAcoesNpcTx(tx, sessao.id, 3));
+    assert.equal(
+      (
+        await db.npcAmeacaSessao.findUniqueOrThrow({
+          where: { id: seoSessao.id },
+        })
+      ).eaAtual,
+      64,
+    );
+    await db.npcAmeacaSessao.update({
+      where: { id: seoSessao.id },
+      data: { eaAtual: 1 },
+    });
+    await assert.rejects(registrarNpc(4), /insuficientes/);
+    assert.equal(
+      (
+        await db.npcAmeacaSessao.findUniqueOrThrow({
+          where: { id: seoSessao.id },
+        })
+      ).eaAtual,
+      1,
+    );
+    const chatOculto = await db.eventoSessao.create({
+      data: {
+        sessaoId: sessao.id,
+        tipoEvento: 'CHAT',
+        dados: {
+          mensagem: 'Rolagem de teste do NPC',
+          visibilidade: 'SECRETA_MESTRE',
+          dadosRolagem: { npcSessaoId: seoSessao.id },
+        },
+      },
+    });
+    for (const [usuario, oculto] of [
+      [admin.id, false],
+      [jogador.id, false],
+      [outro.id, true],
+    ] as const) {
+      const chat = await sessaoService.listarChatSessao(
+        campanha.id,
+        sessao.id,
+        usuario,
+      );
+      assert.equal(
+        chat.find((e) => e.id === chatOculto.id)?.ocultaParaUsuario,
+        oculto,
+      );
+    }
+    await db.npcAmeacaSessao.update({
+      where: { id: seoSessao.id },
+      data: { controladorUsuarioId: outro.id },
+    });
+    assert.equal(
+      (
+        await sessaoService.listarChatSessao(campanha.id, sessao.id, jogador.id)
+      ).find((e) => e.id === chatOculto.id)?.ocultaParaUsuario,
+      true,
+    );
+    await sessaoService.atualizarCenaSessao(campanha.id, sessao.id, admin.id, {
+      tipo: 'LIVRE',
+      nome: 'Desfazer',
+    });
+    const transicao = await db.eventoSessao.findFirstOrThrow({
+      where: { sessaoId: sessao.id, tipoEvento: 'CENA_ATUALIZADA' },
+      orderBy: { id: 'desc' },
+    });
+    const restaurado = await sessaoService.desfazerEventoSessao(
+      campanha.id,
+      sessao.id,
+      transicao.id,
+      admin.id,
+    );
+    assert.equal(restaurado.cenaAtual.id, cenaVazia.id);
+    assert.equal(
+      restaurado.cards.some((c) => c.personagemSessaoId === ps.id),
+      true,
+    );
+    assert.equal(
+      restaurado.npcs.some((n) => n.npcSessaoId === seoSessao.id),
+      true,
+    );
+    assert.equal(
+      restaurado.cards.some((c) => c.personagemSessaoId === ausentes[1].id),
+      false,
+    );
+    await sessaoService.atualizarCenaSessao(campanha.id, sessao.id, admin.id, {
+      tipo: 'LIVRE',
+    });
+    await db.personagemCampanha.update({
+      where: { id: pc.id },
+      data: { eaAtual: 162, peAtual: 108, estadoDezSombras: Prisma.DbNull },
+    });
+    for (let i = 0; i < 7; i++) {
+      await usar('INVOCAR', 'SAPO');
+      await usar('COMANDAR', 'SAPO');
+      await usar('COMANDAR', 'SAPO');
+      await usar('LIBERAR', 'SAPO');
+    }
+    assert.equal(
+      (await db.personagemCampanha.findUniqueOrThrow({ where: { id: pc.id } }))
+        .eaAtual,
+      141,
+    );
     console.log(
       JSON.stringify(
         {
           resultado: 'PASSOU',
           bancoLocalIsolado: nomeBanco,
           cenarios: [
+            'Dez Sombras: modo livre nao esgota acoes ou limite por turno; combate preserva limite de Comandar',
+            'NPC: usos consecutivos livre e combate, idempotencia, PE zero, EA insuficiente sem cobranca e sem efeitos automaticos',
+            'NPC: sustentacao unica por rodada e encerramento sem cobranca posterior',
+            'rolagem oculta persiste para controlador e mestre; terceiro e controlador revogado nao veem',
+            'desfazer cena restaura cena efetiva e participantes sem reinserir ausentes',
             'troca de cena preserva apenas presentes, permite inclusao manual e mantem cena vazia sem reinserir ausentes',
             'NPC oculto visivel ao controlador e mestre, oculto dos demais; troca de controlador revoga a excecao',
             'importação idempotente das5 fichas',

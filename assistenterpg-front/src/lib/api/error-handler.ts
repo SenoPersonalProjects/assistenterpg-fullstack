@@ -681,11 +681,20 @@ const HTTP_STATUS_MESSAGES: Record<number, string> = {
 /**
  * ✅ Traduz código de erro do backend para mensagem amigável
  */
+const CODIGOS_COM_MOTIVO_DE_REGRA = new Set(['SESSAO_NPC_ACAO_INVALIDA', 'DEZ_SOMBRAS_REGRA_INVALIDA']);
+
 export function traduzirErro(
   code: string | undefined,
   fallbackMessage: string,
   status?: number,
 ): string {
+  if (
+    code &&
+    CODIGOS_COM_MOTIVO_DE_REGRA.has(code) &&
+    fallbackMessage
+  ) {
+    return fallbackMessage;
+  }
   if (code && ERROR_MESSAGES[code]) {
     return ERROR_MESSAGES[code];
   }
@@ -724,6 +733,9 @@ export function extrairMensagemErro(error: unknown): string {
 
   if (body) {
     const apiBody = body as ApiErrorBody;
+    if (apiBody.code && CODIGOS_COM_MOTIVO_DE_REGRA.has(apiBody.code) && apiBody.message) {
+      return Array.isArray(apiBody.message) ? apiBody.message.join(', ') : String(apiBody.message);
+    }
 
     if (apiBody.code) {
       const mensagemTraduzida = traduzirErro(apiBody.code, "", status);
@@ -744,6 +756,7 @@ export function extrairMensagemErro(error: unknown): string {
     );
   }
 
+  if (code && CODIGOS_COM_MOTIVO_DE_REGRA.has(code) && typeof err.message === 'string') return err.message;
   if (code === "ERR_NETWORK" || !response) {
     return ERROR_MESSAGES.NETWORK_ERROR;
   }

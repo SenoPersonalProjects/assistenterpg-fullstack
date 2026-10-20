@@ -88,7 +88,7 @@ Campos principais:
 Observacao:
 
 - `vd` permanece sem fórmula automática nesta etapa.
-- campos de `passivas` e `acoes` funcionam como guia de mesa para o mestre (sem automação mecânica no sistema).
+- campos de `passivas` e `acoes` funcionam como guia de mesa. Na sessão, o registro de uso pode cobrar PE/EA e acompanhar sustentação; alvos e efeitos são resolvidos pela mesa.
 - `periciasEspeciais` aceitam apenas códigos oficiais de perícia (tabela `Perícia`).
 - para dados de perícia, o sistema usa padrão por atributo quando não houver override:
   - atributo `> 0`: rola `atributo` dados e pega o melhor.
@@ -151,13 +151,19 @@ Regras:
 - apenas mestre pode adicionar/editar/remover aliados/ameaças na sessão;
 - cada instância fica vinculada a uma `cenaId` (controle por cena);
 - a instância guarda snapshot (nome/valores/passivas/acoes) para uso em mesa;
-- passivas e ações continuam descritivas (guia), sem efeitos automatizados.
+- o controlador delegado pode operar e editar a instância autorizada; ocultar dos jogadores preserva acesso para o mestre e esse controlador;
+- passivas e efeitos das ações continuam descritivos. **Usar habilidade**, na própria aba Ações, registra custos e sustentação; rolagens são separadas;
+- a economia geral de Padrão/Movimento/Reação é manual. Frequências explícitas por rodada são respeitadas com turnos ativos, sem travar o modo livre/BASE;
+- sustentação cobra nas rodadas ativas seguintes à abertura, uma vez por rodada; **Encerrar sustentação** interrompe a cobrança;
+- o histórico de resultados secretos de um NPC oculto continua disponível ao mestre e ao controlador atualmente autorizado;
+- mudanças de cena levam apenas os participantes da cena anterior; desfazer restaura a cena efetiva e seu elenco.
 
 Endpoints relacionados (módulo de sessão):
 
 - `POST /campanhas/:campanhaId/sessoes/:sessaoId/npcs`
 - `PATCH /campanhas/:campanhaId/sessoes/:sessaoId/npcs/:npcSessaoId`
 - `DELETE /campanhas/:campanhaId/sessoes/:sessaoId/npcs/:npcSessaoId`
+- `POST /campanhas/:campanhaId/sessoes/:sessaoId/npcs/:npcSessaoId/acoes`: a ficha usa `REGISTRAR_USO` ou `ENCERRAR`, com `acaoIndice` e `clientRequestId` para idempotência. `REGISTRAR_USO` não exige alvos nem aplica efeitos específicos da habilidade.
 
 ## UI/UX (frontend)
 

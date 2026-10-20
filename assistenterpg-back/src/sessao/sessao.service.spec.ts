@@ -3706,7 +3706,9 @@ describe('SessaoService', () => {
       eventoSessao: {
         findMany: jest.fn().mockResolvedValue([]),
         create: jest.fn().mockResolvedValue({ id: 301 }),
+        findFirst: jest.fn().mockResolvedValue(null),
       },
+      cena: { findFirst: jest.fn().mockResolvedValue({ id: 81 }) },
       sessaoRegraOpcional: {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },

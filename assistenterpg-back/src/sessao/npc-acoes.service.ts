@@ -17,6 +17,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { bloquearNpcSessaoTx, bloquearSessaoTx } from './sessao-concorrencia';
 import { executarComRetryConcorrencia } from '../campanha/campanha-concorrencia';
 import { BusinessException } from '../common/exceptions/business.exception';
+import { controleTurnosAtivo } from './sessao-cena-atual';
 
 type AcaoNpc = {
   nome: string;
@@ -32,6 +33,7 @@ type AcaoNpc = {
   dano?: string;
 };
 type EstadoNpc = {
+  cenaId?: number | null;
   sustentacaoTipos?: Record<string, string>;
   penalidadeDefesa?: number;
   rodada?: number;
@@ -53,6 +55,7 @@ export class UsarAcaoNpcDto {
   @IsOptional()
   @IsIn([
     'USAR',
+    'REGISTRAR_USO',
     'ENCERRAR',
     'ZONA',
     'DANIFICAR_BIOMBO',
@@ -159,7 +162,8 @@ export class NpcAcoesService {
         const acao = Array.isArray(acoes) ? acoes[dto.acaoIndice] : undefined;
         if (!acao) falha('Ação não encontrada.');
         const st = estadoNpc(npc.estadoAcoes);
-        if (st.rodada !== npc.sessao.rodadaAtual) {
+        if (st.rodada !== npc.sessao.rodadaAtual || st.cenaId !== npc.cenaId) {
+          st.cenaId = npc.cenaId;
           st.rodada = npc.sessao.rodadaAtual;
           st.usos = [];
           st.reacaoEspecial = false;
@@ -254,24 +258,13 @@ export class NpcAcoesService {
         } else {
           if (st.perdeuTecnica && !acao.dano)
             falha('Tobari perdeu Ato Cego permanentemente por voto.');
-          if (acao.frequencia === 'RODADA' && st.usos.includes(acao.nome))
+          const turnosAtivos = controleTurnosAtivo(npc.sessao.cenaAtualTipo);
+          if (
+            turnosAtivos &&
+            acao.frequencia === 'RODADA' &&
+            st.usos.includes(acao.nome)
+          )
             falha('Ação já utilizada nesta rodada.');
-          if (acao.execucao === 'REACAO_ESPECIAL' && st.reacaoEspecial)
-            falha('Reação Especial já utilizada nesta rodada.');
-          if (acao.execucao === 'REACAO_ESPECIAL') st.reacaoEspecial = true;
-          if (acao.execucao === 'MOVIMENTO') {
-            if (!st.movimento) st.movimento = true;
-            else if (!st.padrao) st.padrao = true;
-            else falha('Sem Ação de Movimento disponível.');
-          } else if (
-            acao.execucao === 'PADRAO' ||
-            acao.execucao === 'COMPLETA'
-          ) {
-            if (st.padrao || (acao.execucao === 'COMPLETA' && st.movimento))
-              falha('Sem ações suficientes neste turno.');
-            st.padrao = true;
-            if (acao.execucao === 'COMPLETA') st.movimento = true;
-          }
           if (
             st.votoPessoal &&
             [
@@ -282,7 +275,8 @@ export class NpcAcoesService {
             ].includes(acao.nome)
           )
             falha('O voto permanente impede Ato Cego sobre Tobari.');
-          if (acao.frequencia === 'RODADA') st.usos.push(acao.nome);
+          if (turnosAtivos && acao.frequencia === 'RODADA')
+            st.usos.push(acao.nome);
           custoEA = acao.custoEA ?? 0;
           custoPE = acao.custoPE ?? 0;
           if (custoPE && !npc.peMax)
@@ -291,10 +285,11 @@ export class NpcAcoesService {
             if (st.sustentacoes[acao.nome])
               falha('Habilidade já está sustentada.');
             st.sustentacoes[acao.nome] = acao.sustentacaoEA;
-            (st.sustentacaoTipos ??= {})[acao.nome] = acao.estado ?? '';
+            (st.sustentacaoTipos ??= {})[acao.nome] =
+              operacao === 'REGISTRAR_USO' ? 'RECURSO' : (acao.estado ?? '');
             st.ultimaSustentacao = npc.sessao.rodadaAtual;
           }
-          switch (acao.estado) {
+          switch (operacao === 'REGISTRAR_USO' ? undefined : acao.estado) {
             case 'DEFESA_MENOS_5':
               if (!st.penalidadeDefesa) {
                 st.penalidadeDefesa = 5;

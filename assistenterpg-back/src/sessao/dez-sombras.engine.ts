@@ -42,6 +42,7 @@ export type EstadoSombra = {
   invocado?: boolean;
 };
 export type EstadoDezSombras = {
+  cenaId?: number;
   versao: 1;
   turno: string;
   rodada: string;
@@ -428,4 +429,26 @@ export function iniciarTurnoSombras(
       .filter((c) => c.restante === null || c.restante > 0);
   }
   return true;
+}
+
+/** Modo livre não avança durações nem recupera PV: só libera marcadores de ações. */
+export function liberarAcoesSombrasModoLivre(estado: EstadoDezSombras) {
+  estado.comandoUsado = false;
+  estado.favoritaUsada = false;
+  estado.comboUsado = false;
+  estado.sinergiaUsada = false;
+  estado.cloneUsado = false;
+  estado.reacaoSombrasUsada = false;
+  estado.reacaoEspecialUsuarioUsada = false;
+  estado.movimentosUsuario = 1;
+  estado.padroesUsuario = 1;
+  estado.ecos = 0;
+  estado.gasto = 0;
+  delete estado.rodaUsadaRodada;
+  if (estado.dominio) estado.dominio.acertoUsado = false;
+  for (const sombra of Object.values(estado.sombras)) {
+    sombra.movimentoUsado = false;
+    // A mesa resolve a concessão de ação em cenas sem turnos.
+    sombra.padraoDisponivel = Boolean(sombra.npcSessaoId);
+  }
 }

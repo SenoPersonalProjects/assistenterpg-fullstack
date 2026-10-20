@@ -9,6 +9,10 @@ import {
 } from '../campanha/campanha-concorrencia';
 import { bloquearSessaoTx } from './sessao-concorrencia';
 import {
+  buscarCenaAtualSessao,
+  controleTurnosAtivo,
+} from './sessao-cena-atual';
+import {
   CATALOGO_DEZ_SOMBRAS,
   REGRAS_FLOR_CAIDA,
   HERANCAS_DEZ_SOMBRAS,
@@ -29,6 +33,7 @@ import {
   iniciarTurnoSombras,
   lerEstadoSombras,
   liberarSombra,
+  liberarAcoesSombrasModoLivre,
   podeManifestar,
   prepararAspectosSombras,
   registrarDanoSombra,
@@ -165,6 +170,8 @@ export class DezSombrasService {
       usuarioId,
     );
     const estado = lerEstadoSombras(pc.estadoDezSombras, config);
+    if (!controleTurnosAtivo(personagem.sessao.cenaAtualTipo))
+      liberarAcoesSombrasModoLivre(estado);
     const dominioAtivo = !!(await this.prisma.dominioSessao.findFirst({
       where: {
         sessaoId,
@@ -271,7 +278,17 @@ export class DezSombrasService {
             where: { id: pc.id },
           });
           const estado = lerEstadoSombras(atual.estadoDezSombras, config);
+          const turnosAtivos = controleTurnosAtivo(
+            personagem.sessao.cenaAtualTipo,
+          );
+          const cenaAtual = await buscarCenaAtualSessao(tx, sessaoId);
           const rodada = `${sessaoId}:${personagem.sessao.rodadaAtual}`;
+          // Sem relógio de turnos não há orçamento esgotável de ações.
+          if (estado.cenaId !== cenaAtual?.id) {
+            liberarAcoesSombrasModoLivre(estado);
+            estado.cenaId = cenaAtual?.id;
+          }
+          if (!turnosAtivos) liberarAcoesSombrasModoLivre(estado);
           if (!estado.turno)
             iniciarTurnoSombras(estado, `${rodada}:inicial`, rodada);
           if (estado.rodada !== rodada) {
@@ -292,10 +309,7 @@ export class DezSombrasService {
           let registro = estadoSombra(estado, sombra.codigo);
           let custoEA = 0,
             custoPE = 0;
-          const cena = await tx.cena.findFirst({
-            where: { sessaoId },
-            orderBy: { id: 'desc' },
-          });
+          const cena = cenaAtual;
           if (!cena) falhaSombras('Sessão sem cena.');
           const efeitos: Record<string, unknown> = {};
           if (
@@ -1159,7 +1173,9 @@ export class DezSombrasService {
           }
           if (atual.eaAtual < custoEA || atual.peAtual < custoPE)
             falhaSombras('EA ou PE insuficientes.');
-          const turnoReferencia = `${personagem.sessao.rodadaAtual}:${personagem.sessao.indiceTurnoAtual}`;
+          const turnoReferencia = turnosAtivos
+            ? `${personagem.sessao.rodadaAtual}:${personagem.sessao.indiceTurnoAtual}`
+            : null;
           const outrosGastos = await tx.eventoSessao.findMany({
             where: {
               sessaoId,
@@ -1183,7 +1199,9 @@ export class DezSombrasService {
               custoPE?: number;
               desfeito?: boolean;
             } | null;
-            return e?.turnoReferencia === turnoReferencia && !e.desfeito
+            return turnoReferencia &&
+              e?.turnoReferencia === turnoReferencia &&
+              !e.desfeito
               ? total +
                   Math.max(0, e.custoEA ?? 0) +
                   Math.max(0, e.custoPE ?? 0)
@@ -1192,6 +1210,7 @@ export class DezSombrasService {
           const custoTotal = custoEA + custoPE;
           // Mantém a exceção universal existente para o primeiro uso-base do turno.
           if (
+            turnosAtivos &&
             estado.gasto > 0 &&
             estado.gasto + custoTotal > pc.limitePeEaPorTurno
           )
