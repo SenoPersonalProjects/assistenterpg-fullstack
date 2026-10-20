@@ -23,7 +23,7 @@ import {
   cargaSombras,
   comandarSombra,
   configSombras,
-  ConfigDezSombras,
+  resolverConfigSombrasPersonagem,
   consumirAcaoSombra,
   consumirAcaoUsuario,
   custoInvocacao,
@@ -52,11 +52,6 @@ const dados = (quantidade: number, faces: number) =>
     (a, b) => a + b,
     0,
   );
-const DEFAULT_CONFIG: ConfigDezSombras = {
-  dominadas: ['CAES_DIVINOS'],
-  aspectos: [],
-  grauEfetivo: 1,
-};
 export function snapshotSombra(s: SombraCatalogo) {
   const [agilidade, forca, intelecto, presenca, vigor] = s.atributos;
   return {
@@ -144,14 +139,7 @@ export class DezSombrasService {
       falhaSombras('Você não controla esta ficha.');
     }
     const pc = personagem.personagemCampanha;
-    const config =
-      configSombras(pc.configuracaoDezSombras) ??
-      configSombras(pc.personagemBase.configuracaoDezSombras) ??
-      ([pc.tecnicaInata?.codigo, pc.tecnicaInataPropria?.codigo].includes(
-        'DEZ_SOMBRAS',
-      )
-        ? DEFAULT_CONFIG
-        : null);
+    const config = resolverConfigSombrasPersonagem(pc);
     if (!config)
       falhaSombras('Esta ficha não possui a Técnica das Dez Sombras.');
     return { personagem, pc, config, mestre };

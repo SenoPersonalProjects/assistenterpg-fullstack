@@ -8,6 +8,7 @@ import {
 } from './dez-sombras.vitalidade';
 import {
   configSombras,
+  resolverConfigSombrasPersonagem,
   lerEstadoSombras,
   consumirAcaoUsuario,
 } from './dez-sombras.engine';
@@ -1137,6 +1138,7 @@ export class SessaoService {
               select: {
                 id: true,
                 personagemBaseId: true,
+                configuracaoDezSombras: true,
                 nome: true,
                 nivel: true,
                 donoId: true,
@@ -1341,6 +1343,7 @@ export class SessaoService {
                   select: {
                     id: true,
                     nivel: true,
+                    configuracaoDezSombras: true,
                     classe: {
                       select: {
                         id: true,
@@ -2320,6 +2323,9 @@ export class SessaoService {
               : null,
           tecnicaInata:
             visibilidade === 'completa' ? tecnicas.tecnicaInata : null,
+          possuiDezSombras:
+            podeEditar &&
+            !!resolverConfigSombrasPersonagem(personagem.personagemCampanha),
           tecnicasNaoInatas:
             visibilidade === 'completa' ? tecnicas.tecnicasNaoInatas : [],
           habilidadesClasse:

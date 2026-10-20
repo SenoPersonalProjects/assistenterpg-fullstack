@@ -275,6 +275,41 @@ async function main() {
       });
     }
     await assert.rejects(usar('INVOCAR', 'NUE', {}, outro.id), /controla/);
+    const copiaSombras = await db.tecnicaAmaldicoada.create({
+      data: {
+        codigo: 'COPIA_DEZ_SOMBRAS_TESTE',
+        nome: 'Dez Sombras',
+        descricao: 'Cópia editável de campanha',
+        tipo: 'INATA',
+        tecnicaBaseId: base.tecnicaInataId,
+      },
+    });
+    await db.personagemCampanha.update({
+      where: { id: pc.id },
+      data: { tecnicaInataPropriaId: copiaSombras.id },
+    });
+    for (const usuarioId of [admin.id, jogador.id]) {
+      const detalheSombras = await sessaoService.buscarDetalheSessao(
+        campanha.id,
+        sessao.id,
+        usuarioId,
+      );
+      const cardSombras = detalheSombras.cards.find(
+        (c) => c.personagemSessaoId === ps.id,
+      )!;
+      assert.equal(cardSombras.tecnicaInata?.codigo, copiaSombras.codigo);
+      assert.equal(cardSombras.possuiDezSombras, true);
+    }
+    const detalheTerceiro = await sessaoService.buscarDetalheSessao(
+      campanha.id,
+      sessao.id,
+      outro.id,
+    );
+    assert.equal(
+      detalheTerceiro.cards.find((c) => c.personagemSessaoId === ps.id)
+        ?.possuiDezSombras,
+      false,
+    );
     const request = randomUUID();
     await usar('INVOCAR', 'NUE', { clientRequestId: request });
     await usar('INVOCAR', 'NUE', { clientRequestId: request });
@@ -283,6 +318,10 @@ async function main() {
         .eaAtual,
       161,
     );
+    await db.personagemCampanha.update({
+      where: { id: pc.id },
+      data: { tecnicaInataPropriaId: null },
+    });
     await usar('COMANDAR', 'NUE');
     await assert.rejects(usar('COMANDAR', 'NUE'), /já utilizado/);
     await usar('USAR', 'NUE', { habilidade: 'RASGAR' });
@@ -1246,6 +1285,7 @@ async function main() {
           resultado: 'PASSOU',
           bancoLocalIsolado: nomeBanco,
           cenarios: [
+            'Dez Sombras: copia editavel aparece para mestre/controlador, oculta controles de terceiro e invoca descontando EA do dono',
             'Dez Sombras: modo livre nao esgota acoes ou limite por turno; combate preserva limite de Comandar',
             'NPC: usos consecutivos livre e combate, idempotencia, PE zero, EA insuficiente sem cobranca e sem efeitos automaticos',
             'NPC: sustentacao unica por rodada e encerramento sem cobranca posterior',

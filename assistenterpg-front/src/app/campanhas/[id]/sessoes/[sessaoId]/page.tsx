@@ -4559,7 +4559,8 @@ export default function SessaoCampanhaPage() {
               .filter(
                 (card) =>
                   card.podeEditar &&
-                  card.tecnicaInata?.codigo === "DEZ_SOMBRAS",
+                  (card.possuiDezSombras ||
+                    card.tecnicaInata?.codigo === "DEZ_SOMBRAS"),
               )
               .map((card) => (
                 <SessionTenShadowsPanel

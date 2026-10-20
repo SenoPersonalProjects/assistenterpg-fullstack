@@ -87,6 +87,24 @@ export function configSombras(valor: unknown): ConfigDezSombras | null {
     ? config
     : null;
 }
+/** A cópia editável da técnica não substitui sua configuração mecânica. */
+export function resolverConfigSombrasPersonagem(personagem: {
+  configuracaoDezSombras?: unknown;
+  personagemBase?: { configuracaoDezSombras?: unknown } | null;
+  tecnicaInata?: { codigo: string } | null;
+  tecnicaInataPropria?: { codigo: string } | null;
+}): ConfigDezSombras | null {
+  return (
+    configSombras(personagem.configuracaoDezSombras) ??
+    configSombras(personagem.personagemBase?.configuracaoDezSombras) ??
+    ([
+      personagem.tecnicaInata?.codigo,
+      personagem.tecnicaInataPropria?.codigo,
+    ].includes('DEZ_SOMBRAS')
+      ? { dominadas: ['CAES_DIVINOS'], aspectos: [], grauEfetivo: 1 }
+      : null)
+  );
+}
 export function iniciarEstadoSombras(
   config: ConfigDezSombras,
 ): EstadoDezSombras {

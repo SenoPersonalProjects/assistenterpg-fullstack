@@ -1231,6 +1231,7 @@ export type SessaoCampanhaDetalhe = {
       sanMax: number;
     } | null;
     tecnicaInata: TecnicaSessaoCampanha | null;
+    possuiDezSombras?: boolean;
     tecnicasNaoInatas: TecnicaSessaoCampanha[];
     habilidadesClasse: HabilidadeClasseSessaoCampanha[];
     outrasHabilidades: OutraHabilidadeSessaoCampanha[];
